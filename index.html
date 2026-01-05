@@ -11,8 +11,6 @@
     <!-- Chart.js Library -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-    
-</head>
 <body>
 <div class="app-shell">
     <!-- ========== SIDEBAR ========== -->
@@ -193,18 +191,7 @@
     </main>
 </div>
 
-<!-- ES6 Module JavaScript -->
-<script type="module">
-document.addEventListener('DOMContentLoaded', function() {
-    // Import und starte main.js als ES6 Module
-    import('./src/js/main.js')
-        .then(() => {
-            console.log('Dashboard modules loaded successfully');
-        })
-        .catch(err => {
-            console.error('Error loading dashboard modules:', err);
-        });
-});
-</script>
+<!-- JavaScript - Simple Loading -->
+<script src="src/js/main.js"></script>
 </body>
 </html>
