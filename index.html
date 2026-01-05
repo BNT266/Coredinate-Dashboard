@@ -1418,6 +1418,49 @@ function runSmartAnalytics() {
         );
         createChart('chartTypes', types, 'pie');
         }
+    }
+        }
+    });
+
+    // ===== HIER EINFÜGEN (nach Zeile 1420, vor Zeile 1421) =====
+    
+    // =======================
+    // THEME TOGGLE SYSTEM
+    // =======================
+    function initThemeToggle() {
+        const themeToggle = document.getElementById('themeToggle');
+        const themeLabel = document.querySelector('.theme-label');
+        
+        if (!themeToggle) return;
+        
+        // Load saved theme or default to light
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        updateThemeLabel(savedTheme);
+        
+        themeToggle.addEventListener('click', function() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeLabel(newTheme);
+        });
+        
+        function updateThemeLabel(theme) {
+            if (themeLabel) {
+                themeLabel.textContent = theme === 'dark' ? 'Light Mode' : 'Dark Mode';
+            }
+        }
+    }
+
+    // Theme Toggle initialisieren
+    initThemeToggle();
+    
+    // ===== BIS HIER =====
+    
+}); // <- Das bleibt (Zeile 1421)
+</script>
 });
 </script>
 </body>
