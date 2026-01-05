@@ -193,44 +193,355 @@
 
 <!-- JavaScript direkt in HTML - funktioniert garantiert -->
 <script>
-console.log('JavaScript startet...');
+console.log('Dashboard startet...');
 
-// Test ob alles lädt
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM ready!');
-    
-    // Einfacher Test
-    const btn = document.getElementById('loadTestData');
-    if (btn) {
-        btn.addEventListener('click', function() {
-            alert('Button funktioniert! Chart.js: ' + (typeof Chart !== 'undefined' ? 'OK' : 'FEHLER'));
-            
-            // Schneller Test mit Chart.js
-            const container = document.getElementById('chartCountries');
-            container.innerHTML = '<canvas></canvas>';
-            const canvas = container.querySelector('canvas');
-            
-            if (typeof Chart !== 'undefined') {
-                new Chart(canvas, {
-                    type: 'bar',
-                    data: {
-                        labels: ['Deutschland', 'USA', 'UK'],
-                        datasets: [{
-                            label: 'Test Daten',
-                            data: [5, 3, 2],
-                            backgroundColor: ['#00a37a', '#006b4e', '#4caf50']
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false
-                    }
-                });
-                
-                document.getElementById('recordCount').textContent = '10';
-                document.getElementById('modeIndicator').textContent = 'Modus: Test erfolgreich!';
-            }
+// =======================
+// UTILITY FUNCTIONS
+// =======================
+function parseCSV(text) {
+    const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+    if (lines.length === 0) return [];
+
+    const delimiter = detectDelimiter(lines[0]);
+    const headers = lines[0].split(delimiter).map(h => h.trim());
+
+    const rows = [];
+    for (let i = 1; i < lines.length; i++) {
+        const line = lines[i];
+        const cells = splitCSVLine(line, delimiter);
+        if (cells.length === 1 && cells[0] === "") continue;
+        const row = {};
+        headers.forEach((h, idx) => {
+            row[h] = (cells[idx] || "").trim();
         });
+        rows.push(row);
+    }
+    return { headers, rows };
+}
+
+function detectDelimiter(headerLine) {
+    const candidates = [",", ";", "\t"];
+    let best = ",";
+    let bestCount = 0;
+    for (const d of candidates) {
+        const count = headerLine.split(d).length;
+        if (count > bestCount) {
+            bestCount = count;
+            best = d;
+        }
+    }
+    return best;
+}
+
+function splitCSVLine(line, delimiter) {
+    const result = [];
+    let current = "";
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+        const c = line[i];
+        if (c === '"') {
+            inQuotes = !inQuotes;
+            continue;
+        }
+        if (c === delimiter && !inQuotes) {
+            result.push(current);
+            current = "";
+        } else {
+            current += c;
+        }
+    }
+    result.push(current);
+    return result;
+}
+
+function createHeaderMap(headers) {
+    const normalize = (s) =>
+        s.toLowerCase()
+            .replace(/\s+/g, "")
+            .replace(/ß/g, "ss")
+            .replace(/[^a-z0-9]/g, "");
+
+    const map = {};
+    const targetNames = {
+        country: ["land", "country"],
+        site: ["liegenschaft", "site", "standort"],
+        type: ["ereignisart", "ereignissart", "eventtype", "ereignis"]
+    };
+
+    const normalized = headers.map(h => ({ header: h, norm: normalize(h) }));
+
+    for (const n of normalized) {
+        const val = n.norm;
+        if (targetNames.country.some(t => val.includes(t))) {
+            map.country = n.header;
+        }
+        if (targetNames.site.some(t => val.includes(t))) {
+            map.site = n.header;
+        }
+        if (targetNames.type.some(t => val.includes(t))) {
+            map.type = n.header;
+        }
+    }
+
+    return map;
+}
+
+function groupAndCount(rows, keyFn) {
+    const map = new Map();
+    for (const row of rows) {
+        const key = keyFn(row);
+        if (!key) continue;
+        map.set(key, (map.get(key) || 0) + 1);
+    }
+    return Array.from(map.entries())
+        .map(([key, count]) => ({ key, count }))
+        .sort((a, b) => b.count - a.count);
+}
+
+function getTestData() {
+    return `Land;Liegenschaft;Ereignisart;Datum
+Deutschland;Mainz Campus;Zutrittsverletzung;2025-01-03
+Deutschland;Mainz Campus;Zutrittsverletzung;2025-01-04
+Deutschland;Mainz Campus;Alarmanlage ausgelöst;2025-01-05
+Deutschland;Berlin Research;Zutrittsverletzung;2025-02-01
+Deutschland;Berlin Research;Verdächtige Person;2025-02-02
+Deutschland;Berlin Research;Verdächtige Person;2025-02-04
+Deutschland;München Warehouse;Diebstahl;2025-03-01
+Deutschland;München Warehouse;Diebstahl;2025-03-02
+Deutschland;München Warehouse;Alarmanlage ausgelöst;2025-03-05
+Deutschland;München Warehouse;Zutrittsverletzung;2025-03-06
+USA;Cambridge Lab;Zutrittsverletzung;2025-01-10
+USA;Cambridge Lab;Verdächtige Person;2025-01-12
+USA;Cambridge Lab;Alarmanlage ausgelöst;2025-01-15
+USA;San Diego Office;Verdächtige Person;2025-02-10
+USA;San Diego Office;Verdächtige Person;2025-02-12
+USA;San Diego Office;Diebstahl;2025-02-14
+USA;San Diego Office;Zutrittsverletzung;2025-02-16
+UK;London HQ;Zutrittsverletzung;2025-01-07
+UK;London HQ;Zutrittsverletzung;2025-01-09
+UK;London HQ;Verdächtige Person;2025-01-11
+UK;London HQ;Alarmanlage ausgelöst;2025-01-13
+UK;Reading Plant;Diebstahl;2025-03-03
+UK;Reading Plant;Diebstahl;2025-03-06
+UK;Reading Plant;Zutrittsverletzung;2025-03-07
+Schweiz;Basel Site;Verdächtige Person;2025-02-03
+Schweiz;Basel Site;Verdächtige Person;2025-02-05
+Schweiz;Basel Site;Alarmanlage ausgelöst;2025-02-06
+Schweiz;Basel Site;Zutrittsverletzung;2025-02-08
+Belgien;Brüssel Office;Zutrittsverletzung;2025-01-20
+Belgien;Brüssel Office;Diebstahl;2025-01-22
+Belgien;Brüssel Office;Diebstahl;2025-01-23
+Belgien;Brüssel Office;Verdächtige Person;2025-01-25`;
+}
+
+// =======================
+// CHART FUNCTIONS
+// =======================
+let chartInstances = {};
+
+function createChart(containerId, data, chartType = 'bar', maxBars = 6) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    if (chartInstances[containerId]) {
+        chartInstances[containerId].destroy();
+        delete chartInstances[containerId];
+    }
+
+    container.innerHTML = '';
+    
+    if (!data || data.length === 0) {
+        container.innerHTML = '<div style="padding: 2rem; text-align: center; color: #999;">Keine Daten vorhanden.</div>';
+        return;
+    }
+
+    const canvas = document.createElement('canvas');
+    container.appendChild(canvas);
+
+    const top = data.slice(0, maxBars);
+    const labels = top.map(d => d.key || "(leer)");
+    const values = top.map(d => d.count);
+
+    const colors = [
+        '#00a37a', '#006b4e', '#4caf50', '#8bc34a', 
+        '#cddc39', '#ffc107', '#ff9800', '#ff5722'
+    ];
+
+    const config = {
+        type: chartType,
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Anzahl Ereignisse',
+                data: values,
+                backgroundColor: colors.slice(0, values.length).map(color => color + '80'),
+                borderColor: colors.slice(0, values.length),
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: chartType === 'pie',
+                    position: 'bottom'
+                }
+            },
+            scales: chartType === 'pie' ? {} : {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    };
+
+    chartInstances[containerId] = new Chart(canvas, config);
+}
+
+// =======================
+// MAIN APPLICATION
+// =======================
+let allData = [];
+let currentData = [];
+let headerMap = {};
+let currentMode = "none";
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Dashboard ready!');
+
+    // DOM Elements
+    const loadTestDataBtn = document.getElementById('loadTestData');
+    const fileInput = document.getElementById('fileInput');
+    const fileStatus = document.getElementById('fileStatus');
+    
+    // Load Test Data
+    loadTestDataBtn.addEventListener('click', function() {
+        const csv = getTestData();
+        const parsed = parseCSV(csv);
+        allData = parsed.rows;
+        headerMap = createHeaderMap(parsed.headers);
+        currentData = allData;
+        
+        document.getElementById('recordCount').textContent = allData.length.toString();
+        document.getElementById('modeIndicator').textContent = 'Modus: Testdaten (Demo)';
+        fileStatus.textContent = 'Testdaten sind geladen (Demo-Modus).';
+        
+        renderAll();
+    });
+    
+    // CSV File Upload
+    fileInput.addEventListener('change', async function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        try {
+            const text = await file.text();
+            const parsed = parseCSV(text);
+            allData = parsed.rows;
+            headerMap = createHeaderMap(parsed.headers);
+            currentData = allData;
+            
+            document.getElementById('recordCount').textContent = allData.length.toString();
+            document.getElementById('modeIndicator').textContent = 'Modus: CSV-Datei';
+            fileStatus.textContent = `Datei "${file.name}" geladen. Datensätze: ${allData.length}.`;
+            
+            renderAll();
+        } catch (err) {
+            console.error(err);
+            fileStatus.textContent = 'Fehler beim Lesen der Datei.';
+        }
+    });
+    
+    function renderAll() {
+        renderKPIs();
+        renderTables();
+        renderCharts();
+    }
+    
+    function renderKPIs() {
+        const total = allData.length;
+        const current = currentData.length;
+
+        document.getElementById('kpiTotalEvents').textContent = total.toString();
+        document.getElementById('kpiTotalEventsSub').textContent = `${current} nach Filter`;
+
+        const countries = new Set();
+        const sites = new Set();
+        const types = new Set();
+
+        for (const row of allData) {
+            if (headerMap.country && row[headerMap.country]) {
+                countries.add(row[headerMap.country].trim());
+            }
+            if (headerMap.site && row[headerMap.site]) {
+                sites.add(row[headerMap.site].trim());
+            }
+            if (headerMap.type && row[headerMap.type]) {
+                types.add(row[headerMap.type].trim());
+            }
+        }
+
+        document.getElementById('kpiCountries').textContent = countries.size.toString();
+        document.getElementById('kpiSites').textContent = sites.size.toString();
+        document.getElementById('kpiTypes').textContent = types.size.toString();
+    }
+    
+    function renderTables() {
+        const tableByCountry = document.querySelector("#tableByCountry tbody");
+        const tableBySite = document.querySelector("#tableBySite tbody");
+        const tableByType = document.querySelector("#tableByType tbody");
+        
+        tableByCountry.innerHTML = "";
+        tableBySite.innerHTML = "";
+        tableByType.innerHTML = "";
+
+        if (currentData.length === 0) return;
+
+        const byCountry = groupAndCount(currentData, row =>
+            headerMap.country ? (row[headerMap.country] || "").trim() : ""
+        );
+        byCountry.forEach(item => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${item.key || "(leer)"}</td>
+                <td>${item.count}</td>
+            `;
+            tableByCountry.appendChild(tr);
+        });
+
+        const byType = groupAndCount(currentData, row =>
+            headerMap.type ? (row[headerMap.type] || "").trim() : ""
+        );
+        byType.forEach(item => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${item.key || "(leer)"}</td>
+                <td>${item.count}</td>
+            `;
+            tableByType.appendChild(tr);
+        });
+    }
+    
+    function renderCharts() {
+        const countries = groupAndCount(currentData, row =>
+            headerMap.country ? (row[headerMap.country] || "").trim() : ""
+        );
+        createChart('chartCountries', countries, 'bar');
+
+        const sites = groupAndCount(currentData, row =>
+            headerMap.site ? (row[headerMap.site] || "").trim() : ""
+        );
+        createChart('chartSites', sites, 'bar');
+
+        const types = groupAndCount(currentData, row =>
+            headerMap.type ? (row[headerMap.type] || "").trim() : ""
+        );
+        createChart('chartTypes', types, 'pie');
     }
 });
 </script>
