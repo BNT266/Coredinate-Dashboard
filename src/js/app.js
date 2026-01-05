@@ -842,7 +842,7 @@ const ExportManager = {
         const filename = `Security-Events-Report-${new Date().toISOString().slice(0, 10)}.pdf`;
         pdf.save(filename);
 
-        status.textContent = `✅ Professional PDF Report erstellt: ${filename}`;
+         status.textContent = `✅ Professional PDF Report erstellt: ${filename}`;
         setTimeout(() => { status.style.display = 'none'; }, 4000);
 
     } catch (error) {
@@ -850,7 +850,8 @@ const ExportManager = {
         status.textContent = `❌ PDF Fehler: ${error.message}`;
         setTimeout(() => { status.style.display = 'none'; }, 5000);
     }
-},
+    }
+}; //
 
 // =============================================
 // FILTER MANAGER
