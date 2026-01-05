@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sicherheitsanalyse Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-green: #3d8b37;
+            --light-green: #5cb85c;
+            --accent-green: #8bc34a;
+            --yellow-green: #9ccc65;
+            --dark-green: #1b4332;
+            --gradient: linear-gradient(135deg, #3d8b37 0%, #8bc34a 50%, #9ccc65 100%);
+            --light-bg: #f8fffe;
+            --text-dark: #2d3436;
+            --text-muted: #636e72;
+            --shadow-light: 0 2px 10px rgba(61, 139, 55, 0.1);
+            --shadow-medium: 0 8px 25px rgba(61, 139, 55, 0.15);
+            --shadow-strong: 0 15px 35px rgba(61, 139, 55, 0.2);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #f8fffe 0%, #e8f5e8 100%);
+            min-height: 100vh;
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+        
+        .header {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 40px;
+            box-shadow: var(--shadow-medium);
+            border-left: 6px solid var(--primary-green);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 200px;
+            height: 100%;
+            background: var(--gradient);
+            opacity: 0.05;
+            border-radius: 50% 0 0 50%;
+        }
+        
+        .company-logo {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .logo-text {
+            font-size: 2.5em;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: var(--primary-green);
+        }
+        
+        .header h1 {
+            color: var(--text-dark);
+            font-size: 2em;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        
+        .header p {
+            color: var(--text-muted);
+            font-size: 1.1em;
+            font-weight: 400;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: var(--shadow-light);
+            border: 1px solid rgba(61, 139, 55, 0.1);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient);
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-medium);
+        }
+        
+        .stat-number {
+            font-size: 3em;
+            font-weight: 700;
+            color: var(--primary-green);
+            margin-bottom: 10px;
+            line-height: 1;
+        }
+        
+        .stat-label {
+            font-size: 1em;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: var(--shadow-light);
+            border: 1px solid rgba(61, 139, 55, 0.1);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-medium);
+        }
+        
+        .card h3 {
+            color: var(--text-dark);
+            margin-bottom: 25px;
+            font-size: 1.3em;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .card h3::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: var(--gradient);
+            border-radius: 2px;
+        }
+        
+        .matrix-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow-light);
+        }
+        
+        .matrix-table th {
+            background: var(--gradient);
+            color: white;
+            padding: 15px 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .matrix-table td {
+            padding: 15px 12px;
+            text-align: left;
+            border-bottom: 1px solid #f1f3f4;
+            font-size: 0.9em;
+        }
+        
+        .matrix-table tr:nth-child(even) {
+            background-color: rgba(61, 139, 55, 0.02);
+        }
+        
+        .matrix-table tr:hover {
+            background-color: rgba(61, 139, 55, 0.05);
+        }
+        
+        .alert-high { 
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+        
+        .alert-medium { 
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+        
+        .alert-low { 
+            background: var(--gradient);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 20px 0;
+        }
+        
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+            margin-top: 20px;
+        }
+        
+        .kpi-section {
+            background: rgba(61, 139, 55, 0.02);
+            padding: 25px;
+            border-radius: 15px;
+            border: 1px solid rgba(61, 139, 55, 0.1);
+        }
+        
+        .kpi-section h4 {
+            color: var(--primary-green);
+            margin-bottom: 15px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .kpi-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .kpi-list li {
+            padding: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9em;
+        }
+        
+        .status-icon {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        
+        .status-success { background: var(--light-green); }
+        .status-warning { background: #f39c12; }
+        .status-error { background: #e74c3c; }
+        .status-info { background: var(--accent-green); }
+        
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: var(--text-muted);
+            font-size: 0.9em;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px 15px;
+            }
+            
+            .header {
+                padding: 25px;
+            }
+            
+            .logo-text {
+                font-size: 2em;
+            }
+            
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="company-logo">
+                <div class="logo-text">SECURITY DASHBOARD</div>
+            </div>
+            <h1>🔒 Sicherheitsanalyse & Monitoring</h1>
+            <p>Umfassende Analyse der Sicherheitsprotokolle vom 01.-03.12.2025 | Intelligente Überwachungssysteme</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">5</div>
+                <div class="stat-label">Gesamte Vorfälle</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">4</div>
+                <div class="stat-label">Türen/Fenster Kontrollen</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">119</div>
+                <div class="stat-label">Lichter ausgeschaltet</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">3</div>
+                <div class="stat-label">Standorte betroffen</div>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="card">
+                <h3>📊 Vorfälle nach Kategorie</h3>
+                <div class="chart-container">
+                    <canvas id="incidentChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>🏢 Standort-Verteilung</h3>
+                <div class="chart-container">
+                    <canvas id="locationChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>⏰ Zeitliche Entwicklung</h3>
+                <div class="chart-container">
+                    <canvas id="timeChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>👥 Team Performance</h3>
+                <div class="chart-container">
+                    <canvas id="employeeChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="card" style="grid-column: 1 / -1;">
+                <h3>🔍 Detaillierte Sicherheitsmatrix</h3>
+                <table class="matrix-table">
+                    <thead>
+                        <tr>
+                            <th>Datum/Zeit</th>
+                            <th>Sicherheitsbeauftragter</th>
+                            <th>Standort</th>
+                            <th>Kategorie</th>
+                            <th>Priorität</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>01.12.25 22:10</td>
+                            <td>Heller, Thorsten</td>
+                            <td>Mainz City - Haus A</td>
+                            <td>Türen/Fenster Kontrolle</td>
+                            <td><span class="alert-medium">Mittel</span></td>
+                        </tr>
+                        <tr>
+                            <td>02.12.25 20:44</td>
+                            <td>Heller, Thorsten</td>
+                            <td>Mainz City - Haus A EG</td>
+                            <td>Türen/Fenster Kontrolle</td>
+                            <td><span class="alert-medium">Mittel</span></td>
+                        </tr>
+                        <tr>
+                            <td>03.12.25 02:37</td>
+                            <td>Heller, Thorsten</td>
+                            <td>Mainz City - Haus B TG</td>
+                            <td>Türen/Fenster Kontrolle</td>
+                            <td><span class="alert-low">Niedrig</span></td>
+                        </tr>
+                        <tr>
+                            <td>02.12.25 06:20</td>
+                            <td>Altmeier, Veronika</td>
+                            <td>Haus 4 - 2.OG Serverraum</td>
+                            <td>Türen/Fenster Kontrolle</td>
+                            <td><span class="alert-high">Hoch</span></td>
+                        </tr>
+                        <tr>
+                            <td>02.12.25 06:13</td>
+                            <td>Schneider, Armin</td>
+                            <td>Idar-Oberstein EMA</td>
+                            <td>Technische Störung</td>
+                            <td><span class="alert-high">Hoch</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>📈 Key Performance Indicators</h3>
+            <div class="kpi-grid">
+                <div class="kpi-section">
+                    <h4>🛡️ Sicherheits-KPIs</h4>
+                    <ul class="kpi-list">
+                        <li><span class="status-icon status-success"></span> Reaktionszeit: ⌀ 2-6h</li>
+                        <li><span class="status-icon status-success"></span> Compliance Rate: 100%</li>
+                        <li><span class="status-icon status-warning"></span> Haus A Konzentration: 60%</li>
+                        <li><span class="status-icon status-info"></span> Dokumentation: Vollständig</li>
+                    </ul>
+                </div>
+                <div class="kpi-section">
+                    <h4>⚠️ Kritische Faktoren</h4>
+                    <ul class="kpi-list">
+                        <li><span class="status-icon status-error"></span> Serverraum-Zugang kritisch</li>
+                        <li><span class="status-icon status-error"></span> EMA-System Idar-Oberstein defekt</li>
+                        <li><span class="status-icon status-warning"></span> Workload-Verteilung ungleich</li>
+                        <li><span class="status-icon status-success"></span> 119 Lichter ausgeschaltet</li>
+                    </ul>
+                </div>
+                <div class="kpi-section">
+                    <h4>📊 Statistik-Übersicht</h4>
+                    <ul class="kpi-list">
+                        <li><span class="status-icon status-info"></span> Energieeinsparung durch Lichtsteuerung</li>
+                        <li><span class="status-icon status-success"></span> Automatisierungspotenzial vorhanden</li>
+                        <li><span class="status-icon status-warning"></span> Konzentration auf Haus A erforderlich</li>
+                        <li><span class="status-icon status-info"></span> Präventive Maßnahmen empfohlen</li>
+                    </ul>
+                </div>
+                <div class="kpi-section">
+                    <h4>🎯 Empfehlungen</h4>
+                    <ul class="kpi-list">
+                        <li><span class="status-icon status-info"></span> Automatische Schließsysteme</li>
+                        <li><span class="status-icon status-warning"></span> Verstärkte Haus A Kontrollen</li>
+                        <li><span class="status-icon status-error"></span> Serverraum-Security erhöhen</li>
+                        <li><span class="status-icon status-info"></span> EMA-System reparieren</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>© 2025 Sicherheitsmanagement Dashboard | Intelligente Überwachung | Vertraulich - Nur für interne Verwendung</p>
+    </div>
+
+    <script>
+        // Farbschema für Charts
+        const chartColors = {
+            primary: '#3d8b37',
+            secondary: '#5cb85c',
+            accent: '#8bc34a',
+            light: '#9ccc65',
+            gradient: ['#3d8b37', '#5cb85c', '#8bc34a', '#9ccc65']
+        };
+
+        // Chart-Konfiguration
+        Chart.defaults.font.family = 'Inter, sans-serif';
+        Chart.defaults.color = '#2d3436';
+
+        // Vorfälle nach Typ Chart
+        const ctx1 = document.getElementById('incidentChart').getContext('2d');
+        new Chart(ctx1, {
+            type: 'doughnut',
+            data: {
+                labels: ['Türen/Fenster', 'Technische Störung', 'Routinekontrolle'],
+                datasets: [{
+                    data: [4, 1, 1],
+                    backgroundColor: [chartColors.primary, '#e74c3c', chartColors.accent],
+                    borderWidth: 0,
+                    hoverBorderWidth: 3,
+                    hoverBorderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            usePointStyle: true,
+                            font: {
+                                size: 11,
+                                weight: '500'
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Standort Chart
+        const ctx2 = document.getElementById('locationChart').getContext('2d');
+        new Chart(ctx2, {
+            type: 'bar',
+            data: {
+                labels: ['Mainz City', 'Haus 4', 'Idar-Oberstein', 'Berlin JPT'],
+                datasets: [{
+                    label: 'Sicherheitsereignisse',
+                    data: [3, 1, 1, 1],
+                    backgroundColor: chartColors.gradient,
+                    borderRadius: 8,
+                    borderSkipped: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(61, 139, 55, 0.1)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+
+        // Zeit Chart
+        const ctx3 = document.getElementById('timeChart').getContext('2d');
+        new Chart(ctx3, {
+            type: 'line',
+            data: {
+                labels: ['01.12.2025', '02.12.2025', '03.12.2025'],
+                datasets: [{
+                    label: 'Tägliche Ereignisse',
+                    data: [1, 3, 1],
+                    borderColor: chartColors.primary,
+                    backgroundColor: chartColors.primary + '20',
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: chartColors.primary,
+                    pointBorderWidth: 2,
+                    pointRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(61, 139, 55, 0.1)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+
+        // Team Performance Chart
+        const ctx4 = document.getElementById('employeeChart').getContext('2d');
+        new Chart(ctx4, {
+            type: 'polarArea',
+            data: {
+                labels: ['Heller, T.', 'Altmeier, V.', 'Schneider, A.', 'Sardari, A.'],
+                datasets: [{
+                    data: [3, 1, 1, 1],
+                    backgroundColor: [
+                        chartColors.primary + '80',
+                        chartColors.secondary + '80',
+                        chartColors.accent + '80',
+                        chartColors.light + '80'
+                    ],
+                    borderColor: [
+                        chartColors.primary,
+                        chartColors.secondary,
+                        chartColors.accent,
+                        chartColors.light
+                    ],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            usePointStyle: true,
+                            font: {
+                                size: 11,
+                                weight: '500'
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(61, 139, 55, 0.1)'
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
