@@ -510,7 +510,7 @@ const ExportManager = {
         }
     },
 
-   async toPDF() {
+  async toPDF() {
     if (!DashboardState.currentData || DashboardState.currentData.length === 0) {
         alert('Keine Daten zum Exportieren vorhanden!');
         return;
@@ -518,7 +518,7 @@ const ExportManager = {
 
     const status = document.getElementById('exportStatus');
     status.style.display = 'block';
-    status.textContent = '🎨 Professioneller PDF Report wird erstellt...';
+    status.textContent = 'Professioneller PDF Report wird erstellt...';
 
     try {
         if (typeof window.jspdf === 'undefined') {
@@ -554,13 +554,13 @@ const ExportManager = {
         pdf.setFontSize(11);
         pdf.setTextColor(80, 80, 80);
         pdf.text('Erstellt am: ' + timestamp, 20, 65);
-        pdf.text(`Analysierte Datensätze: ${DashboardState.currentData.length} von ${DashboardState.allData.length} gesamt`, 20, 72);
+        pdf.text('Analysierte Datensaetze: ' + DashboardState.currentData.length + ' von ' + DashboardState.allData.length + ' gesamt', 20, 72);
 
-        // KPI Boxes (vereinfacht)
+        // KPI Boxes
         let yPos = 85;
         const kpis = [
             { label: 'Ereignisse', value: DashboardState.currentData.length },
-            { label: 'Länder', value: new Set(DashboardState.currentData.map(r => 
+            { label: 'Laender', value: new Set(DashboardState.currentData.map(r => 
                 DashboardState.headerMap.country ? r[DashboardState.headerMap.country] : '')).size },
             { label: 'Standorte', value: new Set(DashboardState.currentData.map(r => 
                 DashboardState.headerMap.site ? r[DashboardState.headerMap.site] : '')).size },
@@ -568,7 +568,7 @@ const ExportManager = {
                 DashboardState.headerMap.type ? r[DashboardState.headerMap.type] : '')).size }
         ];
 
-        // KPI Kästen zeichnen
+        // KPI Kaesten zeichnen
         kpis.forEach((kpi, i) => {
             const x = 20 + (i * 45);
             
@@ -581,7 +581,7 @@ const ExportManager = {
             pdf.setLineWidth(1);
             pdf.rect(x, yPos, 40, 30, 'S');
             
-            // Wert (groß)
+            // Wert (gross)
             pdf.setTextColor(0, 163, 122);
             pdf.setFontSize(20);
             pdf.text(String(kpi.value), x + 5, yPos + 15);
@@ -596,7 +596,7 @@ const ExportManager = {
         yPos += 45;
         pdf.setTextColor(0, 0, 0);
         pdf.setFontSize(16);
-        pdf.text('Top Ereignisarten', 20, yPos);
+        pdf.text('*** TOP EREIGNISARTEN ***', 20, yPos);
         
         yPos += 10;
         const byType = Utils.groupAndCount(DashboardState.currentData, row =>
@@ -608,10 +608,10 @@ const ExportManager = {
         
         pdf.setTextColor(0, 0, 0);
         pdf.setFontSize(11);
-        pdf.text('Rang', 25, yPos + 7);
-        pdf.text('Ereignisart', 50, yPos + 7);
-        pdf.text('Anzahl', 130, yPos + 7);
-        pdf.text('Anteil', 160, yPos + 7);
+        pdf.text('RANG', 25, yPos + 7);
+        pdf.text('EREIGNISART', 50, yPos + 7);
+        pdf.text('ANZAHL', 130, yPos + 7);
+        pdf.text('ANTEIL', 160, yPos + 7);
         
         yPos += 12;
         
@@ -628,11 +628,13 @@ const ExportManager = {
             pdf.setTextColor(0, 0, 0);
             pdf.setFontSize(10);
             
-            // Rang
-            pdf.text(String(i + 1), 25, yPos + 4);
+            // Rang mit Stern
+            pdf.text('#' + String(i + 1), 25, yPos + 4);
             
-            // Event Name (gekürzt wenn zu lang)
+            // Event Name (bereinigt)
             let eventName = item.key || '(leer)';
+            // Deutsche Umlaute ersetzen
+            eventName = eventName.replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss');
             if (eventName.length > 25) eventName = eventName.substring(0, 25) + '...';
             pdf.text(eventName, 50, yPos + 4);
             
@@ -646,7 +648,7 @@ const ExportManager = {
             yPos += 8;
         });
 
-        // ===== SEITE 2: LÄNDER-ANALYSE =====
+        // ===== SEITE 2: LAENDER-ANALYSE =====
         pdf.addPage();
         
         // Header Seite 2
@@ -654,14 +656,14 @@ const ExportManager = {
         pdf.rect(0, 0, pageWidth, 30, 'F');
         pdf.setTextColor(255, 255, 255);
         pdf.setFontSize(20);
-        pdf.text('Detaillierte Analyse nach Ländern', 20, 20);
+        pdf.text('*** DETAILLIERTE ANALYSE NACH LAENDERN ***', 20, 20);
 
         yPos = 45;
         
-        // Länder Tabelle
+        // Laender Tabelle
         pdf.setTextColor(0, 0, 0);
         pdf.setFontSize(16);
-        pdf.text('Ereignisse nach Ländern', 20, yPos);
+        pdf.text('EREIGNISSE NACH LAENDERN', 20, yPos);
         
         yPos += 15;
         const byCountry = Utils.groupAndCount(DashboardState.currentData, row =>
@@ -673,13 +675,13 @@ const ExportManager = {
         
         pdf.setTextColor(255, 255, 255);
         pdf.setFontSize(12);
-        pdf.text('Land', 25, yPos + 7);
-        pdf.text('Ereignisse', 100, yPos + 7);
-        pdf.text('Anteil', 150, yPos + 7);
+        pdf.text('LAND', 25, yPos + 7);
+        pdf.text('EREIGNISSE', 100, yPos + 7);
+        pdf.text('ANTEIL', 150, yPos + 7);
         
         yPos += 12;
         
-        // Länder Daten
+        // Laender Daten
         byCountry.forEach((country, i) => {
             const percentage = ((country.count / DashboardState.currentData.length) * 100).toFixed(1);
             
@@ -694,7 +696,12 @@ const ExportManager = {
             
             pdf.setTextColor(0, 0, 0);
             pdf.setFontSize(10);
-            pdf.text(country.key || '(unbekannt)', 25, yPos + 5);
+            
+            // Land-Name bereinigen
+            let countryName = country.key || '(unbekannt)';
+            countryName = countryName.replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss');
+            pdf.text(countryName, 25, yPos + 5);
+            
             pdf.text(String(country.count), 170, yPos + 5);
             pdf.text(percentage + '%', 155, yPos + 5);
             
@@ -721,25 +728,25 @@ const ExportManager = {
             
             pdf.setTextColor(255, 255, 255);
             pdf.setFontSize(18);
-            pdf.text('RISIKO-BEWERTUNG: ' + riskLevel, 25, yPos + 12);
+            pdf.text('*** RISIKO-BEWERTUNG: ' + riskLevel + ' ***', 25, yPos + 12);
             
             pdf.setFontSize(12);
-            pdf.text(`Score: ${riskScore}/10 basierend auf Ereignisarten und Häufigkeit`, 25, yPos + 20);
+            pdf.text('Score: ' + riskScore + '/10 basierend auf Ereignisarten und Haeufigkeit', 25, yPos + 20);
         }
 
-        // ===== SEITE 3: VOLLSTÄNDIGE TABELLE =====
+        // ===== SEITE 3: VOLLSTAENDIGE TABELLE =====
         pdf.addPage();
         
         pdf.setFillColor(0, 163, 122);
         pdf.rect(0, 0, pageWidth, 30, 'F');
         pdf.setTextColor(255, 255, 255);
         pdf.setFontSize(20);
-        pdf.text('Vollständige Datenauswertung', 20, 20);
+        pdf.text('*** VOLLSTAENDIGE DATENAUSWERTUNG ***', 20, 20);
 
         yPos = 45;
         pdf.setTextColor(0, 0, 0);
         pdf.setFontSize(14);
-        pdf.text('Alle Ereignisarten im Detail', 20, yPos);
+        pdf.text('ALLE EREIGNISARTEN IM DETAIL', 20, yPos);
         
         yPos += 15;
         
@@ -749,10 +756,10 @@ const ExportManager = {
         
         pdf.setTextColor(0, 0, 0);
         pdf.setFontSize(11);
-        pdf.text('#', 25, yPos + 7);
-        pdf.text('Ereignisart', 40, yPos + 7);
-        pdf.text('Anzahl', 130, yPos + 7);
-        pdf.text('Prozent', 160, yPos + 7);
+        pdf.text('NR.', 25, yPos + 7);
+        pdf.text('EREIGNISART', 40, yPos + 7);
+        pdf.text('ANZAHL', 130, yPos + 7);
+        pdf.text('PROZENT', 160, yPos + 7);
         
         yPos += 12;
         
@@ -775,7 +782,9 @@ const ExportManager = {
             pdf.setFontSize(9);
             pdf.text(String(i + 1), 25, yPos + 4);
             
+            // Event Name bereinigen
             let eventName = item.key || '(leer)';
+            eventName = eventName.replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss');
             if (eventName.length > 30) eventName = eventName.substring(0, 30) + '...';
             pdf.text(eventName, 40, yPos + 4);
             
@@ -795,24 +804,24 @@ const ExportManager = {
             pdf.setLineWidth(0.5);
             pdf.line(20, pageHeight - 20, pageWidth - 20, pageHeight - 20);
             
-            // Footer Text
+            // Footer Text (ohne Umlaute)
             pdf.setTextColor(120, 120, 120);
             pdf.setFontSize(9);
             pdf.text('Security Events Dashboard Report', 20, pageHeight - 12);
             pdf.text(timestamp, 20, pageHeight - 6);
-            pdf.text(`Seite ${pageNum} von ${totalPages}`, pageWidth - 40, pageHeight - 6);
+            pdf.text('Seite ' + pageNum + ' von ' + totalPages, pageWidth - 40, pageHeight - 6);
         }
 
         // Download
-        const filename = `Security-Events-Report-${new Date().toISOString().slice(0, 10)}.pdf`;
+        const filename = 'Security-Events-Report-' + new Date().toISOString().slice(0, 10) + '.pdf';
         pdf.save(filename);
 
-        status.textContent = `✅ Professional PDF Report erstellt: ${filename}`;
+        status.textContent = 'Professional PDF Report erstellt: ' + filename;
         setTimeout(() => { status.style.display = 'none'; }, 4000);
 
     } catch (error) {
         console.error('PDF Export Error:', error);
-        status.textContent = `❌ PDF Fehler: ${error.message}`;
+        status.textContent = 'PDF Fehler: ' + error.message;
         setTimeout(() => { status.style.display = 'none'; }, 5000);
     }
 },
