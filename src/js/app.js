@@ -618,7 +618,7 @@ const ExportManager = {
             setTimeout(() => { status.style.display = 'none'; }, 5000);
         }
     }
-}; // ← DIESE KLAMMER FEHLTE!
+}; //
 
 // =============================================
 // FILTER MANAGER
