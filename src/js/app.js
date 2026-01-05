@@ -510,7 +510,7 @@ const ExportManager = {
         }
     },
 
-    async toPDF() {
+   async toPDF() {
     if (!DashboardState.currentData || DashboardState.currentData.length === 0) {
         alert('Keine Daten zum Exportieren vorhanden!');
         return;
@@ -532,270 +532,231 @@ const ExportManager = {
 
         // ===== SEITE 1: EXECUTIVE SUMMARY =====
         
-        // Corporate Header
-        pdf.setFillColor(0, 163, 122); // Brand Grün
-        pdf.rect(0, 0, pageWidth, 35, 'F');
+        // Header mit grünem Hintergrund
+        pdf.setFillColor(0, 163, 122);
+        pdf.rect(0, 0, pageWidth, 40, 'F');
         
-        // Logo/Brand Text
+        // Titel in weiß
         pdf.setTextColor(255, 255, 255);
-        pdf.setFontSize(24);
-        pdf.setFont(undefined, 'bold');
-        pdf.text('SECURITY DASHBOARD', 20, 22);
+        pdf.setFontSize(28);
+        pdf.text('SECURITY DASHBOARD', 20, 25);
+        
+        pdf.setFontSize(12);
+        pdf.text('Professional Security Events Analysis Report', 20, 35);
+
+        // Report Info
+        const timestamp = new Date().toLocaleString('de-DE');
+        
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFontSize(18);
+        pdf.text('Executive Summary', 20, 55);
         
         pdf.setFontSize(11);
-        pdf.setFont(undefined, 'normal');
-        pdf.text('Professional Security Events Analysis Report', 20, 30);
+        pdf.setTextColor(80, 80, 80);
+        pdf.text('Erstellt am: ' + timestamp, 20, 65);
+        pdf.text(`Analysierte Datensätze: ${DashboardState.currentData.length} von ${DashboardState.allData.length} gesamt`, 20, 72);
 
-        // Report Meta Info
-        const timestamp = new Date().toLocaleDateString('de-DE', {
-            year: 'numeric', month: '2-digit', day: '2-digit',
-            hour: '2-digit', minute: '2-digit'
-        });
-        
-        pdf.setTextColor(0, 0, 0);
-        pdf.setFontSize(16);
-        pdf.setFont(undefined, 'bold');
-        pdf.text('Executive Summary', 20, 50);
-        
-        pdf.setFontSize(10);
-        pdf.setFont(undefined, 'normal');
-        pdf.setTextColor(100);
-        pdf.text(`Erstellt am: ${timestamp}`, 20, 58);
-        pdf.text(`Analysierte Datensätze: ${DashboardState.currentData.length} von ${DashboardState.allData.length} gesamt`, 20, 63);
-
-        // KPI Dashboard Cards
-        let yPos = 75;
+        // KPI Boxes (vereinfacht)
+        let yPos = 85;
         const kpis = [
-            { 
-                label: 'Ereignisse', 
-                value: DashboardState.currentData.length,
-                icon: '📊',
-                color: [0, 163, 122] 
-            },
-            { 
-                label: 'Länder', 
-                value: new Set(DashboardState.currentData.map(r => 
-                    DashboardState.headerMap.country ? r[DashboardState.headerMap.country] : '')).size,
-                icon: '🌍',
-                color: [52, 152, 219]
-            },
-            { 
-                label: 'Standorte', 
-                value: new Set(DashboardState.currentData.map(r => 
-                    DashboardState.headerMap.site ? r[DashboardState.headerMap.site] : '')).size,
-                icon: '🏢',
-                color: [155, 89, 182]
-            },
-            { 
-                label: 'Event-Arten', 
-                value: new Set(DashboardState.currentData.map(r => 
-                    DashboardState.headerMap.type ? r[DashboardState.headerMap.type] : '')).size,
-                icon: '⚠️',
-                color: [230, 126, 34]
-            }
+            { label: 'Ereignisse', value: DashboardState.currentData.length },
+            { label: 'Länder', value: new Set(DashboardState.currentData.map(r => 
+                DashboardState.headerMap.country ? r[DashboardState.headerMap.country] : '')).size },
+            { label: 'Standorte', value: new Set(DashboardState.currentData.map(r => 
+                DashboardState.headerMap.site ? r[DashboardState.headerMap.site] : '')).size },
+            { label: 'Event-Arten', value: new Set(DashboardState.currentData.map(r => 
+                DashboardState.headerMap.type ? r[DashboardState.headerMap.type] : '')).size }
         ];
 
+        // KPI Kästen zeichnen
         kpis.forEach((kpi, i) => {
-            const x = 20 + (i * 42);
+            const x = 20 + (i * 45);
             
-            // Card Background
-            pdf.setFillColor(248, 249, 250);
-            pdf.rect(x, yPos, 38, 25, 'F');
+            // Kasten Hintergrund
+            pdf.setFillColor(245, 245, 245);
+            pdf.rect(x, yPos, 40, 30, 'F');
             
-            // Card Border
-            pdf.setDrawColor(kpi.color[0], kpi.color[1], kpi.color[2]);
-            pdf.setLineWidth(0.5);
-            pdf.rect(x, yPos, 38, 25, 'S');
+            // Rahmen
+            pdf.setDrawColor(0, 163, 122);
+            pdf.setLineWidth(1);
+            pdf.rect(x, yPos, 40, 30, 'S');
             
-            // Icon & Value
-            pdf.setTextColor(kpi.color[0], kpi.color[1], kpi.color[2]);
-            pdf.setFontSize(16);
-            pdf.setFont(undefined, 'bold');
-            pdf.text(String(kpi.value), x + 5, yPos + 12);
+            // Wert (groß)
+            pdf.setTextColor(0, 163, 122);
+            pdf.setFontSize(20);
+            pdf.text(String(kpi.value), x + 5, yPos + 15);
             
-            // Label
-            pdf.setFontSize(7);
-            pdf.setTextColor(100);
-            pdf.setFont(undefined, 'normal');
-            pdf.text(kpi.label, x + 5, yPos + 18);
+            // Label (klein)
+            pdf.setTextColor(60, 60, 60);
+            pdf.setFontSize(9);
+            pdf.text(kpi.label, x + 5, yPos + 25);
         });
 
-        // Top Ereignisarten Ranking
-        yPos += 40;
+        // Top Events Liste
+        yPos += 45;
         pdf.setTextColor(0, 0, 0);
-        pdf.setFontSize(14);
-        pdf.setFont(undefined, 'bold');
-        pdf.text('🏆 Top Ereignisarten', 20, yPos);
+        pdf.setFontSize(16);
+        pdf.text('Top Ereignisarten', 20, yPos);
         
         yPos += 10;
         const byType = Utils.groupAndCount(DashboardState.currentData, row =>
             DashboardState.headerMap.type ? row[DashboardState.headerMap.type] : "");
 
-        byType.slice(0, 8).forEach((item, i) => {
+        // Tabellen-Header
+        pdf.setFillColor(240, 240, 240);
+        pdf.rect(20, yPos, 170, 10, 'F');
+        
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFontSize(11);
+        pdf.text('Rang', 25, yPos + 7);
+        pdf.text('Ereignisart', 50, yPos + 7);
+        pdf.text('Anzahl', 130, yPos + 7);
+        pdf.text('Anteil', 160, yPos + 7);
+        
+        yPos += 12;
+        
+        // Top 10 Events
+        byType.slice(0, 10).forEach((item, i) => {
             const percentage = ((item.count / DashboardState.currentData.length) * 100).toFixed(1);
-            const barWidth = Math.max((item.count / byType[0].count) * 120, 10);
             
-            // Rank Number
-            pdf.setFillColor(0, 163, 122);
-            pdf.circle(25, yPos + 3, 3, 'F');
-            pdf.setTextColor(255, 255, 255);
-            pdf.setFontSize(8);
-            pdf.text(String(i + 1), 23.5, yPos + 4);
+            // Alternierende Zeilen-Farben
+            if (i % 2 === 0) {
+                pdf.setFillColor(248, 248, 248);
+                pdf.rect(20, yPos - 2, 170, 8, 'F');
+            }
             
-            // Progress Bar Background
-            pdf.setFillColor(240, 240, 240);
-            pdf.rect(35, yPos, 120, 5, 'F');
-            
-            // Progress Bar
-            const colors = CONFIG.chartColors;
-            const color = colors[i % colors.length];
-            const r = parseInt(color.slice(1, 3), 16);
-            const g = parseInt(color.slice(3, 5), 16);
-            const b = parseInt(color.slice(5, 7), 16);
-            
-            pdf.setFillColor(r, g, b);
-            pdf.rect(35, yPos, barWidth, 5, 'F');
-            
-            // Event Name & Stats
             pdf.setTextColor(0, 0, 0);
-            pdf.setFontSize(9);
-            pdf.setFont(undefined, 'normal');
-            pdf.text(`${item.key || "(leer)"}`, 160, yPos + 3);
+            pdf.setFontSize(10);
             
-            pdf.setTextColor(100);
-            pdf.setFontSize(8);
-            pdf.text(`${item.count} (${percentage}%)`, 160, yPos + 10);
+            // Rang
+            pdf.text(String(i + 1), 25, yPos + 4);
             
-            yPos += 18;
+            // Event Name (gekürzt wenn zu lang)
+            let eventName = item.key || '(leer)';
+            if (eventName.length > 25) eventName = eventName.substring(0, 25) + '...';
+            pdf.text(eventName, 50, yPos + 4);
+            
+            // Anzahl
+            pdf.text(String(item.count), 130, yPos + 4);
+            
+            // Prozent
+            pdf.setTextColor(0, 163, 122);
+            pdf.text(percentage + '%', 160, yPos + 4);
+            
+            yPos += 8;
         });
 
-        // ===== SEITE 2: DETAILED ANALYSIS =====
+        // ===== SEITE 2: LÄNDER-ANALYSE =====
         pdf.addPage();
         
         // Header Seite 2
         pdf.setFillColor(0, 163, 122);
-        pdf.rect(0, 0, pageWidth, 25, 'F');
+        pdf.rect(0, 0, pageWidth, 30, 'F');
         pdf.setTextColor(255, 255, 255);
-        pdf.setFontSize(16);
-        pdf.setFont(undefined, 'bold');
-        pdf.text('📈 Detaillierte Analyse & Trends', 20, 17);
+        pdf.setFontSize(20);
+        pdf.text('Detaillierte Analyse nach Ländern', 20, 20);
 
-        yPos = 40;
+        yPos = 45;
         
-        // Länder-Analyse
+        // Länder Tabelle
         pdf.setTextColor(0, 0, 0);
-        pdf.setFontSize(14);
-        pdf.setFont(undefined, 'bold');
-        pdf.text('🌍 Ereignisse nach Ländern', 20, yPos);
+        pdf.setFontSize(16);
+        pdf.text('Ereignisse nach Ländern', 20, yPos);
         
         yPos += 15;
         const byCountry = Utils.groupAndCount(DashboardState.currentData, row =>
             DashboardState.headerMap.country ? row[DashboardState.headerMap.country] : "");
 
-        // Country Table Header
-        pdf.setFillColor(248, 249, 250);
-        pdf.rect(20, yPos, 170, 8, 'F');
-        pdf.setDrawColor(200, 200, 200);
-        pdf.rect(20, yPos, 170, 8, 'S');
+        // Tabellen-Header
+        pdf.setFillColor(0, 163, 122);
+        pdf.rect(20, yPos, 170, 10, 'F');
         
-        pdf.setTextColor(0, 0, 0);
-        pdf.setFontSize(9);
-        pdf.setFont(undefined, 'bold');
-        pdf.text('Land', 25, yPos + 5);
-        pdf.text('Ereignisse', 120, yPos + 5);
-        pdf.text('Anteil', 160, yPos + 5);
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(12);
+        pdf.text('Land', 25, yPos + 7);
+        pdf.text('Ereignisse', 100, yPos + 7);
+        pdf.text('Anteil', 150, yPos + 7);
         
-        yPos += 10;
+        yPos += 12;
         
-        byCountry.slice(0, 10).forEach((country, i) => {
+        // Länder Daten
+        byCountry.forEach((country, i) => {
             const percentage = ((country.count / DashboardState.currentData.length) * 100).toFixed(1);
             
-            // Zeilen-Hintergrund (alternierend)
-            if (i % 2 === 0) {
-                pdf.setFillColor(252, 253, 254);
-                pdf.rect(20, yPos - 2, 170, 7, 'F');
-            }
+            // Balken-Hintergrund
+            pdf.setFillColor(250, 250, 250);
+            pdf.rect(20, yPos, 170, 8, 'F');
             
-            pdf.setTextColor(0, 0, 0);
-            pdf.setFontSize(9);
-            pdf.setFont(undefined, 'normal');
-            pdf.text(country.key || '(unbekannt)', 25, yPos + 2);
-            pdf.text(String(country.count), 120, yPos + 2);
-            
-            pdf.setTextColor(100);
-            pdf.text(`${percentage}%`, 160, yPos + 2);
-            
-            yPos += 7;
-        });
-
-        // Risk Assessment (wenn genug Platz)
-        if (yPos < 200) {
-            yPos += 20;
-            pdf.setTextColor(0, 0, 0);
-            pdf.setFontSize(14);
-            pdf.setFont(undefined, 'bold');
-            pdf.text('⚠️ Risiko-Bewertung', 20, yPos);
-            
-            yPos += 10;
-            
-            // Simuliere Risk Score (vereinfacht)
-            let riskScore = 0;
-            byType.forEach(event => {
-                const weight = CONFIG.riskWeights[event.key] || 3;
-                riskScore += (event.count * weight);
-            });
-            riskScore = Math.min(Math.round(riskScore / DashboardState.currentData.length), 10);
-            
-            const riskLevel = riskScore >= 8 ? 'HOCH' : riskScore >= 5 ? 'MITTEL' : 'NIEDRIG';
-            const riskColor = riskScore >= 8 ? [231, 76, 60] : riskScore >= 5 ? [243, 156, 18] : [46, 204, 113];
-            
-            pdf.setFillColor(riskColor[0], riskColor[1], riskColor[2]);
-            pdf.rect(20, yPos, 30, 15, 'F');
-            
-            pdf.setTextColor(255, 255, 255);
-            pdf.setFontSize(16);
-            pdf.setFont(undefined, 'bold');
-            pdf.text(riskLevel, 22, yPos + 10);
+            // Balken (proportional zur Anzahl)
+            const barWidth = (country.count / byCountry[0].count) * 60;
+            pdf.setFillColor(0, 163, 122);
+            pdf.rect(95, yPos + 1, barWidth, 6, 'F');
             
             pdf.setTextColor(0, 0, 0);
             pdf.setFontSize(10);
-            pdf.setFont(undefined, 'normal');
-            pdf.text(`Risiko-Score: ${riskScore}/10 basierend auf Ereignisarten und -häufigkeit`, 60, yPos + 8);
+            pdf.text(country.key || '(unbekannt)', 25, yPos + 5);
+            pdf.text(String(country.count), 170, yPos + 5);
+            pdf.text(percentage + '%', 155, yPos + 5);
+            
+            yPos += 10;
+        });
+
+        // Risk Assessment Box
+        if (yPos < 220) {
+            yPos += 20;
+            
+            // Risk Score berechnen
+            let totalRisk = 0;
+            byType.forEach(event => {
+                const weight = CONFIG.riskWeights[event.key] || 3;
+                totalRisk += (event.count * weight);
+            });
+            const riskScore = Math.min(Math.round(totalRisk / DashboardState.currentData.length), 10);
+            const riskLevel = riskScore >= 8 ? 'HOCH' : riskScore >= 5 ? 'MITTEL' : 'NIEDRIG';
+            
+            // Risk Box
+            const riskColor = riskScore >= 8 ? [231, 76, 60] : riskScore >= 5 ? [243, 156, 18] : [46, 204, 113];
+            pdf.setFillColor(riskColor[0], riskColor[1], riskColor[2]);
+            pdf.rect(20, yPos, 170, 25, 'F');
+            
+            pdf.setTextColor(255, 255, 255);
+            pdf.setFontSize(18);
+            pdf.text('RISIKO-BEWERTUNG: ' + riskLevel, 25, yPos + 12);
+            
+            pdf.setFontSize(12);
+            pdf.text(`Score: ${riskScore}/10 basierend auf Ereignisarten und Häufigkeit`, 25, yPos + 20);
         }
 
-        // ===== SEITE 3: APPENDIX =====
+        // ===== SEITE 3: VOLLSTÄNDIGE TABELLE =====
         pdf.addPage();
         
         pdf.setFillColor(0, 163, 122);
-        pdf.rect(0, 0, pageWidth, 25, 'F');
+        pdf.rect(0, 0, pageWidth, 30, 'F');
         pdf.setTextColor(255, 255, 255);
-        pdf.setFontSize(16);
-        pdf.setFont(undefined, 'bold');
-        pdf.text('📋 Vollständige Datenauswertung', 20, 17);
+        pdf.setFontSize(20);
+        pdf.text('Vollständige Datenauswertung', 20, 20);
 
-        // Complete Data Table
-        yPos = 40;
+        yPos = 45;
         pdf.setTextColor(0, 0, 0);
-        pdf.setFontSize(12);
-        pdf.setFont(undefined, 'bold');
-        pdf.text('Alle Ereignisarten (komplett)', 20, yPos);
+        pdf.setFontSize(14);
+        pdf.text('Alle Ereignisarten im Detail', 20, yPos);
         
-        yPos += 10;
+        yPos += 15;
         
-        // Table Header
-        pdf.setFillColor(0, 163, 122);
-        pdf.rect(20, yPos, 170, 8, 'F');
+        // Complete Table Header
+        pdf.setFillColor(230, 230, 230);
+        pdf.rect(20, yPos, 170, 10, 'F');
         
-        pdf.setTextColor(255, 255, 255);
-        pdf.setFontSize(9);
-        pdf.setFont(undefined, 'bold');
-        pdf.text('Nr.', 25, yPos + 5);
-        pdf.text('Ereignisart', 40, yPos + 5);
-        pdf.text('Anzahl', 130, yPos + 5);
-        pdf.text('Prozent', 160, yPos + 5);
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFontSize(11);
+        pdf.text('#', 25, yPos + 7);
+        pdf.text('Ereignisart', 40, yPos + 7);
+        pdf.text('Anzahl', 130, yPos + 7);
+        pdf.text('Prozent', 160, yPos + 7);
         
-        yPos += 10;
+        yPos += 12;
         
+        // Alle Events
         byType.forEach((item, i) => {
             if (yPos > 250) {
                 pdf.addPage();
@@ -804,19 +765,22 @@ const ExportManager = {
             
             const percentage = ((item.count / DashboardState.currentData.length) * 100).toFixed(1);
             
-            // Alternating row colors
+            // Alternating rows
             if (i % 2 === 0) {
-                pdf.setFillColor(248, 249, 250);
-                pdf.rect(20, yPos - 2, 170, 7, 'F');
+                pdf.setFillColor(248, 248, 248);
+                pdf.rect(20, yPos - 1, 170, 7, 'F');
             }
             
             pdf.setTextColor(0, 0, 0);
-            pdf.setFontSize(8);
-            pdf.setFont(undefined, 'normal');
-            pdf.text(String(i + 1), 25, yPos + 2);
-            pdf.text(item.key || '(leer)', 40, yPos + 2);
-            pdf.text(String(item.count), 130, yPos + 2);
-            pdf.text(`${percentage}%`, 160, yPos + 2);
+            pdf.setFontSize(9);
+            pdf.text(String(i + 1), 25, yPos + 4);
+            
+            let eventName = item.key || '(leer)';
+            if (eventName.length > 30) eventName = eventName.substring(0, 30) + '...';
+            pdf.text(eventName, 40, yPos + 4);
+            
+            pdf.text(String(item.count), 130, yPos + 4);
+            pdf.text(percentage + '%', 160, yPos + 4);
             
             yPos += 7;
         });
@@ -826,23 +790,24 @@ const ExportManager = {
         for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
             pdf.setPage(pageNum);
             
+            // Footer Line
             pdf.setDrawColor(200, 200, 200);
             pdf.setLineWidth(0.5);
             pdf.line(20, pageHeight - 20, pageWidth - 20, pageHeight - 20);
             
+            // Footer Text
             pdf.setTextColor(120, 120, 120);
-            pdf.setFontSize(8);
-            pdf.setFont(undefined, 'normal');
-            pdf.text('Security Events Dashboard • Vertraulich', 20, pageHeight - 12);
-            pdf.text(`${timestamp}`, pageWidth - 50, pageHeight - 12);
-            pdf.text(`Seite ${pageNum}/${totalPages}`, pageWidth - 20, pageHeight - 6);
+            pdf.setFontSize(9);
+            pdf.text('Security Events Dashboard Report', 20, pageHeight - 12);
+            pdf.text(timestamp, 20, pageHeight - 6);
+            pdf.text(`Seite ${pageNum} von ${totalPages}`, pageWidth - 40, pageHeight - 6);
         }
 
         // Download
         const filename = `Security-Events-Report-${new Date().toISOString().slice(0, 10)}.pdf`;
         pdf.save(filename);
 
-         status.textContent = `✅ Professional PDF Report erstellt: ${filename}`;
+        status.textContent = `✅ Professional PDF Report erstellt: ${filename}`;
         setTimeout(() => { status.style.display = 'none'; }, 4000);
 
     } catch (error) {
@@ -850,8 +815,7 @@ const ExportManager = {
         status.textContent = `❌ PDF Fehler: ${error.message}`;
         setTimeout(() => { status.style.display = 'none'; }, 5000);
     }
-    }
-}; //
+},
 
 // =============================================
 // FILTER MANAGER
