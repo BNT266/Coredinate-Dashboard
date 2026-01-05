@@ -38,7 +38,7 @@ const CONFIG = {
 // Error handler ganz oben
 window.addEventListener('error', (e) => {
     console.error('💥 KRITISCHER FEHLER:', e.error);
-    alert(`JavaScript Fehler: $${e.error.message} in Zeile $${e.lineno}`);
+    alert(`JavaScript Fehler: ${e.error.message} in Zeile ${e.lineno}`);
 });
 
 // =============================================
