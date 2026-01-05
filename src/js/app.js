@@ -466,7 +466,7 @@ const ThemeManager = {
 // CONTINUE IN NEXT MESSAGE...
 // =============================================
 // =============================================
-// EXPORT MANAGER
+// EXPORT MANAGER - FIXED
 // =============================================
 const ExportManager = {
     toCSV() {
@@ -508,147 +508,64 @@ const ExportManager = {
         }
     },
 
-async toPDF() {
-    if (!DashboardState.currentData || DashboardState.currentData.length === 0) {
-        alert('Keine Daten zum Exportieren vorhanden!');
-        return;
-    }
-
-    const status = document.getElementById('exportStatus');
-    status.style.display = 'block';
-    status.textContent = '🎨 PDF Report wird erstellt...';
-
-    try {
-        // Check if libraries are loaded
-        if (!window.jspdf) {
-            throw new Error('jsPDF Library nicht geladen!');
-        }
-        if (!window.html2canvas) {
-            throw new Error('html2canvas Library nicht geladen!');
+    async toPDF() {
+        console.log('PDF Export startet...');
+        
+        if (!DashboardState.currentData || DashboardState.currentData.length === 0) {
+            alert('Keine Daten!');
+            return;
         }
 
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const pageWidth = pdf.internal.pageSize.getWidth();
+        const status = document.getElementById('exportStatus');
+        status.style.display = 'block';
+        status.textContent = 'PDF wird erstellt...';
 
-        // ===== SEITE 1: EXECUTIVE SUMMARY =====
-        pdf.setFillColor(0, 163, 122);
-        pdf.rect(0, 0, pageWidth, 30, 'F');
-        
-        pdf.setTextColor(255, 255, 255);
-        pdf.setFontSize(20);
-        pdf.text('SECURITY DASHBOARD', 20, 20);
-        
-        pdf.setFontSize(10);
-        pdf.text('Professional Security Events Report', 20, 26);
-
-        // Report Info
-        pdf.setTextColor(0, 0, 0);
-        pdf.setFontSize(14);
-        pdf.text('Executive Summary', 20, 45);
-        
-        const timestamp = new Date().toLocaleDateString('de-DE');
-        pdf.setFontSize(10);
-        pdf.setTextColor(100);
-        pdf.text(`Erstellt: ${timestamp}`, 20, 52);
-        pdf.text(`Datensätze: ${DashboardState.currentData.length}`, 20, 57);
-
-        // KPI Summary
-        let yPos = 70;
-        const kpis = [
-            { label: 'Events', value: DashboardState.currentData.length },
-            { label: 'Countries', value: new Set(DashboardState.currentData.map(r => DashboardState.headerMap.country ? r[DashboardState.headerMap.country] : '')).size },
-            { label: 'Sites', value: new Set(DashboardState.currentData.map(r => DashboardState.headerMap.site ? r[DashboardState.headerMap.site] : '')).size }
-        ];
-
-        kpis.forEach((kpi, i) => {
-            const x = 20 + (i * 60);
-            pdf.setFillColor(240, 240, 240);
-            pdf.rect(x, yPos, 50, 20, 'F');
-            
-            pdf.setTextColor(0, 163, 122);
-            pdf.setFontSize(16);
-            pdf.text(String(kpi.value), x + 5, yPos + 12);
-            
-            pdf.setFontSize(8);
-            pdf.setTextColor(0, 0, 0);
-            pdf.text(kpi.label, x + 5, yPos + 17);
-        });
-
-        // Top Events List
-        yPos += 35;
-        pdf.setFontSize(12);
-        pdf.text('Top Ereignisarten:', 20, yPos);
-        yPos += 10;
-
-        const byType = Utils.groupAndCount(DashboardState.currentData, row =>
-            DashboardState.headerMap.type ? row[DashboardState.headerMap.type] : "");
-
-        byType.slice(0, 10).forEach((item, i) => {
-            pdf.setFontSize(9);
-            pdf.setTextColor(0, 0, 0);
-            pdf.text(`${i + 1}. ${item.key}: ${item.count}`, 25, yPos);
-            yPos += 6;
-        });
-
-        // ===== SEITE 2: CHARTS =====
-        pdf.addPage();
-        pdf.setFillColor(0, 163, 122);
-        pdf.rect(0, 0, pageWidth, 25, 'F');
-        pdf.setTextColor(255, 255, 255);
-        pdf.setFontSize(16);
-        pdf.text('Charts & Visualisierungen', 20, 17);
-
-        yPos = 40;
-        status.textContent = '📊 Screenshots werden erstellt...';
-
-        // Try to capture charts
-        const chartIds = ['chartCountries', 'chartTypes', 'chartSites'];
-        
-        for (const chartId of chartIds) {
-            try {
-                const chartElement = document.getElementById(chartId);
-                
-                if (chartElement && chartElement.querySelector('canvas')) {
-                    const canvas = await html2canvas(chartElement, {
-                        backgroundColor: '#ffffff',
-                        scale: 1,
-                        logging: false,
-                        useCORS: true,
-                        allowTaint: false,
-                        height: 300,
-                        width: 500
-                    });
-                    
-                    const imgData = canvas.toDataURL('image/jpeg', 0.8);
-                    
-                    if (yPos > 220) {
-                        pdf.addPage();
-                        yPos = 20;
-                    }
-                    
-                    pdf.setTextColor(0, 0, 0);
-                    pdf.setFontSize(11);
-                    pdf.text(`Chart: ${chartId.replace('chart', '')}`, 20, yPos);
-                    
-                    pdf.addImage(imgData, 'JPEG', 20, yPos + 5, 160, 50);
-                    yPos += 65;
-                    
-                } else {
-                    pdf.setTextColor(200, 0, 0);
-                    pdf.setFontSize(9);
-                    pdf.text(`⚠ Chart ${chartId} nicht verfügbar`, 20, yPos);
-                    yPos += 10;
-                }
-                
-            } catch (chartError) {
-                console.warn(`Chart ${chartId} capture failed:`, chartError);
-                pdf.setTextColor(200, 0, 0);
-                pdf.setFontSize(9);
-                pdf.text(`⚠ Chart ${chartId} Fehler`, 20, yPos);
-                yPos += 10;
+        try {
+            console.log('Checking jsPDF...');
+            if (typeof window.jspdf === 'undefined') {
+                throw new Error('jsPDF ist nicht geladen!');
             }
+
+            const { jsPDF } = window.jspdf;
+            console.log('jsPDF loaded:', jsPDF);
+            
+            const pdf = new jsPDF();
+            
+            // Einfacher Test-Content
+            pdf.setFontSize(20);
+            pdf.text('Security Dashboard Report', 20, 30);
+            
+            pdf.setFontSize(12);
+            pdf.text(`Erstellt: ${new Date().toLocaleDateString('de-DE')}`, 20, 50);
+            pdf.text(`Datensätze: ${DashboardState.currentData.length}`, 20, 60);
+            
+            // Einfache Liste der ersten Events
+            pdf.text('Top Ereignisarten:', 20, 80);
+            const byType = Utils.groupAndCount(DashboardState.currentData, row =>
+                DashboardState.headerMap.type ? row[DashboardState.headerMap.type] : "");
+            
+            let yPos = 90;
+            byType.slice(0, 5).forEach((item, i) => {
+                pdf.text(`${i + 1}. ${item.key}: ${item.count}`, 25, yPos);
+                yPos += 10;
+            });
+            
+            pdf.save('security-report-test.pdf');
+            
+            status.textContent = '✅ Test-PDF erstellt!';
+            console.log('PDF Test erfolgreich!');
+            
+        } catch (error) {
+            console.error('PDF Error:', error);
+            status.textContent = `❌ Fehler: ${error.message}`;
+            alert(`PDF Error: ${error.message}`);
         }
+        
+        setTimeout(() => { 
+            status.style.display = 'none'; 
+        }, 3000);
+    }
+}; // ← WICHTIG: Diese Klammer fehlte!
 
         // ===== SEITE 3: TABELLEN =====
         pdf.addPage();
