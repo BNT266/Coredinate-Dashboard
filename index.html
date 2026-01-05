@@ -188,13 +188,17 @@
     </main>
 </div>
 
-<!-- External JavaScript - DOM Ready Check -->
-<script>
+<!-- ES6 Module JavaScript -->
+<script type="module">
 document.addEventListener('DOMContentLoaded', function() {
-    // Erst laden wenn DOM bereit ist
-    const script = document.createElement('script');
-    script.src = 'src/js/main.js';
-    document.body.appendChild(script);
+    // Import und starte main.js als ES6 Module
+    import('./src/js/main.js')
+        .then(() => {
+            console.log('Dashboard modules loaded successfully');
+        })
+        .catch(err => {
+            console.error('Error loading dashboard modules:', err);
+        });
 });
 </script>
 </body>
