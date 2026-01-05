@@ -510,7 +510,7 @@ const ExportManager = {
         }
     },
 
- async toPDF() {
+async toPDF() {
     if (!DashboardState.currentData || DashboardState.currentData.length === 0) {
         alert('Keine Daten zum Exportieren vorhanden!');
         return;
@@ -530,6 +530,16 @@ const ExportManager = {
         const pageWidth = pdf.internal.pageSize.getWidth();
         const pageHeight = pdf.internal.pageSize.getHeight();
 
+        // SICHERE BEREINIGUNGSFUNKTION
+        function cleanText(text) {
+            if (!text) return '(leer)';
+            return String(text)
+                .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+                .replace(/Ä/g, 'Ae').replace(/Ö/g, 'Oe').replace(/Ü/g, 'Ue')
+                .replace(/[^\x20-\x7E]/g, '') // NUR druckbare ASCII Zeichen (32-126)
+                .trim();
+        }
+
         // ===== SEITE 1: EXECUTIVE SUMMARY =====
         
         // Header mit grünem Hintergrund
@@ -544,8 +554,10 @@ const ExportManager = {
         pdf.setFontSize(12);
         pdf.text('Professional Security Events Analysis Report', 20, 35);
 
-        // Report Info
-        const timestamp = new Date().toLocaleString('de-DE');
+        // Report Info (BEREINIGT)
+        const now = new Date();
+        const dateStr = now.getDate() + '.' + (now.getMonth() + 1) + '.' + now.getFullYear();
+        const timeStr = now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0');
         
         pdf.setTextColor(0, 0, 0);
         pdf.setFontSize(18);
@@ -553,7 +565,7 @@ const ExportManager = {
         
         pdf.setFontSize(11);
         pdf.setTextColor(80, 80, 80);
-        pdf.text('Erstellt am: ' + timestamp, 20, 65);
+        pdf.text('Erstellt am: ' + dateStr + ' um ' + timeStr, 20, 65);
         pdf.text('Analysierte Datensaetze: ' + DashboardState.currentData.length + ' von ' + DashboardState.allData.length + ' gesamt', 20, 72);
 
         // KPI Boxes
@@ -561,11 +573,11 @@ const ExportManager = {
         const kpis = [
             { label: 'Ereignisse', value: DashboardState.currentData.length },
             { label: 'Laender', value: new Set(DashboardState.currentData.map(r => 
-                DashboardState.headerMap.country ? r[DashboardState.headerMap.country] : '')).size },
+                cleanText(DashboardState.headerMap.country ? r[DashboardState.headerMap.country] : ''))).size },
             { label: 'Standorte', value: new Set(DashboardState.currentData.map(r => 
-                DashboardState.headerMap.site ? r[DashboardState.headerMap.site] : '')).size },
+                cleanText(DashboardState.headerMap.site ? r[DashboardState.headerMap.site] : ''))).size },
             { label: 'Event-Arten', value: new Set(DashboardState.currentData.map(r => 
-                DashboardState.headerMap.type ? r[DashboardState.headerMap.type] : '')).size }
+                cleanText(DashboardState.headerMap.type ? r[DashboardState.headerMap.type] : ''))).size }
         ];
 
         // KPI Kaesten zeichnen
@@ -586,10 +598,10 @@ const ExportManager = {
             pdf.setFontSize(20);
             pdf.text(String(kpi.value), x + 5, yPos + 15);
             
-            // Label (klein)
+            // Label (klein) - BEREINIGT
             pdf.setTextColor(60, 60, 60);
             pdf.setFontSize(9);
-            pdf.text(kpi.label, x + 5, yPos + 25);
+            pdf.text(cleanText(kpi.label), x + 5, yPos + 25);
         });
 
         // Top Events Liste
@@ -631,13 +643,8 @@ const ExportManager = {
             // Rang
             pdf.text(String(i + 1), 25, yPos + 4);
             
-            // Event Name (bereinigt)
-            let eventName = item.key || '(leer)';
-            // Alle Sonderzeichen entfernen/ersetzen
-            eventName = eventName
-                .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
-                .replace(/Ä/g, 'Ae').replace(/Ö/g, 'Oe').replace(/Ü/g, 'Ue')
-                .replace(/[^\x00-\x7F]/g, ""); // Alle Non-ASCII Zeichen entfernen
+            // Event Name (RADIKAL BEREINIGT)
+            let eventName = cleanText(item.key);
             if (eventName.length > 25) eventName = eventName.substring(0, 25) + '...';
             pdf.text(eventName, 50, yPos + 4);
             
@@ -693,19 +700,15 @@ const ExportManager = {
             pdf.rect(20, yPos, 170, 8, 'F');
             
             // Balken (proportional zur Anzahl)
-            const barWidth = (country.count / byCountry[0].count) * 60;
+            const barWidth = Math.max((country.count / byCountry[0].count) * 60, 2);
             pdf.setFillColor(0, 163, 122);
             pdf.rect(95, yPos + 1, barWidth, 6, 'F');
             
             pdf.setTextColor(0, 0, 0);
             pdf.setFontSize(10);
             
-            // Land-Name bereinigen
-            let countryName = country.key || '(unbekannt)';
-            countryName = countryName
-                .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
-                .replace(/Ä/g, 'Ae').replace(/Ö/g, 'Oe').replace(/Ü/g, 'Ue')
-                .replace(/[^\x00-\x7F]/g, "");
+            // Land-Name RADIKAL BEREINIGT
+            const countryName = cleanText(country.key);
             pdf.text(countryName, 25, yPos + 5);
             
             pdf.text(String(country.count), 170, yPos + 5);
@@ -718,13 +721,14 @@ const ExportManager = {
         if (yPos < 220) {
             yPos += 20;
             
-            // Risk Score berechnen
+            // Risk Score berechnen (SICHER)
             let totalRisk = 0;
             byType.forEach(event => {
-                const weight = CONFIG.riskWeights[event.key] || 3;
+                const cleanKey = cleanText(event.key);
+                const weight = CONFIG.riskWeights[event.key] || CONFIG.riskWeights[cleanKey] || 3;
                 totalRisk += (event.count * weight);
             });
-            const riskScore = Math.min(Math.round(totalRisk / DashboardState.currentData.length), 10);
+            const riskScore = Math.min(Math.round(totalRisk / Math.max(DashboardState.currentData.length, 1)), 10);
             const riskLevel = riskScore >= 8 ? 'HOCH' : riskScore >= 5 ? 'MITTEL' : 'NIEDRIG';
             
             // Risk Box
@@ -737,7 +741,7 @@ const ExportManager = {
             pdf.text('RISIKO-BEWERTUNG: ' + riskLevel, 25, yPos + 12);
             
             pdf.setFontSize(12);
-            pdf.text('Score: ' + riskScore + '/10 basierend auf Ereignisarten und Haeufigkeit', 25, yPos + 20);
+            pdf.text('Score: ' + riskScore + '/10 basierend auf Ereignisarten', 25, yPos + 20);
         }
 
         // ===== SEITE 3: VOLLSTAENDIGE TABELLE =====
@@ -788,12 +792,8 @@ const ExportManager = {
             pdf.setFontSize(9);
             pdf.text(String(i + 1), 25, yPos + 4);
             
-            // Event Name bereinigen
-            let eventName = item.key || '(leer)';
-            eventName = eventName
-                .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
-                .replace(/Ä/g, 'Ae').replace(/Ö/g, 'Oe').replace(/Ü/g, 'Ue')
-                .replace(/[^\x00-\x7F]/g, ""); // ALLE Non-ASCII Zeichen raus!
+            // Event Name RADIKAL BEREINIGT
+            let eventName = cleanText(item.key);
             if (eventName.length > 30) eventName = eventName.substring(0, 30) + '...';
             pdf.text(eventName, 40, yPos + 4);
             
@@ -813,19 +813,21 @@ const ExportManager = {
             pdf.setLineWidth(0.5);
             pdf.line(20, pageHeight - 20, pageWidth - 20, pageHeight - 20);
             
-            // Footer Text (nur ASCII)
+            // Footer Text (NUR SICHERE ZEICHEN)
             pdf.setTextColor(120, 120, 120);
             pdf.setFontSize(9);
             pdf.text('Security Events Dashboard Report', 20, pageHeight - 12);
-            pdf.text(timestamp, 20, pageHeight - 6);
+            pdf.text(dateStr + ' ' + timeStr, 20, pageHeight - 6);
             pdf.text('Seite ' + pageNum + ' von ' + totalPages, pageWidth - 40, pageHeight - 6);
         }
 
         // Download
-        const filename = 'Security-Events-Report-' + new Date().toISOString().slice(0, 10) + '.pdf';
+        const filename = 'Security-Events-Report-' + now.getFullYear() + '-' + 
+                        String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+                        String(now.getDate()).padStart(2, '0') + '.pdf';
         pdf.save(filename);
 
-        status.textContent = 'Professional PDF Report erstellt: ' + filename;
+        status.textContent = 'PDF Report erstellt: ' + filename;
         setTimeout(() => { status.style.display = 'none'; }, 4000);
 
     } catch (error) {
