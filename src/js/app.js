@@ -508,189 +508,160 @@ const ExportManager = {
         }
     },
 
-    async toPDF() {
-        if (!DashboardState.currentData || DashboardState.currentData.length === 0) {
-            alert('Keine Daten zum Exportieren vorhanden!');
-            return;
+async toPDF() {
+    if (!DashboardState.currentData || DashboardState.currentData.length === 0) {
+        alert('Keine Daten zum Exportieren vorhanden!');
+        return;
+    }
+
+    const status = document.getElementById('exportStatus');
+    status.style.display = 'block';
+    status.textContent = '🎨 PDF Report wird erstellt...';
+
+    try {
+        // Check if libraries are loaded
+        if (!window.jspdf) {
+            throw new Error('jsPDF Library nicht geladen!');
+        }
+        if (!window.html2canvas) {
+            throw new Error('html2canvas Library nicht geladen!');
         }
 
-        const status = document.getElementById('exportStatus');
-        status.style.display = 'block';
-        status.textContent = '🎨 Professioneller PDF Report wird erstellt...';
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pageWidth = pdf.internal.pageSize.getWidth();
 
-        try {
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF('p', 'mm', 'a4');
-            const pageWidth = pdf.internal.pageSize.getWidth();
-            const pageHeight = pdf.internal.pageSize.getHeight();
-
-            // ===== PAGE 1: EXECUTIVE SUMMARY =====
-            this._addPDFHeader(pdf, pageWidth, 'SECURITY DASHBOARD', 'Professional Security Events Report');
-            
-            let yPos = 45;
-            pdf.setTextColor(0, 0, 0);
-            pdf.setFontSize(14);
-            pdf.text('Executive Summary', 20, yPos);
-            
-            const timestamp = Utils.formatTimestamp();
-            pdf.setFontSize(10);
-            pdf.setTextColor(100, 100, 100);
-            pdf.text(`Bericht erstellt am: ${timestamp}`, 20, yPos + 7);
-            pdf.text(`Datenstand: ${DashboardState.allData.length} Gesamtereignisse, ${DashboardState.currentData.length} analysiert`, 20, yPos + 12);
-
-            // KPI Cards
-            yPos += 25;
-            this._addPDFKPICards(pdf, yPos);
-
-            // Top Events Table
-            yPos += 45;
-            this._addPDFTopEvents(pdf, yPos);
-
-            // ===== PAGE 2: DETAILED CHARTS =====
-            pdf.addPage();
-            this._addPDFHeader(pdf, pageWidth, 'Detaillierte Analyse', 'Charts & Visualisierungen');
-            
-            status.textContent = '📊 Chart-Screenshots werden erstellt...';
-            await this._addPDFCharts(pdf);
-
-            // ===== PAGE 3: DETAILED TABLES =====
-            pdf.addPage();
-            this._addPDFHeader(pdf, pageWidth, 'Detaillierte Tabellen', 'Vollständige Datenauswertung');
-            this._addPDFDetailedTables(pdf);
-
-            // Footer on all pages
-            const totalPages = pdf.internal.getNumberOfPages();
-            for (let i = 1; i <= totalPages; i++) {
-                pdf.setPage(i);
-                pdf.setTextColor(100, 100, 100);
-                pdf.setFontSize(8);
-                pdf.text(`Security Dashboard • ${timestamp} • Seite ${i} von ${totalPages}`, 20, pageHeight - 10);
-            }
-
-            // Download
-            const filename = `security-events-report-${new Date().toISOString().slice(0, 10)}.pdf`;
-            pdf.save(filename);
-
-            status.textContent = `✅ Professional PDF Report erstellt: ${filename}`;
-            setTimeout(() => { status.style.display = 'none'; }, 5000);
-
-        } catch (error) {
-            console.error('PDF Export Error:', error);
-            status.textContent = '❌ Fehler beim Erstellen des PDF Reports';
-            setTimeout(() => { status.style.display = 'none'; }, 3000);
-        }
-    },
-
-    _addPDFHeader(pdf, pageWidth, title, subtitle) {
+        // ===== SEITE 1: EXECUTIVE SUMMARY =====
         pdf.setFillColor(0, 163, 122);
         pdf.rect(0, 0, pageWidth, 30, 'F');
         
         pdf.setTextColor(255, 255, 255);
         pdf.setFontSize(20);
-        pdf.text(title, 20, 20);
+        pdf.text('SECURITY DASHBOARD', 20, 20);
         
         pdf.setFontSize(10);
-        pdf.text(subtitle, 20, 26);
-    },
+        pdf.text('Professional Security Events Report', 20, 26);
 
-    _addPDFKPICards(pdf, yPos) {
+        // Report Info
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFontSize(14);
+        pdf.text('Executive Summary', 20, 45);
+        
+        const timestamp = new Date().toLocaleDateString('de-DE');
+        pdf.setFontSize(10);
+        pdf.setTextColor(100);
+        pdf.text(`Erstellt: ${timestamp}`, 20, 52);
+        pdf.text(`Datensätze: ${DashboardState.currentData.length}`, 20, 57);
+
+        // KPI Summary
+        let yPos = 70;
         const kpis = [
-            { label: 'Ereignisse', value: document.getElementById('kpiTotalEvents').textContent, x: 20 },
-            { label: 'Länder', value: document.getElementById('kpiCountries').textContent, x: 70 },
-            { label: 'Standorte', value: document.getElementById('kpiSites').textContent, x: 120 },
-            { label: 'Arten', value: document.getElementById('kpiTypes').textContent, x: 170 }
+            { label: 'Events', value: DashboardState.currentData.length },
+            { label: 'Countries', value: new Set(DashboardState.currentData.map(r => DashboardState.headerMap.country ? r[DashboardState.headerMap.country] : '')).size },
+            { label: 'Sites', value: new Set(DashboardState.currentData.map(r => DashboardState.headerMap.site ? r[DashboardState.headerMap.site] : '')).size }
         ];
 
-        kpis.forEach(kpi => {
-            pdf.setFillColor(245, 245, 245);
-            pdf.rect(kpi.x, yPos, 35, 20, 'F');
+        kpis.forEach((kpi, i) => {
+            const x = 20 + (i * 60);
+            pdf.setFillColor(240, 240, 240);
+            pdf.rect(x, yPos, 50, 20, 'F');
             
             pdf.setTextColor(0, 163, 122);
             pdf.setFontSize(16);
-            pdf.text(kpi.value, kpi.x + 5, yPos + 12);
+            pdf.text(String(kpi.value), x + 5, yPos + 12);
             
-            pdf.setFontSize(7);
+            pdf.setFontSize(8);
             pdf.setTextColor(0, 0, 0);
-            pdf.text(kpi.label, kpi.x + 5, yPos + 17);
+            pdf.text(kpi.label, x + 5, yPos + 17);
         });
-    },
 
-    _addPDFTopEvents(pdf, yPos) {
+        // Top Events List
+        yPos += 35;
         pdf.setFontSize(12);
-        pdf.setTextColor(0, 0, 0);
         pdf.text('Top Ereignisarten:', 20, yPos);
         yPos += 10;
 
         const byType = Utils.groupAndCount(DashboardState.currentData, row =>
             DashboardState.headerMap.type ? row[DashboardState.headerMap.type] : "");
 
-        pdf.setFontSize(9);
-        byType.slice(0, 8).forEach((item, index) => {
-            const barWidth = Math.max((item.count / byType[0].count) * 100, 5);
-            
-            pdf.setFillColor(0, 163, 122);
-            pdf.rect(20, yPos, barWidth * 0.8, 4, 'F');
-            
+        byType.slice(0, 10).forEach((item, i) => {
+            pdf.setFontSize(9);
             pdf.setTextColor(0, 0, 0);
-            pdf.text(`${item.key || "(leer)"}`, 22, yPos + 3);
-            pdf.text(`${item.count}`, 130, yPos + 3);
-            yPos += 8;
+            pdf.text(`${i + 1}. ${item.key}: ${item.count}`, 25, yPos);
+            yPos += 6;
         });
-    },
 
-    async _addPDFCharts(pdf) {
-        const chartConfigs = [
-            { id: 'chartCountries', title: 'Ereignisse nach Ländern', height: 50 },
-            { id: 'chartTypes', title: 'Verteilung der Ereignisarten', height: 50 },
-            { id: 'chartSites', title: 'Ereignisse nach Standorten', height: 50 }
-        ];
+        // ===== SEITE 2: CHARTS =====
+        pdf.addPage();
+        pdf.setFillColor(0, 163, 122);
+        pdf.rect(0, 0, pageWidth, 25, 'F');
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(16);
+        pdf.text('Charts & Visualisierungen', 20, 17);
 
-        let yPos = 40;
+        yPos = 40;
+        status.textContent = '📊 Screenshots werden erstellt...';
+
+        // Try to capture charts
+        const chartIds = ['chartCountries', 'chartTypes', 'chartSites'];
         
-        for (const config of chartConfigs) {
-            const chartElement = document.getElementById(config.id);
-            
-            if (chartElement && chartElement.querySelector('canvas')) {
-                try {
+        for (const chartId of chartIds) {
+            try {
+                const chartElement = document.getElementById(chartId);
+                
+                if (chartElement && chartElement.querySelector('canvas')) {
                     const canvas = await html2canvas(chartElement, {
                         backgroundColor: '#ffffff',
-                        scale: 1.5,
+                        scale: 1,
                         logging: false,
-                        useCORS: true
+                        useCORS: true,
+                        allowTaint: false,
+                        height: 300,
+                        width: 500
                     });
                     
-                    const imgData = canvas.toDataURL('image/png', 0.8);
+                    const imgData = canvas.toDataURL('image/jpeg', 0.8);
                     
-                    if (yPos > 200) {
+                    if (yPos > 220) {
                         pdf.addPage();
-                        this._addPDFHeader(pdf, pdf.internal.pageSize.getWidth(), 'Charts (Fortsetzung)', '');
-                        yPos = 40;
+                        yPos = 20;
                     }
                     
                     pdf.setTextColor(0, 0, 0);
                     pdf.setFontSize(11);
-                    pdf.text(config.title, 20, yPos);
+                    pdf.text(`Chart: ${chartId.replace('chart', '')}`, 20, yPos);
                     
-                    pdf.addImage(imgData, 'PNG', 20, yPos + 5, 160, config.height);
-                    yPos += config.height + 15;
+                    pdf.addImage(imgData, 'JPEG', 20, yPos + 5, 160, 50);
+                    yPos += 65;
                     
-                } catch (err) {
-                    console.error(`Chart ${config.id} error:`, err);
+                } else {
                     pdf.setTextColor(200, 0, 0);
                     pdf.setFontSize(9);
-                    pdf.text(`⚠ Chart "${config.title}" konnte nicht geladen werden`, 20, yPos);
+                    pdf.text(`⚠ Chart ${chartId} nicht verfügbar`, 20, yPos);
                     yPos += 10;
                 }
+                
+            } catch (chartError) {
+                console.warn(`Chart ${chartId} capture failed:`, chartError);
+                pdf.setTextColor(200, 0, 0);
+                pdf.setFontSize(9);
+                pdf.text(`⚠ Chart ${chartId} Fehler`, 20, yPos);
+                yPos += 10;
             }
         }
-    },
 
-    _addPDFDetailedTables(pdf) {
-        let yPos = 40;
-        
+        // ===== SEITE 3: TABELLEN =====
+        pdf.addPage();
+        pdf.setFillColor(0, 163, 122);
+        pdf.rect(0, 0, pageWidth, 25, 'F');
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(16);
+        pdf.text('Detaillierte Tabellen', 20, 17);
+
+        yPos = 40;
         pdf.setTextColor(0, 0, 0);
         pdf.setFontSize(12);
-        pdf.text('Ereignisarten (Detailansicht):', 20, yPos);
+        pdf.text('Ereignisarten (Top 15):', 20, yPos);
         yPos += 10;
 
         // Table Header
@@ -703,12 +674,9 @@ const ExportManager = {
         yPos += 10;
 
         // Table Data
-        const byType = Utils.groupAndCount(DashboardState.currentData, row =>
-            DashboardState.headerMap.type ? row[DashboardState.headerMap.type] : "");
-        
         const total = DashboardState.currentData.length;
-        byType.forEach((item, index) => {
-            if (index < 15 && yPos < 260) {
+        byType.slice(0, 15).forEach((item, index) => {
+            if (yPos < 260) {
                 const percentage = ((item.count / total) * 100).toFixed(1);
                 
                 pdf.setTextColor(0, 0, 0);
@@ -718,9 +686,29 @@ const ExportManager = {
                 yPos += 6;
             }
         });
-    }
-};
 
+        // Footer
+        const totalPages = pdf.internal.getNumberOfPages();
+        for (let i = 1; i <= totalPages; i++) {
+            pdf.setPage(i);
+            pdf.setTextColor(100);
+            pdf.setFontSize(8);
+            pdf.text(`Security Dashboard • ${timestamp} • Seite ${i}/${totalPages}`, 20, 285);
+        }
+
+        // Download
+        const filename = `security-report-${new Date().toISOString().slice(0, 10)}.pdf`;
+        pdf.save(filename);
+
+        status.textContent = `✅ PDF Report erstellt: ${filename}`;
+        setTimeout(() => { status.style.display = 'none'; }, 3000);
+
+    } catch (error) {
+        console.error('PDF Export Error:', error);
+        status.textContent = `❌ PDF Fehler: ${error.message}`;
+        setTimeout(() => { status.style.display = 'none'; }, 5000);
+    }
+},
 // =============================================
 // FILTER MANAGER
 // =============================================
