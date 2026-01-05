@@ -191,7 +191,48 @@
     </main>
 </div>
 
-<!-- JavaScript - Simple Loading -->
-<script src="src/js/main.js"></script>
+<!-- JavaScript direkt in HTML - funktioniert garantiert -->
+<script>
+console.log('JavaScript startet...');
+
+// Test ob alles lädt
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM ready!');
+    
+    // Einfacher Test
+    const btn = document.getElementById('loadTestData');
+    if (btn) {
+        btn.addEventListener('click', function() {
+            alert('Button funktioniert! Chart.js: ' + (typeof Chart !== 'undefined' ? 'OK' : 'FEHLER'));
+            
+            // Schneller Test mit Chart.js
+            const container = document.getElementById('chartCountries');
+            container.innerHTML = '<canvas></canvas>';
+            const canvas = container.querySelector('canvas');
+            
+            if (typeof Chart !== 'undefined') {
+                new Chart(canvas, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Deutschland', 'USA', 'UK'],
+                        datasets: [{
+                            label: 'Test Daten',
+                            data: [5, 3, 2],
+                            backgroundColor: ['#00a37a', '#006b4e', '#4caf50']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+                
+                document.getElementById('recordCount').textContent = '10';
+                document.getElementById('modeIndicator').textContent = 'Modus: Test erfolgreich!';
+            }
+        });
+    }
+});
+</script>
 </body>
 </html>
