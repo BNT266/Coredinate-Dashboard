@@ -510,7 +510,7 @@ const ExportManager = {
         }
     },
 
-  async toPDF() {
+ async toPDF() {
     if (!DashboardState.currentData || DashboardState.currentData.length === 0) {
         alert('Keine Daten zum Exportieren vorhanden!');
         return;
@@ -518,7 +518,7 @@ const ExportManager = {
 
     const status = document.getElementById('exportStatus');
     status.style.display = 'block';
-    status.textContent = 'Professioneller PDF Report wird erstellt...';
+    status.textContent = 'PDF Report wird erstellt...';
 
     try {
         if (typeof window.jspdf === 'undefined') {
@@ -596,7 +596,7 @@ const ExportManager = {
         yPos += 45;
         pdf.setTextColor(0, 0, 0);
         pdf.setFontSize(16);
-        pdf.text('*** TOP EREIGNISARTEN ***', 20, yPos);
+        pdf.text('TOP EREIGNISARTEN', 20, yPos);
         
         yPos += 10;
         const byType = Utils.groupAndCount(DashboardState.currentData, row =>
@@ -628,13 +628,16 @@ const ExportManager = {
             pdf.setTextColor(0, 0, 0);
             pdf.setFontSize(10);
             
-            // Rang mit Stern
-            pdf.text('#' + String(i + 1), 25, yPos + 4);
+            // Rang
+            pdf.text(String(i + 1), 25, yPos + 4);
             
             // Event Name (bereinigt)
             let eventName = item.key || '(leer)';
-            // Deutsche Umlaute ersetzen
-            eventName = eventName.replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss');
+            // Alle Sonderzeichen entfernen/ersetzen
+            eventName = eventName
+                .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+                .replace(/Ä/g, 'Ae').replace(/Ö/g, 'Oe').replace(/Ü/g, 'Ue')
+                .replace(/[^\x00-\x7F]/g, ""); // Alle Non-ASCII Zeichen entfernen
             if (eventName.length > 25) eventName = eventName.substring(0, 25) + '...';
             pdf.text(eventName, 50, yPos + 4);
             
@@ -656,7 +659,7 @@ const ExportManager = {
         pdf.rect(0, 0, pageWidth, 30, 'F');
         pdf.setTextColor(255, 255, 255);
         pdf.setFontSize(20);
-        pdf.text('*** DETAILLIERTE ANALYSE NACH LAENDERN ***', 20, 20);
+        pdf.text('DETAILLIERTE ANALYSE NACH LAENDERN', 20, 20);
 
         yPos = 45;
         
@@ -699,7 +702,10 @@ const ExportManager = {
             
             // Land-Name bereinigen
             let countryName = country.key || '(unbekannt)';
-            countryName = countryName.replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss');
+            countryName = countryName
+                .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+                .replace(/Ä/g, 'Ae').replace(/Ö/g, 'Oe').replace(/Ü/g, 'Ue')
+                .replace(/[^\x00-\x7F]/g, "");
             pdf.text(countryName, 25, yPos + 5);
             
             pdf.text(String(country.count), 170, yPos + 5);
@@ -728,7 +734,7 @@ const ExportManager = {
             
             pdf.setTextColor(255, 255, 255);
             pdf.setFontSize(18);
-            pdf.text('*** RISIKO-BEWERTUNG: ' + riskLevel + ' ***', 25, yPos + 12);
+            pdf.text('RISIKO-BEWERTUNG: ' + riskLevel, 25, yPos + 12);
             
             pdf.setFontSize(12);
             pdf.text('Score: ' + riskScore + '/10 basierend auf Ereignisarten und Haeufigkeit', 25, yPos + 20);
@@ -741,7 +747,7 @@ const ExportManager = {
         pdf.rect(0, 0, pageWidth, 30, 'F');
         pdf.setTextColor(255, 255, 255);
         pdf.setFontSize(20);
-        pdf.text('*** VOLLSTAENDIGE DATENAUSWERTUNG ***', 20, 20);
+        pdf.text('VOLLSTAENDIGE DATENAUSWERTUNG', 20, 20);
 
         yPos = 45;
         pdf.setTextColor(0, 0, 0);
@@ -784,7 +790,10 @@ const ExportManager = {
             
             // Event Name bereinigen
             let eventName = item.key || '(leer)';
-            eventName = eventName.replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss');
+            eventName = eventName
+                .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+                .replace(/Ä/g, 'Ae').replace(/Ö/g, 'Oe').replace(/Ü/g, 'Ue')
+                .replace(/[^\x00-\x7F]/g, ""); // ALLE Non-ASCII Zeichen raus!
             if (eventName.length > 30) eventName = eventName.substring(0, 30) + '...';
             pdf.text(eventName, 40, yPos + 4);
             
@@ -804,7 +813,7 @@ const ExportManager = {
             pdf.setLineWidth(0.5);
             pdf.line(20, pageHeight - 20, pageWidth - 20, pageHeight - 20);
             
-            // Footer Text (ohne Umlaute)
+            // Footer Text (nur ASCII)
             pdf.setTextColor(120, 120, 120);
             pdf.setFontSize(9);
             pdf.text('Security Events Dashboard Report', 20, pageHeight - 12);
