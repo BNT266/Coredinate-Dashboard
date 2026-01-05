@@ -10,6 +10,10 @@
     
     <!-- Chart.js Library -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- PDF Export Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
 <div class="app-shell">
@@ -68,6 +72,27 @@
                 <button class="btn secondary" id="resetFilters">Filter zurücksetzen</button>
                 <div id="filterStatus" class="status"></div>
             </div>
+        </div>
+
+        <!-- Export Section - NEU HINZUGEFÜGT -->
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Export</div>
+            
+            <button class="btn secondary" id="exportCSV">
+                📄 CSV exportieren
+            </button>
+            <div class="hint">
+                Exportiert die aktuell gefilterten Daten als CSV-Datei.
+            </div>
+
+            <button class="btn primary" id="exportPDF">
+                📊 PDF Report erstellen
+            </button>
+            <div class="hint">
+                Erstellt einen professionellen PDF-Report mit allen Charts und Tabellen.
+            </div>
+            
+            <div id="exportStatus" class="status" style="display: none;"></div>
         </div>
     </aside>
 
@@ -336,6 +361,138 @@ Belgien;Brüssel Office;Verdächtige Person;2025-01-25`;
 }
 
 // =======================
+// EXPORT FUNCTIONS - NEU
+// =======================
+function exportToCSV() {
+    if (!currentData || currentData.length === 0) {
+        alert('Keine Daten zum Exportieren vorhanden!');
+        return;
+    }
+
+    const status = document.getElementById('exportStatus');
+    status.style.display = 'block';
+    status.textContent = 'CSV wird erstellt...';
+
+    // CSV Header
+    const headers = Object.keys(currentData[0]);
+    let csvContent = headers.join(',') + '\n';
+
+    // CSV Rows
+    currentData.forEach(row => {
+        const values = headers.map(header => {
+            const value = row[header] || '';
+            return `"${value.toString().replace(/"/g, '""')}"`;
+        });
+        csvContent += values.join(',') + '\n';
+    });
+
+    // Download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+    link.href = URL.createObjectURL(blob);
+    link.download = `security-events-${timestamp}.csv`;
+    link.click();
+
+    status.textContent = `✅ CSV exportiert (${currentData.length} Datensätze)`;
+    setTimeout(() => { status.style.display = 'none'; }, 3000);
+}
+
+async function exportToPDF() {
+    if (!currentData || currentData.length === 0) {
+        alert('Keine Daten zum Exportieren vorhanden!');
+        return;
+    }
+
+    const status = document.getElementById('exportStatus');
+    status.style.display = 'block';
+    status.textContent = '📊 PDF Report wird erstellt...';
+
+    try {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'mm', 'a4');
+
+        // Report Header
+        pdf.setFontSize(20);
+        pdf.text('Security Events Report', 20, 25);
+        
+        pdf.setFontSize(12);
+        const timestamp = new Date().toLocaleDateString('de-DE', {
+            year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit'
+        });
+        pdf.text(`Erstellt am: ${timestamp}`, 20, 35);
+        pdf.text(`Datensätze: ${currentData.length}`, 20, 42);
+
+        let yPosition = 55;
+
+        // KPIs
+        pdf.setFontSize(14);
+        pdf.text('Kennzahlen:', 20, yPosition);
+        yPosition += 10;
+
+        pdf.setFontSize(11);
+        const totalEvents = document.getElementById('kpiTotalEvents').textContent;
+        const totalCountries = document.getElementById('kpiCountries').textContent;
+        const totalSites = document.getElementById('kpiSites').textContent;
+        const totalTypes = document.getElementById('kpiTypes').textContent;
+
+        pdf.text(`• Gesamtzahl Ereignisse: ${totalEvents}`, 25, yPosition);
+        pdf.text(`• Länder: ${totalCountries}`, 25, yPosition + 7);
+        pdf.text(`• Liegenschaften: ${totalSites}`, 25, yPosition + 14);
+        pdf.text(`• Ereignisarten: ${totalTypes}`, 25, yPosition + 21);
+
+        yPosition += 35;
+
+        // Charts als Screenshots
+        status.textContent = '📸 Screenshots der Charts werden erstellt...';
+        
+        // Chart Screenshots
+        const charts = ['chartCountries', 'chartSites', 'chartTypes'];
+        const chartTitles = ['Länder-Verteilung', 'Liegenschaften', 'Ereignisarten'];
+
+        for (let i = 0; i < charts.length; i++) {
+            const chartElement = document.getElementById(charts[i]);
+            if (chartElement && chartElement.querySelector('canvas')) {
+                try {
+                    const canvas = await html2canvas(chartElement, {
+                        backgroundColor: '#ffffff',
+                        scale: 2
+                    });
+                    
+                    const imgData = canvas.toDataURL('image/png');
+                    
+                    // Neue Seite für jeden Chart außer dem ersten
+                    if (i > 0) {
+                        pdf.addPage();
+                        yPosition = 25;
+                    }
+                    
+                    pdf.setFontSize(14);
+                    pdf.text(chartTitles[i], 20, yPosition);
+                    pdf.addImage(imgData, 'PNG', 20, yPosition + 5, 170, 100);
+                    yPosition += 110;
+                } catch (err) {
+                    console.error('Chart screenshot error:', err);
+                }
+            }
+        }
+
+        // Download PDF
+        const pdfFilename = `security-report-${timestamp.replace(/[^0-9]/g, '')}.pdf`;
+        pdf.save(pdfFilename);
+
+        status.textContent = `✅ PDF Report erstellt: ${pdfFilename}`;
+        setTimeout(() => { status.style.display = 'none'; }, 5000);
+
+    } catch (error) {
+        console.error('PDF Error:', error);
+        status.textContent = '❌ Fehler beim Erstellen des PDF Reports';
+        setTimeout(() => { status.style.display = 'none'; }, 3000);
+    }
+}
+
+// =======================
 // CHART FUNCTIONS
 // =======================
 let chartInstances = {};
@@ -418,6 +575,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const loadTestDataBtn = document.getElementById('loadTestData');
     const fileInput = document.getElementById('fileInput');
     const fileStatus = document.getElementById('fileStatus');
+    const exportCSVBtn = document.getElementById('exportCSV');
+    const exportPDFBtn = document.getElementById('exportPDF');
+    
+    // Export Event Listeners - NEU
+    exportCSVBtn.addEventListener('click', exportToCSV);
+    exportPDFBtn.addEventListener('click', exportToPDF);
     
     // Load Test Data
     loadTestDataBtn.addEventListener('click', function() {
