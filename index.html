@@ -74,7 +74,7 @@
             </div>
         </div>
 
-        <!-- Export Section - NEU HINZUGEFÜGT -->
+        <!-- Export Section -->
         <div class="sidebar-section">
             <div class="sidebar-section-title">Export</div>
             
@@ -406,83 +406,248 @@ async function exportToPDF() {
 
     const status = document.getElementById('exportStatus');
     status.style.display = 'block';
-    status.textContent = '📊 PDF Report wird erstellt...';
+    status.textContent = '🎨 Professioneller PDF Report wird erstellt...';
 
     try {
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF('p', 'mm', 'a4');
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
 
-        // Report Header
-        pdf.setFontSize(20);
-        pdf.text('Security Events Report', 20, 25);
+        // ===== SEITE 1: EXECUTIVE SUMMARY =====
+        
+        // Header mit Corporate Design
+        pdf.setFillColor(0, 163, 122); // #00a37a
+        pdf.rect(0, 0, pageWidth, 30, 'F');
+        
+        // Logo/Brand Area
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(24);
+        pdf.text('SECURITY DASHBOARD', 20, 20);
         
         pdf.setFontSize(12);
+        pdf.text('Professional Security Events Report', 20, 26);
+
+        // Report Info
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFontSize(14);
+        pdf.text('Executive Summary', 20, 45);
+        
         const timestamp = new Date().toLocaleDateString('de-DE', {
             year: 'numeric', month: '2-digit', day: '2-digit',
             hour: '2-digit', minute: '2-digit'
         });
-        pdf.text(`Erstellt am: ${timestamp}`, 20, 35);
-        pdf.text(`Datensätze: ${currentData.length}`, 20, 42);
-
-        let yPosition = 55;
-
-        // KPIs
-        pdf.setFontSize(14);
-        pdf.text('Kennzahlen:', 20, yPosition);
-        yPosition += 10;
-
-        pdf.setFontSize(11);
-        const totalEvents = document.getElementById('kpiTotalEvents').textContent;
-        const totalCountries = document.getElementById('kpiCountries').textContent;
-        const totalSites = document.getElementById('kpiSites').textContent;
-        const totalTypes = document.getElementById('kpiTypes').textContent;
-
-        pdf.text(`• Gesamtzahl Ereignisse: ${totalEvents}`, 25, yPosition);
-        pdf.text(`• Länder: ${totalCountries}`, 25, yPosition + 7);
-        pdf.text(`• Liegenschaften: ${totalSites}`, 25, yPosition + 14);
-        pdf.text(`• Ereignisarten: ${totalTypes}`, 25, yPosition + 21);
-
-        yPosition += 35;
-
-        // Charts als Screenshots
-        status.textContent = '📸 Screenshots der Charts werden erstellt...';
         
-        // Chart Screenshots
-        const charts = ['chartCountries', 'chartSites', 'chartTypes'];
-        const chartTitles = ['Länder-Verteilung', 'Liegenschaften', 'Ereignisarten'];
+        pdf.setFontSize(10);
+        pdf.setTextColor(100, 100, 100);
+        pdf.text(`Bericht erstellt am: ${timestamp}`, 20, 52);
+        pdf.text(`Datenstand: $${allData.length} Gesamtereignisse, $${currentData.length} analysiert`, 20, 57);
 
-        for (let i = 0; i < charts.length; i++) {
-            const chartElement = document.getElementById(charts[i]);
+        // KPI Cards Design
+        let yPos = 70;
+        
+        // KPI Card 1
+        pdf.setFillColor(245, 245, 245);
+        pdf.rect(20, yPos, 40, 25, 'F');
+        pdf.setTextColor(0, 163, 122);
+        pdf.setFontSize(20);
+        const totalEvents = document.getElementById('kpiTotalEvents').textContent;
+        pdf.text(totalEvents, 25, yPos + 15);
+        pdf.setFontSize(8);
+        pdf.setTextColor(0, 0, 0);
+        pdf.text('Ereignisse', 25, yPos + 20);
+
+        // KPI Card 2
+        pdf.setFillColor(245, 245, 245);
+        pdf.rect(70, yPos, 40, 25, 'F');
+        pdf.setTextColor(0, 163, 122);
+        pdf.setFontSize(20);
+        const totalCountries = document.getElementById('kpiCountries').textContent;
+        pdf.text(totalCountries, 75, yPos + 15);
+        pdf.setFontSize(8);
+        pdf.setTextColor(0, 0, 0);
+        pdf.text('Länder', 75, yPos + 20);
+
+        // KPI Card 3
+        pdf.setFillColor(245, 245, 245);
+        pdf.rect(120, yPos, 40, 25, 'F');
+        pdf.setTextColor(0, 163, 122);
+        pdf.setFontSize(20);
+        const totalSites = document.getElementById('kpiSites').textContent;
+        pdf.text(totalSites, 125, yPos + 15);
+        pdf.setFontSize(8);
+        pdf.setTextColor(0, 0, 0);
+        pdf.text('Standorte', 125, yPos + 20);
+
+        yPos += 35;
+
+        // Top Events Tabelle
+        pdf.setFontSize(12);
+        pdf.setTextColor(0, 0, 0);
+        pdf.text('Top Ereignisarten:', 20, yPos);
+        yPos += 10;
+
+        const byType = groupAndCount(currentData, row =>
+            headerMap.type ? (row[headerMap.type] || "").trim() : ""
+        );
+
+        pdf.setFontSize(9);
+        byType.slice(0, 8).forEach((item, index) => {
+            const barWidth = (item.count / byType[0].count) * 100;
+            
+            // Bar
+            pdf.setFillColor(0, 163, 122);
+            pdf.rect(20, yPos, barWidth * 0.8, 4, 'F');
+            
+            // Label und Count
+            pdf.setTextColor(0, 0, 0);
+            pdf.text(`${item.key || "(leer)"}`, 22, yPos + 3);
+            pdf.text(`${item.count}`, 130, yPos + 3);
+            yPos += 8;
+        });
+
+        yPos += 10;
+
+        // Top Länder
+        pdf.setFontSize(12);
+        pdf.text('Verteilung nach Ländern:', 20, yPos);
+        yPos += 10;
+
+        const byCountry = groupAndCount(currentData, row =>
+            headerMap.country ? (row[headerMap.country] || "").trim() : ""
+        );
+
+        pdf.setFontSize(9);
+        byCountry.slice(0, 5).forEach((item, index) => {
+            const barWidth = (item.count / byCountry[0].count) * 100;
+            
+            pdf.setFillColor(0, 107, 78); // Darker green
+            pdf.rect(20, yPos, barWidth * 0.8, 4, 'F');
+            
+            pdf.setTextColor(0, 0, 0);
+            pdf.text(`${item.key || "(leer)"}`, 22, yPos + 3);
+            pdf.text(`${item.count}`, 130, yPos + 3);
+            yPos += 8;
+        });
+
+        // ===== SEITE 2: DETAILLIERTE CHARTS =====
+        pdf.addPage();
+        
+        // Header für Seite 2
+        pdf.setFillColor(0, 163, 122);
+        pdf.rect(0, 0, pageWidth, 25, 'F');
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(16);
+        pdf.text('Detaillierte Analyse & Visualisierungen', 20, 17);
+
+        status.textContent = '📊 Chart-Screenshots werden erstellt...';
+
+        yPos = 40;
+
+        // Charts Screenshots mit besserer Qualität
+        const chartConfigs = [
+            { id: 'chartCountries', title: 'Ereignisse nach Ländern', height: 60 },
+            { id: 'chartTypes', title: 'Verteilung der Ereignisarten', height: 60 },
+            { id: 'chartSites', title: 'Ereignisse nach Standorten', height: 60 }
+        ];
+
+        for (let i = 0; i < chartConfigs.length; i++) {
+            const config = chartConfigs[i];
+            const chartElement = document.getElementById(config.id);
+            
             if (chartElement && chartElement.querySelector('canvas')) {
                 try {
                     const canvas = await html2canvas(chartElement, {
                         backgroundColor: '#ffffff',
-                        scale: 2
+                        scale: 2,
+                        logging: false,
+                        useCORS: true,
+                        allowTaint: false
                     });
                     
-                    const imgData = canvas.toDataURL('image/png');
+                    const imgData = canvas.toDataURL('image/png', 1.0);
                     
-                    // Neue Seite für jeden Chart außer dem ersten
-                    if (i > 0) {
+                    // Neue Seite wenn nötig
+                    if (yPos > pageHeight - 70) {
                         pdf.addPage();
-                        yPosition = 25;
+                        pdf.setFillColor(0, 163, 122);
+                        pdf.rect(0, 0, pageWidth, 25, 'F');
+                        pdf.setTextColor(255, 255, 255);
+                        pdf.setFontSize(16);
+                        pdf.text('Detaillierte Analyse (Fortsetzung)', 20, 17);
+                        yPos = 40;
                     }
                     
-                    pdf.setFontSize(14);
-                    pdf.text(chartTitles[i], 20, yPosition);
-                    pdf.addImage(imgData, 'PNG', 20, yPosition + 5, 170, 100);
-                    yPosition += 110;
+                    // Chart Title
+                    pdf.setTextColor(0, 0, 0);
+                    pdf.setFontSize(12);
+                    pdf.text(config.title, 20, yPos);
+                    
+                    // Chart Image
+                    pdf.addImage(imgData, 'PNG', 20, yPos + 5, 170, config.height);
+                    yPos += config.height + 15;
+                    
                 } catch (err) {
-                    console.error('Chart screenshot error:', err);
+                    console.error(`Chart ${config.id} screenshot error:`, err);
+                    pdf.setTextColor(200, 0, 0);
+                    pdf.text(`⚠ Chart konnte nicht geladen werden`, 20, yPos);
+                    yPos += 10;
                 }
             }
         }
 
-        // Download PDF
-        const pdfFilename = `security-report-${timestamp.replace(/[^0-9]/g, '')}.pdf`;
+        // ===== SEITE 3: TABELLEN UND DETAILS =====
+        pdf.addPage();
+        
+        pdf.setFillColor(0, 163, 122);
+        pdf.rect(0, 0, pageWidth, 25, 'F');
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(16);
+        pdf.text('Detaillierte Tabellen', 20, 17);
+
+        yPos = 35;
+
+        // Tabelle: Top Ereignisarten
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFontSize(12);
+        pdf.text('Ereignisarten (Detailansicht):', 20, yPos);
+        yPos += 10;
+
+        // Tabellen-Header
+        pdf.setFillColor(240, 240, 240);
+        pdf.rect(20, yPos, 170, 7, 'F');
+        pdf.setFontSize(9);
+        pdf.text('Ereignisart', 22, yPos + 5);
+        pdf.text('Anzahl', 140, yPos + 5);
+        pdf.text('Anteil', 160, yPos + 5);
+        yPos += 10;
+
+        // Tabellen-Daten
+        const totalEvents2 = currentData.length;
+        byType.forEach((item, index) => {
+            if (index < 15 && yPos < pageHeight - 20) {
+                const percentage = ((item.count / totalEvents2) * 100).toFixed(1);
+                
+                pdf.setTextColor(0, 0, 0);
+                pdf.text(`${item.key || "(leer)"}`, 22, yPos);
+                pdf.text(`${item.count}`, 140, yPos);
+                pdf.text(`${percentage}%`, 160, yPos);
+                yPos += 6;
+            }
+        });
+
+        yPos += 10;
+
+        // Footer
+        pdf.setTextColor(100, 100, 100);
+        pdf.setFontSize(8);
+        pdf.text(`Generiert von Security Dashboard • ${timestamp} • Seite 3 von 3`, 20, pageHeight - 10);
+
+        // Download
+        const pdfFilename = `security-events-report-${new Date().toISOString().slice(0, 10)}.pdf`;
         pdf.save(pdfFilename);
 
-        status.textContent = `✅ PDF Report erstellt: ${pdfFilename}`;
+        status.textContent = `✅ Professional PDF Report erstellt: ${pdfFilename}`;
         setTimeout(() => { status.style.display = 'none'; }, 5000);
 
     } catch (error) {
@@ -575,12 +740,27 @@ document.addEventListener('DOMContentLoaded', function() {
     const loadTestDataBtn = document.getElementById('loadTestData');
     const fileInput = document.getElementById('fileInput');
     const fileStatus = document.getElementById('fileStatus');
-    const exportCSVBtn = document.getElementById('exportCSV');
+     const exportCSVBtn = document.getElementById('exportCSV');
     const exportPDFBtn = document.getElementById('exportPDF');
+    const filterCountry = document.getElementById('filterCountry');
+    const filterSite = document.getElementById('filterSite');
+    const filterType = document.getElementById('filterType');
+    const resetFiltersBtn = document.getElementById('resetFilters');
     
-    // Export Event Listeners - NEU
+    // Export Event Listeners
     exportCSVBtn.addEventListener('click', exportToCSV);
     exportPDFBtn.addEventListener('click', exportToPDF);
+    
+    // Filter Event Listeners
+    filterCountry.addEventListener('change', applyFilters);
+    filterSite.addEventListener('change', applyFilters);
+    filterType.addEventListener('change', applyFilters);
+    resetFiltersBtn.addEventListener('click', () => {
+        filterCountry.value = "__ALL__";
+        filterSite.value = "__ALL__";
+        filterType.value = "__ALL__";
+        applyFilters();
+    });
     
     // Load Test Data
     loadTestDataBtn.addEventListener('click', function() {
@@ -592,7 +772,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         document.getElementById('recordCount').textContent = allData.length.toString();
         document.getElementById('modeIndicator').textContent = 'Modus: Testdaten (Demo)';
-        fileStatus.textContent = 'Testdaten sind geladen (Demo-Modus).';
+        document.getElementById('fileStatus').textContent = 'Testdaten sind geladen (Demo-Modus).';
         
         renderAll();
     });
@@ -611,17 +791,66 @@ document.addEventListener('DOMContentLoaded', function() {
             
             document.getElementById('recordCount').textContent = allData.length.toString();
             document.getElementById('modeIndicator').textContent = 'Modus: CSV-Datei';
-            fileStatus.textContent = `Datei "${file.name}" geladen. Datensätze: ${allData.length}.`;
+            document.getElementById('fileStatus').textContent = `Datei "${file.name}" geladen. Datensätze: ${allData.length}.`;
             
             renderAll();
         } catch (err) {
             console.error(err);
-            fileStatus.textContent = 'Fehler beim Lesen der Datei.';
+            document.getElementById('fileStatus').textContent = 'Fehler beim Lesen der Datei.';
         }
     });
     
+    // Apply Filters Function
+    function applyFilters() {
+        if (!allData || allData.length === 0) {
+            currentData = [];
+            renderAll();
+            return;
+        }
+
+        const selCountry = filterCountry.value;
+        const selSite = filterSite.value;
+        const selType = filterType.value;
+
+        currentData = allData.filter(row => {
+            const rowCountry = headerMap.country ? (row[headerMap.country] || "").trim() : "";
+            const rowSite = headerMap.site ? (row[headerMap.site] || "").trim() : "";
+            const rowType = headerMap.type ? (row[headerMap.type] || "").trim() : "";
+
+            if (selCountry !== "__ALL__" && rowCountry !== selCountry) return false;
+            if (selSite !== "__ALL__" && rowSite !== selSite) return false;
+            if (selType !== "__ALL__" && rowType !== selType) return false;
+            return true;
+        });
+
+        updateFilterStatus();
+        renderAll();
+    }
+
+    function updateFilterStatus() {
+        const filterStatus = document.getElementById('filterStatus');
+        const activeFilters = [];
+        
+        if (filterCountry.value !== "__ALL__") {
+            activeFilters.push("Land: " + filterCountry.value);
+        }
+        if (filterSite.value !== "__ALL__") {
+            activeFilters.push("Liegenschaft: " + filterSite.value);
+        }
+        if (filterType.value !== "__ALL__") {
+            activeFilters.push("Ereignisart: " + filterType.value);
+        }
+
+        if (activeFilters.length === 0) {
+            filterStatus.textContent = "Keine Filter aktiv (zeige alle Datensätze).";
+        } else {
+            filterStatus.textContent = "Aktive Filter: " + activeFilters.join(" | ");
+        }
+    }
+    
     function renderAll() {
         renderKPIs();
+        renderFiltersFromData();
         renderTables();
         renderCharts();
     }
@@ -653,6 +882,49 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('kpiSites').textContent = sites.size.toString();
         document.getElementById('kpiTypes').textContent = types.size.toString();
     }
+
+    function renderFiltersFromData() {
+        const countries = new Set();
+        const sites = new Set();
+        const types = new Set();
+
+        for (const row of allData) {
+            if (headerMap.country && row[headerMap.country]) {
+                countries.add(row[headerMap.country].trim());
+            }
+            if (headerMap.site && row[headerMap.site]) {
+                sites.add(row[headerMap.site].trim());
+            }
+            if (headerMap.type && row[headerMap.type]) {
+                types.add(row[headerMap.type].trim());
+            }
+        }
+
+        updateSelectOptions(filterCountry, Array.from(countries).sort(), "Alle Länder");
+        updateSelectOptions(filterSite, Array.from(sites).sort(), "Alle Liegenschaften");
+        updateSelectOptions(filterType, Array.from(types).sort(), "Alle Ereignisarten");
+    }
+
+    function updateSelectOptions(select, values, placeholder) {
+        const current = select.value;
+        select.innerHTML = "";
+        
+        const optAll = document.createElement("option");
+        optAll.value = "__ALL__";
+        optAll.textContent = placeholder;
+        select.appendChild(optAll);
+
+        values.forEach(v => {
+            const opt = document.createElement("option");
+            opt.value = v;
+            opt.textContent = v;
+            select.appendChild(opt);
+        });
+
+        if (Array.from(select.options).some(o => o.value === current)) {
+            select.value = current;
+        }
+    }
     
     function renderTables() {
         const tableByCountry = document.querySelector("#tableByCountry tbody");
@@ -675,6 +947,31 @@ document.addEventListener('DOMContentLoaded', function() {
                 <td>${item.count}</td>
             `;
             tableByCountry.appendChild(tr);
+        });
+
+        // Sites Table with Country
+        const siteMap = new Map();
+        for (const row of currentData) {
+            const site = headerMap.site ? (row[headerMap.site] || "").trim() : "";
+            const country = headerMap.country ? (row[headerMap.country] || "").trim() : "";
+            if (!site && !country) continue;
+            const key = site + "||" + country;
+            siteMap.set(key, (siteMap.get(key) || 0) + 1);
+        }
+        
+        const siteArray = Array.from(siteMap.entries()).map(([key, count]) => {
+            const [site, country] = key.split("||");
+            return { site, country, count };
+        }).sort((a, b) => b.count - a.count);
+
+        siteArray.forEach(item => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${item.site || "(leer)"}</td>
+                <td>${item.country || "(leer)"}</td>
+                <td>${item.count}</td>
+            `;
+            tableBySite.appendChild(tr);
         });
 
         const byType = groupAndCount(currentData, row =>
@@ -705,8 +1002,3 @@ document.addEventListener('DOMContentLoaded', function() {
             headerMap.type ? (row[headerMap.type] || "").trim() : ""
         );
         createChart('chartTypes', types, 'pie');
-    }
-});
-</script>
-</body>
-</html>
