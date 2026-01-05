@@ -2,6 +2,7 @@
 import { parseCSV, createHeaderMap } from './utils/csvParser.js';
 import { groupAndCount, updateSelectOptions, getDistinctValues } from './utils/dataProcessor.js';
 import { getTestData } from './data/testData.js';
+import { createChart } from './components/charts.js';  // <- NEU HINZUGEFÜGT
 
 // =======================
 // GLOBALER STATE
@@ -37,53 +38,6 @@ const tableByType = document.querySelector("#tableByType tbody");
 const chartCountries = document.getElementById("chartCountries");
 const chartSites = document.getElementById("chartSites");
 const chartTypes = document.getElementById("chartTypes");
-
-// =======================
-// CHART RENDERING
-// =======================
-function createChart(container, data, maxBars = 6) {
-    container.innerHTML = "";
-    if (!data || data.length === 0) {
-        const noData = document.createElement("div");
-        noData.textContent = "Keine Daten vorhanden.";
-        noData.style.fontSize = "0.75rem";
-        noData.style.color = "#999";
-        container.appendChild(noData);
-        return;
-    }
-
-    const top = data.slice(0, maxBars);
-    const maxCount = Math.max(...top.map(d => d.count));
-
-    top.forEach(d => {
-        const row = document.createElement("div");
-        row.className = "chart-row";
-
-        const label = document.createElement("div");
-        label.className = "chart-label";
-        label.textContent = d.key || "(leer)";
-
-        const barWrapper = document.createElement("div");
-        barWrapper.className = "chart-bar-wrapper";
-
-        const bar = document.createElement("div");
-        bar.className = "chart-bar";
-        const width = maxCount === 0 ? 0 : (d.count / maxCount * 100);
-        bar.style.width = width + "%";
-
-        barWrapper.appendChild(bar);
-
-        const value = document.createElement("div");
-        value.className = "chart-value";
-        value.textContent = d.count;
-
-        row.appendChild(label);
-        row.appendChild(barWrapper);
-        row.appendChild(value);
-
-        container.appendChild(row);
-    });
-}
 
 // =======================
 // DATA LOADING
@@ -287,17 +241,17 @@ function renderCharts() {
     const countries = groupAndCount(currentData, row =>
         headerMap.country ? (row[headerMap.country] || "").trim() : ""
     );
-    createChart(chartCountries, countries);
+    createChart('chartCountries', countries, 'bar');  // <- GEÄNDERT: Chart.js
 
     const sites = groupAndCount(currentData, row =>
         headerMap.site ? (row[headerMap.site] || "").trim() : ""
     );
-    createChart(chartSites, sites);
+    createChart('chartSites', sites, 'bar');  // <- GEÄNDERT: Chart.js
 
     const types = groupAndCount(currentData, row =>
         headerMap.type ? (row[headerMap.type] || "").trim() : ""
     );
-    createChart(chartTypes, types);
+    createChart('chartTypes', types, 'pie');  // <- GEÄNDERT: Chart.js + Pie Chart
 }
 
 // =======================
