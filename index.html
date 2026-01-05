@@ -1,666 +1,1139 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sicherheitsanalyse Dashboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <meta charset="UTF-8" />
+    <title>Security Event Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
     <style>
+        /* ===========
+           BASE STYLES
+           =========== */
         :root {
-            --primary-green: #3d8b37;
-            --light-green: #5cb85c;
-            --accent-green: #8bc34a;
-            --yellow-green: #9ccc65;
-            --dark-green: #1b4332;
-            --gradient: linear-gradient(135deg, #3d8b37 0%, #8bc34a 50%, #9ccc65 100%);
-            --light-bg: #f8fffe;
-            --text-dark: #2d3436;
-            --text-muted: #636e72;
-            --shadow-light: 0 2px 10px rgba(61, 139, 55, 0.1);
-            --shadow-medium: 0 8px 25px rgba(61, 139, 55, 0.15);
-            --shadow-strong: 0 15px 35px rgba(61, 139, 55, 0.2);
+            --bnt-white: #ffffff;
+            --bnt-light-bg: #f5faf7;
+            --bnt-light-green: #c7f0d8;
+            --bnt-green: #00a37a;      /* Placeholder-like primary */
+            --bnt-dark-green: #006b4e; /* Accent / text */
+            --bnt-grey: #6c7a89;
+            --bnt-border: #dde5df;
+            --bnt-danger: #d9534f;
+
+            --font-main: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+                         Roboto, "Helvetica Neue", Arial, sans-serif;
         }
-        
+
         * {
-            margin: 0;
-            padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: linear-gradient(135deg, #f8fffe 0%, #e8f5e8 100%);
+            margin: 0;
+            background: var(--bnt-light-bg);
+            font-family: var(--font-main);
+            color: #1f2a33;
+        }
+
+        h1, h2, h3 {
+            margin: 0;
+            font-weight: 600;
+        }
+
+        h1 {
+            font-size: 1.7rem;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            color: var(--bnt-dark-green);
+        }
+
+        h2 {
+            font-size: 1.2rem;
+            color: var(--bnt-dark-green);
+        }
+
+        h3 {
+            font-size: 1rem;
+            color: var(--bnt-grey);
+        }
+
+        a {
+            color: var(--bnt-green);
+            text-decoration: none;
+        }
+
+        /* ===========
+           LAYOUT
+           =========== */
+        .app-shell {
+            display: flex;
             min-height: 100vh;
-            color: var(--text-dark);
-            line-height: 1.6;
         }
-        
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 30px 20px;
-        }
-        
-        .header {
-            background: white;
-            border-radius: 20px;
-            padding: 40px;
-            margin-bottom: 40px;
-            box-shadow: var(--shadow-medium);
-            border-left: 6px solid var(--primary-green);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .header::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 200px;
-            height: 100%;
-            background: var(--gradient);
-            opacity: 0.05;
-            border-radius: 50% 0 0 50%;
-        }
-        
-        .company-logo {
+
+        .sidebar {
+            width: 260px;
+            background: var(--bnt-white);
+            border-right: 1px solid var(--bnt-border);
+            padding: 1.5rem 1.25rem;
             display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .sidebar-header {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+
+        .brand {
+            font-weight: 700;
+            font-size: 1.3rem;
+            color: var(--bnt-green);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .brand span {
+            color: var(--bnt-dark-green);
+        }
+
+        .subtitle {
+            font-size: 0.85rem;
+            color: var(--bnt-grey);
+        }
+
+        .sidebar-section-title {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.09em;
+            color: var(--bnt-grey);
+            margin-bottom: 0.4rem;
+        }
+
+        .sidebar-section {
+            font-size: 0.85rem;
+        }
+
+        .file-input-wrapper {
+            border: 1px dashed var(--bnt-green);
+            border-radius: 8px;
+            padding: 0.7rem;
+            background: #f3fbf7;
+            margin-bottom: 0.5rem;
+        }
+
+        .file-input-wrapper label {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .file-input-wrapper input[type="file"] {
+            margin-top: 0.4rem;
+            font-size: 0.85rem;
+        }
+
+        .hint {
+            font-size: 0.75rem;
+            color: var(--bnt-grey);
+        }
+
+        .filters {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .filter-row {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+
+        .filter-row label {
+            font-size: 0.75rem;
+            color: var(--bnt-grey);
+        }
+
+        select {
+            width: 100%;
+            padding: 0.35rem 0.5rem;
+            font-size: 0.85rem;
+            border-radius: 6px;
+            border: 1px solid var(--bnt-border);
+            background: var(--bnt-white);
+            outline: none;
+        }
+
+        select:focus {
+            border-color: var(--bnt-green);
+        }
+
+        .btn {
+            display: inline-flex;
             align-items: center;
-            margin-bottom: 20px;
+            justify-content: center;
+            gap: 0.4rem;
+            padding: 0.35rem 0.7rem;
+            font-size: 0.8rem;
+            border-radius: 999px;
+            border: 1px solid var(--bnt-green);
+            background: var(--bnt-green);
+            color: #fff;
+            cursor: pointer;
+            margin-top: 0.4rem;
         }
-        
-        .logo-text {
-            font-size: 2.5em;
-            font-weight: 700;
-            letter-spacing: -0.02em;
-            color: var(--primary-green);
+
+        .btn.secondary {
+            background: transparent;
+            color: var(--bnt-green);
         }
-        
-        .header h1 {
-            color: var(--text-dark);
-            font-size: 2em;
-            font-weight: 600;
-            margin-bottom: 15px;
+
+        .btn.outline-light {
+            border-color: var(--bnt-border);
+            background: #f8fbf9;
+            color: var(--bnt-dark-green);
         }
-        
-        .header p {
-            color: var(--text-muted);
-            font-size: 1.1em;
-            font-weight: 400;
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: default;
         }
-        
-        .stats-grid {
+
+        .status {
+            margin-top: 0.4rem;
+            font-size: 0.75rem;
+            color: var(--bnt-grey);
+        }
+
+        .status.error {
+            color: var(--bnt-danger);
+        }
+
+        .main {
+            flex: 1;
+            padding: 1.5rem 1.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .main-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 1rem;
+        }
+
+        .main-header-right {
+            font-size: 0.8rem;
+            color: var(--bnt-grey);
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.35rem;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.6rem;
+            border-radius: 999px;
+            background: var(--bnt-light-green);
+            color: var(--bnt-dark-green);
+            font-size: 0.75rem;
+        }
+
+        .pill.secondary {
+            background: #f2f7f4;
+            color: var(--bnt-grey);
+        }
+
+        /* ===========
+           CARDS / KPI
+           =========== */
+        .card-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 25px;
-            margin-bottom: 40px;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0.75rem;
         }
-        
-        .stat-card {
-            background: white;
-            padding: 30px;
-            border-radius: 20px;
-            text-align: center;
-            box-shadow: var(--shadow-light);
-            border: 1px solid rgba(61, 139, 55, 0.1);
-            position: relative;
-            overflow: hidden;
-            transition: all 0.3s ease;
-        }
-        
-        .stat-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: var(--gradient);
-        }
-        
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: var(--shadow-medium);
-        }
-        
-        .stat-number {
-            font-size: 3em;
-            font-weight: 700;
-            color: var(--primary-green);
-            margin-bottom: 10px;
-            line-height: 1;
-        }
-        
-        .stat-label {
-            font-size: 1em;
-            color: var(--text-muted);
-            font-weight: 500;
-        }
-        
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 30px;
-            margin-bottom: 40px;
-        }
-        
+
         .card {
-            background: white;
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: var(--shadow-light);
-            border: 1px solid rgba(61, 139, 55, 0.1);
-            transition: all 0.3s ease;
-            position: relative;
-        }
-        
-        .card:hover {
-            transform: translateY(-3px);
-            box-shadow: var(--shadow-medium);
-        }
-        
-        .card h3 {
-            color: var(--text-dark);
-            margin-bottom: 25px;
-            font-size: 1.3em;
-            font-weight: 600;
+            background: var(--bnt-white);
+            border-radius: 10px;
+            padding: 0.8rem 0.9rem;
+            border: 1px solid var(--bnt-border);
             display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+
+        .card-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--bnt-grey);
+        }
+
+        .card-value {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--bnt-dark-green);
+        }
+
+        .card-subvalue {
+            font-size: 0.75rem;
+            color: var(--bnt-grey);
+        }
+
+        /* ===========
+           CONTENT SECTIONS
+           =========== */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 2.1fr 1.3fr;
+            gap: 0.9rem;
+        }
+
+        .panel {
+            background: var(--bnt-white);
+            border-radius: 10px;
+            border: 1px solid var(--bnt-border);
+            padding: 0.8rem 0.9rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
             align-items: center;
-            gap: 10px;
+            gap: 0.4rem;
         }
-        
-        .card h3::before {
-            content: '';
-            width: 4px;
-            height: 20px;
-            background: var(--gradient);
-            border-radius: 2px;
+
+        .panel-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--bnt-dark-green);
         }
-        
-        .matrix-table {
+
+        .panel-subtitle {
+            font-size: 0.75rem;
+            color: var(--bnt-grey);
+        }
+
+        .table-wrapper {
+            max-height: 260px;
+            overflow: auto;
+            border-radius: 6px;
+            border: 1px solid var(--bnt-border);
+        }
+
+        table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 15px;
-            border-radius: 12px;
+            font-size: 0.8rem;
+        }
+
+        thead {
+            background: #f7fbf8;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        th, td {
+            padding: 0.4rem 0.5rem;
+            border-bottom: 1px solid #edf2ee;
+            text-align: left;
+        }
+
+        th {
+            font-weight: 600;
+            font-size: 0.75rem;
+            color: var(--bnt-grey);
+        }
+
+        tbody tr:hover {
+            background: #f4faf7;
+        }
+
+        /* ===========
+           SIMPLE CHARTS
+           =========== */
+        .chart {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            font-size: 0.75rem;
+        }
+
+        .chart-row {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .chart-label {
+            width: 30%;
+            white-space: nowrap;
             overflow: hidden;
-            box-shadow: var(--shadow-light);
+            text-overflow: ellipsis;
         }
-        
-        .matrix-table th {
-            background: var(--gradient);
-            color: white;
-            padding: 15px 12px;
-            text-align: left;
-            font-weight: 600;
-            font-size: 0.9em;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+
+        .chart-bar-wrapper {
+            flex: 1;
+            background: #f2f7f4;
+            border-radius: 999px;
+            overflow: hidden;
+            height: 10px;
         }
-        
-        .matrix-table td {
-            padding: 15px 12px;
-            text-align: left;
-            border-bottom: 1px solid #f1f3f4;
-            font-size: 0.9em;
+
+        .chart-bar {
+            height: 100%;
+            border-radius: 999px;
+            background: linear-gradient(90deg, var(--bnt-green), var(--bnt-dark-green));
         }
-        
-        .matrix-table tr:nth-child(even) {
-            background-color: rgba(61, 139, 55, 0.02);
+
+        .chart-value {
+            width: 30px;
+            text-align: right;
         }
-        
-        .matrix-table tr:hover {
-            background-color: rgba(61, 139, 55, 0.05);
-        }
-        
-        .alert-high { 
-            background: linear-gradient(135deg, #e74c3c, #c0392b);
-            color: white;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.8em;
-            font-weight: 600;
-        }
-        
-        .alert-medium { 
-            background: linear-gradient(135deg, #f39c12, #e67e22);
-            color: white;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.8em;
-            font-weight: 600;
-        }
-        
-        .alert-low { 
-            background: var(--gradient);
-            color: white;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.8em;
-            font-weight: 600;
-        }
-        
-        .chart-container {
-            position: relative;
-            height: 300px;
-            margin: 20px 0;
-        }
-        
-        .kpi-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 30px;
-            margin-top: 20px;
-        }
-        
-        .kpi-section {
-            background: rgba(61, 139, 55, 0.02);
-            padding: 25px;
-            border-radius: 15px;
-            border: 1px solid rgba(61, 139, 55, 0.1);
-        }
-        
-        .kpi-section h4 {
-            color: var(--primary-green);
-            margin-bottom: 15px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .kpi-list {
-            list-style: none;
-            padding: 0;
-        }
-        
-        .kpi-list li {
-            padding: 8px 0;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 0.9em;
-        }
-        
-        .status-icon {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            display: inline-block;
-        }
-        
-        .status-success { background: var(--light-green); }
-        .status-warning { background: #f39c12; }
-        .status-error { background: #e74c3c; }
-        .status-info { background: var(--accent-green); }
-        
-        .footer {
-            text-align: center;
-            padding: 30px;
-            color: var(--text-muted);
-            font-size: 0.9em;
-        }
-        
-        @media (max-width: 768px) {
-            .container {
-                padding: 20px 15px;
+
+        /* ===========
+           RESPONSIVE
+           =========== */
+        @media (max-width: 980px) {
+            .app-shell {
+                flex-direction: column;
             }
-            
-            .header {
-                padding: 25px;
+
+            .sidebar {
+                width: 100%;
+                flex-direction: row;
+                flex-wrap: wrap;
+                gap: 1rem;
             }
-            
-            .logo-text {
-                font-size: 2em;
+
+            .main {
+                padding: 1rem;
             }
-            
-            .dashboard-grid {
+
+            .card-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .content-grid {
                 grid-template-columns: 1fr;
             }
-            
-            .stats-grid {
-                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+
+            .sidebar-section {
+                flex: 1;
+                min-width: 220px;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .card-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .main-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .main-header-right {
+                align-items: flex-start;
             }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <div class="company-logo">
-                <div class="logo-text">SECURITY DASHBOARD</div>
-            </div>
-            <h1>🔒 Sicherheitsanalyse & Monitoring</h1>
-            <p>Umfassende Analyse der Sicherheitsprotokolle vom 01.-03.12.2025 | Intelligente Überwachungssysteme</p>
+<div class="app-shell">
+    <!-- ========== SIDEBAR ========== -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="brand">BIO<span>NTECH</span></div>
+            <div class="subtitle">Security Events Management Dashboard</div>
         </div>
 
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-number">5</div>
-                <div class="stat-label">Gesamte Vorfälle</div>
+        <!-- CSV Upload & Testmodus -->
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Datenquelle</div>
+
+            <div class="file-input-wrapper">
+                <label>
+                    CSV-Datei für Ereignismeldungen auswählen
+                    <input type="file" id="fileInput" accept=".csv" />
+                </label>
+                <div class="hint">
+                    Erwartete Spalten z.B.: <strong>Land, Liegenschaft, Ereignisart, Datum</strong>
+                </div>
+                <div id="fileStatus" class="status">Keine Datei geladen.</div>
             </div>
-            <div class="stat-card">
-                <div class="stat-number">4</div>
-                <div class="stat-label">Türen/Fenster Kontrollen</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number">119</div>
-                <div class="stat-label">Lichter ausgeschaltet</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number">3</div>
-                <div class="stat-label">Standorte betroffen</div>
+
+            <button class="btn outline-light" id="loadTestData">
+                Testdaten laden (Demo-Modus)
+            </button>
+            <div class="hint">
+                Nutze den Testmodus, um das Dashboard ohne eigene CSV-Datei auszuprobieren.
             </div>
         </div>
 
-        <div class="dashboard-grid">
+        <!-- Filter -->
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Filter</div>
+            <div class="filters">
+                <div class="filter-row">
+                    <label for="filterCountry">Land</label>
+                    <select id="filterCountry">
+                        <option value="__ALL__">Alle Länder</option>
+                    </select>
+                </div>
+                <div class="filter-row">
+                    <label for="filterSite">Liegenschaft</label>
+                    <select id="filterSite">
+                        <option value="__ALL__">Alle Liegenschaften</option>
+                    </select>
+                </div>
+                <div class="filter-row">
+                    <label for="filterType">Ereignisart</label>
+                    <select id="filterType">
+                        <option value="__ALL__">Alle Ereignisarten</option>
+                    </select>
+                </div>
+                <button class="btn secondary" id="resetFilters">Filter zurücksetzen</button>
+                <div id="filterStatus" class="status"></div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ========== MAIN CONTENT ========== -->
+    <main class="main">
+        <!-- Header -->
+        <header class="main-header">
+            <div>
+                <h1>Security Events Overview</h1>
+                <h3>Echtzeit-Übersicht über gemeldete Ereignisse nach Land, Liegenschaft und Ereignisart</h3>
+            </div>
+            <div class="main-header-right">
+                <div class="pill">
+                    <span id="recordCount">0</span> Datensätze geladen
+                </div>
+                <div class="pill secondary" id="modeIndicator">
+                    Modus: Keine Daten
+                </div>
+            </div>
+        </header>
+
+        <!-- KPI Cards -->
+        <section class="card-grid" aria-label="Kennzahlen">
             <div class="card">
-                <h3>📊 Vorfälle nach Kategorie</h3>
-                <div class="chart-container">
-                    <canvas id="incidentChart"></canvas>
-                </div>
+                <div class="card-title">Gesamtzahl Ereignisse</div>
+                <div class="card-value" id="kpiTotalEvents">0</div>
+                <div class="card-subvalue" id="kpiTotalEventsSub">0 nach Filter</div>
             </div>
-
             <div class="card">
-                <h3>🏢 Standort-Verteilung</h3>
-                <div class="chart-container">
-                    <canvas id="locationChart"></canvas>
-                </div>
+                <div class="card-title">Länder</div>
+                <div class="card-value" id="kpiCountries">0</div>
+                <div class="card-subvalue">Distinct nach Feld „Land“</div>
             </div>
-
             <div class="card">
-                <h3>⏰ Zeitliche Entwicklung</h3>
-                <div class="chart-container">
-                    <canvas id="timeChart"></canvas>
-                </div>
+                <div class="card-title">Liegenschaften</div>
+                <div class="card-value" id="kpiSites">0</div>
+                <div class="card-subvalue">Distinct nach Feld „Liegenschaft“</div>
             </div>
-
             <div class="card">
-                <h3>👥 Team Performance</h3>
-                <div class="chart-container">
-                    <canvas id="employeeChart"></canvas>
-                </div>
+                <div class="card-title">Ereignisarten</div>
+                <div class="card-value" id="kpiTypes">0</div>
+                <div class="card-subvalue">Distinct nach Feld „Ereignisart“</div>
             </div>
-        </div>
+        </section>
 
-        <div class="dashboard-grid">
-            <div class="card" style="grid-column: 1 / -1;">
-                <h3>🔍 Detaillierte Sicherheitsmatrix</h3>
-                <table class="matrix-table">
-                    <thead>
-                        <tr>
-                            <th>Datum/Zeit</th>
-                            <th>Sicherheitsbeauftragter</th>
-                            <th>Standort</th>
-                            <th>Kategorie</th>
-                            <th>Priorität</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>01.12.25 22:10</td>
-                            <td>Heller, Thorsten</td>
-                            <td>Mainz City - Haus A</td>
-                            <td>Türen/Fenster Kontrolle</td>
-                            <td><span class="alert-medium">Mittel</span></td>
-                        </tr>
-                        <tr>
-                            <td>02.12.25 20:44</td>
-                            <td>Heller, Thorsten</td>
-                            <td>Mainz City - Haus A EG</td>
-                            <td>Türen/Fenster Kontrolle</td>
-                            <td><span class="alert-medium">Mittel</span></td>
-                        </tr>
-                        <tr>
-                            <td>03.12.25 02:37</td>
-                            <td>Heller, Thorsten</td>
-                            <td>Mainz City - Haus B TG</td>
-                            <td>Türen/Fenster Kontrolle</td>
-                            <td><span class="alert-low">Niedrig</span></td>
-                        </tr>
-                        <tr>
-                            <td>02.12.25 06:20</td>
-                            <td>Altmeier, Veronika</td>
-                            <td>Haus 4 - 2.OG Serverraum</td>
-                            <td>Türen/Fenster Kontrolle</td>
-                            <td><span class="alert-high">Hoch</span></td>
-                        </tr>
-                        <tr>
-                            <td>02.12.25 06:13</td>
-                            <td>Schneider, Armin</td>
-                            <td>Idar-Oberstein EMA</td>
-                            <td>Technische Störung</td>
-                            <td><span class="alert-high">Hoch</span></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+        <!-- Grids -->
+        <section class="content-grid">
+            <!-- Left: Tables -->
+            <section class="panel" aria-label="Tabellarische Auswertung">
+                <div class="panel-header">
+                    <div>
+                        <div class="panel-title">Aggregierte Übersicht</div>
+                        <div class="panel-subtitle">
+                            Häufigkeiten nach Land, Liegenschaft und Ereignisart (inkl. aktiver Filter)
+                        </div>
+                    </div>
+                </div>
 
-        <div class="card">
-            <h3>📈 Key Performance Indicators</h3>
-            <div class="kpi-grid">
-                <div class="kpi-section">
-                    <h4>🛡️ Sicherheits-KPIs</h4>
-                    <ul class="kpi-list">
-                        <li><span class="status-icon status-success"></span> Reaktionszeit: ⌀ 2-6h</li>
-                        <li><span class="status-icon status-success"></span> Compliance Rate: 100%</li>
-                        <li><span class="status-icon status-warning"></span> Haus A Konzentration: 60%</li>
-                        <li><span class="status-icon status-info"></span> Dokumentation: Vollständig</li>
-                    </ul>
+                <h3>Nach Land</h3>
+                <div class="table-wrapper">
+                    <table id="tableByCountry">
+                        <thead>
+                        <tr>
+                            <th>Land</th>
+                            <th>Anzahl Ereignisse</th>
+                        </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
                 </div>
-                <div class="kpi-section">
-                    <h4>⚠️ Kritische Faktoren</h4>
-                    <ul class="kpi-list">
-                        <li><span class="status-icon status-error"></span> Serverraum-Zugang kritisch</li>
-                        <li><span class="status-icon status-error"></span> EMA-System Idar-Oberstein defekt</li>
-                        <li><span class="status-icon status-warning"></span> Workload-Verteilung ungleich</li>
-                        <li><span class="status-icon status-success"></span> 119 Lichter ausgeschaltet</li>
-                    </ul>
-                </div>
-                <div class="kpi-section">
-                    <h4>📊 Statistik-Übersicht</h4>
-                    <ul class="kpi-list">
-                        <li><span class="status-icon status-info"></span> Energieeinsparung durch Lichtsteuerung</li>
-                        <li><span class="status-icon status-success"></span> Automatisierungspotenzial vorhanden</li>
-                        <li><span class="status-icon status-warning"></span> Konzentration auf Haus A erforderlich</li>
-                        <li><span class="status-icon status-info"></span> Präventive Maßnahmen empfohlen</li>
-                    </ul>
-                </div>
-                <div class="kpi-section">
-                    <h4>🎯 Empfehlungen</h4>
-                    <ul class="kpi-list">
-                        <li><span class="status-icon status-info"></span> Automatische Schließsysteme</li>
-                        <li><span class="status-icon status-warning"></span> Verstärkte Haus A Kontrollen</li>
-                        <li><span class="status-icon status-error"></span> Serverraum-Security erhöhen</li>
-                        <li><span class="status-icon status-info"></span> EMA-System reparieren</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <div class="footer">
-        <p>© 2025 Sicherheitsmanagement Dashboard | Intelligente Überwachung | Vertraulich - Nur für interne Verwendung</p>
-    </div>
+                <h3>Nach Liegenschaft</h3>
+                <div class="table-wrapper">
+                    <table id="tableBySite">
+                        <thead>
+                        <tr>
+                            <th>Liegenschaft</th>
+                            <th>Land</th>
+                            <th>Anzahl Ereignisse</th>
+                        </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
 
-    <script>
-        // Farbschema für Charts
-        const chartColors = {
-            primary: '#3d8b37',
-            secondary: '#5cb85c',
-            accent: '#8bc34a',
-            light: '#9ccc65',
-            gradient: ['#3d8b37', '#5cb85c', '#8bc34a', '#9ccc65']
+                <h3>Nach Ereignisart</h3>
+                <div class="table-wrapper">
+                    <table id="tableByType">
+                        <thead>
+                        <tr>
+                            <th>Ereignisart</th>
+                            <th>Anzahl Ereignisse</th>
+                        </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Right: Charts & Benchmarks -->
+            <section class="panel" aria-label="Visualisierung">
+                <div class="panel-header">
+                    <div>
+                        <div class="panel-title">Visualisierung & Benchmark</div>
+                        <div class="panel-subtitle">
+                            Top-Länder, Liegenschaften und Ereignisarten nach Häufigkeit
+                        </div>
+                    </div>
+                </div>
+
+                <h3>Top Länder (nach Ereignishäufigkeit)</h3>
+                <div id="chartCountries" class="chart"></div>
+
+                <h3>Top Liegenschaften</h3>
+                <div id="chartSites" class="chart"></div>
+
+                <h3>Top Ereignisarten</h3>
+                <div id="chartTypes" class="chart"></div>
+            </section>
+        </section>
+    </main>
+</div>
+
+<script>
+    // =======================
+    // HELFERFUNKTIONEN
+    // =======================
+    function parseCSV(text) {
+        const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+        if (lines.length === 0) return [];
+
+        const delimiter = detectDelimiter(lines[0]);
+        const headers = lines[0].split(delimiter).map(h => h.trim());
+
+        const rows = [];
+        for (let i = 1; i < lines.length; i++) {
+            const line = lines[i];
+            const cells = splitCSVLine(line, delimiter);
+            if (cells.length === 1 && cells[0] === "") continue;
+            const row = {};
+            headers.forEach((h, idx) => {
+                row[h] = (cells[idx] || "").trim();
+            });
+            rows.push(row);
+        }
+        return { headers, rows };
+    }
+
+    function detectDelimiter(headerLine) {
+        const candidates = [",", ";", "\t"];
+        let best = ",";
+        let bestCount = 0;
+        for (const d of candidates) {
+            const count = headerLine.split(d).length;
+            if (count > bestCount) {
+                bestCount = count;
+                best = d;
+            }
+        }
+        return best;
+    }
+
+    function splitCSVLine(line, delimiter) {
+        const result = [];
+        let current = "";
+        let inQuotes = false;
+
+        for (let i = 0; i < line.length; i++) {
+            const c = line[i];
+            if (c === '"') {
+                inQuotes = !inQuotes;
+                continue;
+            }
+            if (c === delimiter && !inQuotes) {
+                result.push(current);
+                current = "";
+            } else {
+                current += c;
+            }
+        }
+        result.push(current);
+        return result;
+    }
+
+    function groupAndCount(rows, keyFn) {
+        const map = new Map();
+        for (const row of rows) {
+            const key = keyFn(row);
+            if (!key) continue;
+            map.set(key, (map.get(key) || 0) + 1);
+        }
+        return Array.from(map.entries())
+            .map(([key, count]) => ({ key, count }))
+            .sort((a, b) => b.count - a.count);
+    }
+
+    function updateSelectOptions(select, values, placeholder) {
+        const current = select.value;
+        select.innerHTML = "";
+        const optAll = document.createElement("option");
+        optAll.value = "__ALL__";
+        optAll.textContent = placeholder;
+        select.appendChild(optAll);
+
+        values.forEach(v => {
+            const opt = document.createElement("option");
+            opt.value = v;
+            opt.textContent = v;
+            select.appendChild(opt);
+        });
+
+        if (Array.from(select.options).some(o => o.value === current)) {
+            select.value = current;
+        }
+    }
+
+    function createChart(container, data, maxBars = 6) {
+        container.innerHTML = "";
+        if (!data || data.length === 0) {
+            const noData = document.createElement("div");
+            noData.textContent = "Keine Daten vorhanden.";
+            noData.style.fontSize = "0.75rem";
+            noData.style.color = "#999";
+            container.appendChild(noData);
+            return;
+        }
+
+        const top = data.slice(0, maxBars);
+        const maxCount = Math.max(...top.map(d => d.count));
+
+        top.forEach(d => {
+            const row = document.createElement("div");
+            row.className = "chart-row";
+
+            const label = document.createElement("div");
+            label.className = "chart-label";
+            label.textContent = d.key || "(leer)";
+
+            const barWrapper = document.createElement("div");
+            barWrapper.className = "chart-bar-wrapper";
+
+            const bar = document.createElement("div");
+            bar.className = "chart-bar";
+            const width = maxCount === 0 ? 0 : (d.count / maxCount * 100);
+            bar.style.width = width + "%";
+
+            barWrapper.appendChild(bar);
+
+            const value = document.createElement("div");
+            value.className = "chart-value";
+            value.textContent = d.count;
+
+            row.appendChild(label);
+            row.appendChild(barWrapper);
+            row.appendChild(value);
+
+            container.appendChild(row);
+        });
+    }
+
+    // =======================
+    // GLOBALER STATE
+    // =======================
+    let allData = [];          // alle Zeilen
+    let currentData = [];      // gefilterte Zeilen
+    let headerMap = {};        // Zuordnung der Headernamen
+    let currentMode = "none";  // "none" | "file" | "test"
+
+    const fileInput = document.getElementById("fileInput");
+    const fileStatus = document.getElementById("fileStatus");
+    const filterStatus = document.getElementById("filterStatus");
+    const loadTestDataBtn = document.getElementById("loadTestData");
+    const modeIndicator = document.getElementById("modeIndicator");
+
+    const filterCountry = document.getElementById("filterCountry");
+    const filterSite = document.getElementById("filterSite");
+    const filterType = document.getElementById("filterType");
+    const resetFiltersBtn = document.getElementById("resetFilters");
+
+    const recordCount = document.getElementById("recordCount");
+    const kpiTotalEvents = document.getElementById("kpiTotalEvents");
+    const kpiTotalEventsSub = document.getElementById("kpiTotalEventsSub");
+    const kpiCountries = document.getElementById("kpiCountries");
+    const kpiSites = document.getElementById("kpiSites");
+    const kpiTypes = document.getElementById("kpiTypes");
+
+    const tableByCountry = document.querySelector("#tableByCountry tbody");
+    const tableBySite = document.querySelector("#tableBySite tbody");
+    const tableByType = document.querySelector("#tableByType tbody");
+
+    const chartCountries = document.getElementById("chartCountries");
+    const chartSites = document.getElementById("chartSites");
+    const chartTypes = document.getElementById("chartTypes");
+
+    // =======================
+    // TESTDATEN (DEMO-MODUS)
+    // =======================
+    function getTestData() {
+        const csv = `Land;Liegenschaft;Ereignisart;Datum
+Deutschland;Mainz Campus;Zutrittsverletzung;2025-01-03
+Deutschland;Mainz Campus;Zutrittsverletzung;2025-01-04
+Deutschland;Mainz Campus;Alarmanlage ausgelöst;2025-01-05
+Deutschland;Berlin Research;Zutrittsverletzung;2025-02-01
+Deutschland;Berlin Research;Verdächtige Person;2025-02-02
+Deutschland;Berlin Research;Verdächtige Person;2025-02-04
+Deutschland;München Warehouse;Diebstahl;2025-03-01
+Deutschland;München Warehouse;Diebstahl;2025-03-02
+Deutschland;München Warehouse;Alarmanlage ausgelöst;2025-03-05
+Deutschland;München Warehouse;Zutrittsverletzung;2025-03-06
+USA;Cambridge Lab;Zutrittsverletzung;2025-01-10
+USA;Cambridge Lab;Verdächtige Person;2025-01-12
+USA;Cambridge Lab;Alarmanlage ausgelöst;2025-01-15
+USA;San Diego Office;Verdächtige Person;2025-02-10
+USA;San Diego Office;Verdächtige Person;2025-02-12
+USA;San Diego Office;Diebstahl;2025-02-14
+USA;San Diego Office;Zutrittsverletzung;2025-02-16
+UK;London HQ;Zutrittsverletzung;2025-01-07
+UK;London HQ;Zutrittsverletzung;2025-01-09
+UK;London HQ;Verdächtige Person;2025-01-11
+UK;London HQ;Alarmanlage ausgelöst;2025-01-13
+UK;Reading Plant;Diebstahl;2025-03-03
+UK;Reading Plant;Diebstahl;2025-03-06
+UK;Reading Plant;Zutrittsverletzung;2025-03-07
+Schweiz;Basel Site;Verdächtige Person;2025-02-03
+Schweiz;Basel Site;Verdächtige Person;2025-02-05
+Schweiz;Basel Site;Alarmanlage ausgelöst;2025-02-06
+Schweiz;Basel Site;Zutrittsverletzung;2025-02-08
+Belgien;Brüssel Office;Zutrittsverletzung;2025-01-20
+Belgien;Brüssel Office;Diebstahl;2025-01-22
+Belgien;Brüssel Office;Diebstahl;2025-01-23
+Belgien;Brüssel Office;Verdächtige Person;2025-01-25
+Deutschland;Mainz Campus;Verdächtige Person;2025-01-06
+Deutschland;Mainz Campus;Diebstahl;2025-01-08
+USA;Cambridge Lab;Diebstahl;2025-01-18
+USA;San Diego Office;Alarmanlage ausgelöst;2025-02-20
+UK;Reading Plant;Alarmanlage ausgelöst;2025-03-08
+Schweiz;Basel Site;Diebstahl;2025-02-10`;
+        return csv;
+    }
+
+    function loadTestData() {
+        const csv = getTestData();
+        const parsed = parseCSV(csv);
+        allData = parsed.rows;
+        headerMap = createHeaderMap(parsed.headers);
+        recordCount.textContent = allData.length.toString();
+        fileStatus.classList.remove("error");
+        fileStatus.textContent = "Testdaten sind geladen (Demo-Modus).";
+        currentMode = "test";
+        updateModeIndicator();
+        applyFilters();
+    }
+
+    function updateModeIndicator() {
+        if (currentMode === "test") {
+            modeIndicator.textContent = "Modus: Testdaten (Demo)";
+        } else if (currentMode === "file") {
+            modeIndicator.textContent = "Modus: CSV-Datei";
+        } else {
+            modeIndicator.textContent = "Modus: Keine Daten";
+        }
+    }
+
+    loadTestDataBtn.addEventListener("click", () => {
+        loadTestData();
+    });
+
+    // =======================
+    // CSV LADEN
+    // =======================
+    fileInput.addEventListener("change", async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        fileStatus.classList.remove("error");
+        fileStatus.textContent = "Lade Datei ...";
+
+        try {
+            const text = await file.text();
+            const parsed = parseCSV(text);
+            if (!parsed || !parsed.rows || parsed.rows.length === 0) {
+                fileStatus.classList.add("error");
+                fileStatus.textContent = "Keine gültigen Daten in der CSV gefunden.";
+                return;
+            }
+
+            allData = parsed.rows;
+            headerMap = createHeaderMap(parsed.headers);
+
+            recordCount.textContent = allData.length.toString();
+            fileStatus.textContent = `Datei „${file.name}“ geladen. Datensätze: ${allData.length}.`;
+            currentMode = "file";
+            updateModeIndicator();
+
+            applyFilters(); // initial berechnen
+        } catch (err) {
+            console.error(err);
+            fileStatus.classList.add("error");
+            fileStatus.textContent = "Fehler beim Lesen der Datei.";
+        }
+    });
+
+    function createHeaderMap(headers) {
+        const normalize = (s) =>
+            s.toLowerCase()
+                .replace(/\s+/g, "")
+                .replace(/ß/g, "ss")
+                .replace(/[^a-z0-9]/g, "");
+
+        const map = {};
+        const targetNames = {
+            country: ["land", "country"],
+            site: ["liegenschaft", "site", "standort"],
+            type: ["ereignisart", "ereignissart", "eventtype", "ereignis"]
         };
 
-        // Chart-Konfiguration
-        Chart.defaults.font.family = 'Inter, sans-serif';
-        Chart.defaults.color = '#2d3436';
+        const normalized = headers.map(h => ({ header: h, norm: normalize(h) }));
 
-        // Vorfälle nach Typ Chart
-        const ctx1 = document.getElementById('incidentChart').getContext('2d');
-        new Chart(ctx1, {
-            type: 'doughnut',
-            data: {
-                labels: ['Türen/Fenster', 'Technische Störung', 'Routinekontrolle'],
-                datasets: [{
-                    data: [4, 1, 1],
-                    backgroundColor: [chartColors.primary, '#e74c3c', chartColors.accent],
-                    borderWidth: 0,
-                    hoverBorderWidth: 3,
-                    hoverBorderColor: '#fff'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            padding: 20,
-                            usePointStyle: true,
-                            font: {
-                                size: 11,
-                                weight: '500'
-                            }
-                        }
-                    }
-                }
+        for (const n of normalized) {
+            const val = n.norm;
+            if (targetNames.country.some(t => val.includes(t))) {
+                map.country = n.header;
             }
+            if (targetNames.site.some(t => val.includes(t))) {
+                map.site = n.header;
+            }
+            if (targetNames.type.some(t => val.includes(t))) {
+                map.type = n.header;
+            }
+        }
+
+        return map;
+    }
+
+    // =======================
+    // FILTER LOGIK
+    // =======================
+    function applyFilters() {
+        if (!allData || allData.length === 0) {
+            currentData = [];
+            renderAll();
+            return;
+        }
+
+        const selCountry = filterCountry.value;
+        const selSite = filterSite.value;
+        const selType = filterType.value;
+
+        currentData = allData.filter(row => {
+            const rowCountry = headerMap.country ? (row[headerMap.country] || "").trim() : "";
+            const rowSite = headerMap.site ? (row[headerMap.site] || "").trim() : "";
+            const rowType = headerMap.type ? (row[headerMap.type] || "").trim() : "";
+
+            if (selCountry !== "__ALL__" && rowCountry !== selCountry) return false;
+            if (selSite !== "__ALL__" && rowSite !== selSite) return false;
+            if (selType !== "__ALL__" && rowType !== selType) return false;
+            return true;
         });
 
-        // Standort Chart
-        const ctx2 = document.getElementById('locationChart').getContext('2d');
-        new Chart(ctx2, {
-            type: 'bar',
-            data: {
-                labels: ['Mainz City', 'Haus 4', 'Idar-Oberstein', 'Berlin JPT'],
-                datasets: [{
-                    label: 'Sicherheitsereignisse',
-                    data: [3, 1, 1, 1],
-                    backgroundColor: chartColors.gradient,
-                    borderRadius: 8,
-                    borderSkipped: false
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: {
-                            color: 'rgba(61, 139, 55, 0.1)'
-                        }
-                    },
-                    x: {
-                        grid: {
-                            display: false
-                        }
-                    }
-                }
+        updateFilterStatus();
+        renderAll();
+    }
+
+    function updateFilterStatus() {
+        const activeFilters = [];
+        if (filterCountry.value !== "__ALL__") {
+            activeFilters.push("Land: " + filterCountry.value);
+        }
+        if (filterSite.value !== "__ALL__") {
+            activeFilters.push("Liegenschaft: " + filterSite.value);
+        }
+        if (filterType.value !== "__ALL__") {
+            activeFilters.push("Ereignisart: " + filterType.value);
+        }
+
+        if (activeFilters.length === 0) {
+            filterStatus.textContent = "Keine Filter aktiv (zeige alle Datensätze).";
+        } else {
+            filterStatus.textContent = "Aktive Filter: " + activeFilters.join(" | ");
+        }
+    }
+
+    filterCountry.addEventListener("change", applyFilters);
+    filterSite.addEventListener("change", applyFilters);
+    filterType.addEventListener("change", applyFilters);
+
+    resetFiltersBtn.addEventListener("click", () => {
+        filterCountry.value = "__ALL__";
+        filterSite.value = "__ALL__";
+        filterType.value = "__ALL__";
+        applyFilters();
+    });
+
+    // =======================
+    // RENDER FUNKTIONEN
+    // =======================
+    function renderAll() {
+        renderKPIs();
+        renderFiltersFromData();
+        renderTables();
+        renderCharts();
+    }
+
+    function renderKPIs() {
+        const total = allData.length;
+        const current = currentData.length;
+
+        kpiTotalEvents.textContent = total.toString();
+        kpiTotalEventsSub.textContent = `${current} nach Filter`;
+
+        const countries = new Set();
+        const sites = new Set();
+        const types = new Set();
+
+        for (const row of allData) {
+            if (headerMap.country && row[headerMap.country]) {
+                countries.add(row[headerMap.country].trim());
             }
+            if (headerMap.site && row[headerMap.site]) {
+                sites.add(row[headerMap.site].trim());
+            }
+            if (headerMap.type && row[headerMap.type]) {
+                types.add(row[headerMap.type].trim());
+            }
+        }
+
+        kpiCountries.textContent = countries.size.toString();
+        kpiSites.textContent = sites.size.toString();
+        kpiTypes.textContent = types.size.toString();
+    }
+
+    function renderFiltersFromData() {
+        const countries = new Set();
+        const sites = new Set();
+        const types = new Set();
+
+        for (const row of allData) {
+            if (headerMap.country && row[headerMap.country]) {
+                countries.add(row[headerMap.country].trim());
+            }
+            if (headerMap.site && row[headerMap.site]) {
+                sites.add(row[headerMap.site].trim());
+            }
+            if (headerMap.type && row[headerMap.type]) {
+                types.add(row[headerMap.type].trim());
+            }
+        }
+
+        updateSelectOptions(filterCountry, Array.from(countries).sort(), "Alle Länder");
+        updateSelectOptions(filterSite, Array.from(sites).sort(), "Alle Liegenschaften");
+        updateSelectOptions(filterType, Array.from(types).sort(), "Alle Ereignisarten");
+    }
+
+    function renderTables() {
+        tableByCountry.innerHTML = "";
+        tableBySite.innerHTML = "";
+        tableByType.innerHTML = "";
+
+        if (currentData.length === 0) return;
+
+        const byCountry = groupAndCount(currentData, row =>
+            headerMap.country ? (row[headerMap.country] || "").trim() : ""
+        );
+        byCountry.forEach(item => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${item.key || "(leer)"}</td>
+                <td>${item.count}</td>
+            `;
+            tableByCountry.appendChild(tr);
         });
 
-        // Zeit Chart
-        const ctx3 = document.getElementById('timeChart').getContext('2d');
-        new Chart(ctx3, {
-            type: 'line',
-            data: {
-                labels: ['01.12.2025', '02.12.2025', '03.12.2025'],
-                datasets: [{
-                    label: 'Tägliche Ereignisse',
-                    data: [1, 3, 1],
-                    borderColor: chartColors.primary,
-                    backgroundColor: chartColors.primary + '20',
-                    tension: 0.4,
-                    fill: true,
-                    pointBackgroundColor: chartColors.primary,
-                    pointBorderWidth: 2,
-                    pointRadius: 6
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: {
-                            color: 'rgba(61, 139, 55, 0.1)'
-                        }
-                    },
-                    x: {
-                        grid: {
-                            display: false
-                        }
-                    }
-                }
-            }
+        const siteMap = new Map();
+        for (const row of currentData) {
+            const site = headerMap.site ? (row[headerMap.site] || "").trim() : "";
+            const country = headerMap.country ? (row[headerMap.country] || "").trim() : "";
+            if (!site && !country) continue;
+            const key = site + "||" + country;
+            siteMap.set(key, (siteMap.get(key) || 0) + 1);
+        }
+        const siteArray = Array.from(siteMap.entries()).map(([key, count]) => {
+            const [site, country] = key.split("||");
+            return { site, country, count };
+        }).sort((a, b) => b.count - a.count);
+
+        siteArray.forEach(item => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${item.site || "(leer)"}</td>
+                <td>${item.country || "(leer)"}</td>
+                <td>${item.count}</td>
+            `;
+            tableBySite.appendChild(tr);
         });
 
-        // Team Performance Chart
-        const ctx4 = document.getElementById('employeeChart').getContext('2d');
-        new Chart(ctx4, {
-            type: 'polarArea',
-            data: {
-                labels: ['Heller, T.', 'Altmeier, V.', 'Schneider, A.', 'Sardari, A.'],
-                datasets: [{
-                    data: [3, 1, 1, 1],
-                    backgroundColor: [
-                        chartColors.primary + '80',
-                        chartColors.secondary + '80',
-                        chartColors.accent + '80',
-                        chartColors.light + '80'
-                    ],
-                    borderColor: [
-                        chartColors.primary,
-                        chartColors.secondary,
-                        chartColors.accent,
-                        chartColors.light
-                    ],
-                    borderWidth: 2
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            padding: 20,
-                            usePointStyle: true,
-                            font: {
-                                size: 11,
-                                weight: '500'
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    r: {
-                        beginAtZero: true,
-                        grid: {
-                            color: 'rgba(61, 139, 55, 0.1)'
-                        }
-                    }
-                }
-            }
+        const byType = groupAndCount(currentData, row =>
+            headerMap.type ? (row[headerMap.type] || "").trim() : ""
+        );
+        byType.forEach(item => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${item.key || "(leer)"}</td>
+                <td>${item.count}</td>
+            `;
+            tableByType.appendChild(tr);
         });
-    </script>
+    }
+
+    function renderCharts() {
+        const countries = groupAndCount(currentData, row =>
+            headerMap.country ? (row[headerMap.country] || "").trim() : ""
+        );
+        createChart(chartCountries, countries);
+
+        const sites = groupAndCount(currentData, row =>
+            headerMap.site ? (row[headerMap.site] || "").trim() : ""
+        );
+        createChart(chartSites, sites);
+
+        const types = groupAndCount(currentData, row =>
+            headerMap.type ? (row[headerMap.type] || "").trim() : ""
+        );
+        createChart(chartTypes, types);
+    }
+</script>
 </body>
 </html>
