@@ -1,52 +1,44 @@
 /*
  * =============================================
- * SECURITY DASHBOARD - DEBUG VERSION
+ * SECURITY DASHBOARD - MAIN APPLICATION v2.0
  * =============================================
  */
 
 console.log('🚀 Security Dashboard startet...');
 
+// =============================================
+// GLOBAL STATE - MUSS GANZ OBEN STEHEN!
+// =============================================
+const DashboardState = {
+    allData: [],
+    currentData: [],
+    headerMap: {},
+    chartInstances: {}
+};
+
+// =============================================
+// CONFIGURATION - MUSS VOR ChartManager STEHEN!
+// =============================================
+const CONFIG = {
+    riskWeights: {
+        'Diebstahl': 9,
+        'Verdächtige Person': 7,
+        'Zutrittsverletzung': 6,
+        'Alarmanlage ausgelöst': 5,
+        'Vandalismus': 8,
+        'Einbruch': 10,
+        'Brandschutz': 9
+    },
+    chartColors: [
+        '#00a37a', '#006b4e', '#4caf50', '#8bc34a', 
+        '#cddc39', '#ffc107', '#ff9800', '#ff5722'
+    ]
+};
+
 // Error handler ganz oben
 window.addEventListener('error', (e) => {
     console.error('💥 KRITISCHER FEHLER:', e.error);
-    console.error('Datei:', e.filename);
-    console.error('Zeile:', e.lineno);
-    alert(`JavaScript Fehler: ${e.error.message}`);
-});
-
-// Test ob DOM ready ist
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('✅ DOM ist ready!');
-    
-    // Test alle wichtigen Elemente
-    const elements = {
-        loadTestData: document.getElementById('loadTestData'),
-        fileInput: document.getElementById('fileInput'),
-        exportCSV: document.getElementById('exportCSV'),
-        exportPDF: document.getElementById('exportPDF'),
-        themeToggle: document.getElementById('themeToggle')
-    };
-    
-    console.log('🔍 Element-Check:', elements);
-    
-    // Simple Test Event Listeners
-    if (elements.loadTestData) {
-        elements.loadTestData.addEventListener('click', () => {
-            console.log('🔥 TEST DATA CLICKED!');
-            alert('Test Data Button funktioniert!');
-        });
-        console.log('✅ Test Data Listener attached');
-    }
-    
-    if (elements.themeToggle) {
-        elements.themeToggle.addEventListener('click', () => {
-            console.log('🔥 THEME TOGGLE CLICKED!');
-            alert('Theme Toggle funktioniert!');
-        });
-        console.log('✅ Theme Toggle Listener attached');
-    }
-    
-    console.log('🎯 Debug-Test abgeschlossen');
+    alert(`JavaScript Fehler: ${e.error.message} in Zeile ${e.lineno}`);
 });
 
 // =============================================
