@@ -1,6 +1,6 @@
 /*
  * =============================================
- * SECURITY DASHBOARD - MAIN APPLICATION
+ * SECURITY DASHBOARD - MAIN APPLICATION v2.0
  * =============================================
  */
 
@@ -461,12 +461,8 @@ const ThemeManager = {
         console.log(`🎨 Theme changed to: ${theme}`);
     }
 };
-
 // =============================================
-// CONTINUE IN NEXT MESSAGE...
-// =============================================
-// =============================================
-// EXPORT MANAGER - FIXED
+// EXPORT MANAGER
 // =============================================
 const ExportManager = {
     toCSV() {
@@ -565,67 +561,8 @@ const ExportManager = {
             status.style.display = 'none'; 
         }, 3000);
     }
-}; // ← WICHTIG: Diese Klammer fehlte!
+};
 
-        // ===== SEITE 3: TABELLEN =====
-        pdf.addPage();
-        pdf.setFillColor(0, 163, 122);
-        pdf.rect(0, 0, pageWidth, 25, 'F');
-        pdf.setTextColor(255, 255, 255);
-        pdf.setFontSize(16);
-        pdf.text('Detaillierte Tabellen', 20, 17);
-
-        yPos = 40;
-        pdf.setTextColor(0, 0, 0);
-        pdf.setFontSize(12);
-        pdf.text('Ereignisarten (Top 15):', 20, yPos);
-        yPos += 10;
-
-        // Table Header
-        pdf.setFillColor(240, 240, 240);
-        pdf.rect(20, yPos, 160, 7, 'F');
-        pdf.setFontSize(9);
-        pdf.text('Ereignisart', 22, yPos + 5);
-        pdf.text('Anzahl', 120, yPos + 5);
-        pdf.text('Anteil', 150, yPos + 5);
-        yPos += 10;
-
-        // Table Data
-        const total = DashboardState.currentData.length;
-        byType.slice(0, 15).forEach((item, index) => {
-            if (yPos < 260) {
-                const percentage = ((item.count / total) * 100).toFixed(1);
-                
-                pdf.setTextColor(0, 0, 0);
-                pdf.text(`${item.key || "(leer)"}`, 22, yPos);
-                pdf.text(`${item.count}`, 120, yPos);
-                pdf.text(`${percentage}%`, 150, yPos);
-                yPos += 6;
-            }
-        });
-
-        // Footer
-        const totalPages = pdf.internal.getNumberOfPages();
-        for (let i = 1; i <= totalPages; i++) {
-            pdf.setPage(i);
-            pdf.setTextColor(100);
-            pdf.setFontSize(8);
-            pdf.text(`Security Dashboard • ${timestamp} • Seite ${i}/${totalPages}`, 20, 285);
-        }
-
-        // Download
-        const filename = `security-report-${new Date().toISOString().slice(0, 10)}.pdf`;
-        pdf.save(filename);
-
-        status.textContent = `✅ PDF Report erstellt: ${filename}`;
-        setTimeout(() => { status.style.display = 'none'; }, 3000);
-
-    } catch (error) {
-        console.error('PDF Export Error:', error);
-        status.textContent = `❌ PDF Fehler: ${error.message}`;
-        setTimeout(() => { status.style.display = 'none'; }, 5000);
-    }
-},
 // =============================================
 // FILTER MANAGER
 // =============================================
