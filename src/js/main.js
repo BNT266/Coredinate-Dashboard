@@ -137,10 +137,10 @@ function createChart(container, data, maxBars = 6) {
 // =======================
 // GLOBALER STATE
 // =======================
-let allData = [];          // alle Zeilen
-let currentData = [];      // gefilterte Zeilen
-let headerMap = {};        // Zuordnung der Headernamen
-let currentMode = "none";  // "none" | "file" | "test"
+let allData = [];
+let currentData = [];
+let headerMap = {};
+let currentMode = "none";
 
 const fileInput = document.getElementById("fileInput");
 const fileStatus = document.getElementById("fileStatus");
@@ -264,11 +264,11 @@ fileInput.addEventListener("change", async (e) => {
         headerMap = createHeaderMap(parsed.headers);
 
         recordCount.textContent = allData.length.toString();
-        fileStatus.textContent = `Datei „$${file.name}" geladen. Datensätze: $${allData.length}.`;
+        fileStatus.textContent = `Datei „${file.name}" geladen. Datensätze: ${allData.length}.`;
         currentMode = "file";
         updateModeIndicator();
 
-        applyFilters(); // initial berechnen
+        applyFilters();
     } catch (err) {
         console.error(err);
         fileStatus.classList.add("error");
@@ -489,4 +489,12 @@ function renderCharts() {
     createChart(chartCountries, countries);
 
     const sites = groupAndCount(currentData, row =>
-        headerMap.site ? (row[headerMap.site] || "").trim() :
+        headerMap.site ? (row[headerMap.site] || "").trim() : ""
+    );
+    createChart(chartSites, sites);
+
+    const types = groupAndCount(currentData, row =>
+        headerMap.type ? (row[headerMap.type] || "").trim() : ""
+    );
+    createChart(chartTypes, types);
+}
