@@ -188,7 +188,14 @@
     </main>
 </div>
 
-<!-- External JavaScript -->
-<script src="src/js/main.js"></script>
+<!-- External JavaScript - DOM Ready Check -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Erst laden wenn DOM bereit ist
+    const script = document.createElement('script');
+    script.src = 'src/js/main.js';
+    document.body.appendChild(script);
+});
+</script>
 </body>
 </html>
