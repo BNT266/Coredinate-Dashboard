@@ -35,12 +35,6 @@ const CONFIG = {
     ]
 };
 
-// Error handler ganz oben
-window.addEventListener('error', (e) => {
-    console.error('💥 KRITISCHER FEHLER:', e.error);
-    alert(`JavaScript Fehler: ${e.error?.message || e.message} in Zeile ${e.lineno || ''}`);
-});
-
 // =============================================
 // TEST DATA
 // =============================================
@@ -132,17 +126,36 @@ const Utils = {
 };
 
 // =============================================
+// UI HELPER (Toasts)
+// =============================================
+const UI = {
+    showToast(message, type = 'info', timeout = 4000) {
+        const container = document.getElementById('toastContainer');
+        if (!container) return;
+
+        const div = document.createElement('div');
+        div.className = `toast toast-${type}`;
+        div.textContent = message;
+        container.appendChild(div);
+
+        setTimeout(() => {
+            div.style.opacity = '0';
+            setTimeout(() => div.remove(), 300);
+        }, timeout);
+    }
+};
+
+// =============================================
 // CHART MANAGER
 // =============================================
 const ChartManager = {
     create(containerId, data, type = 'bar', maxBars = 6) {
         const container = document.getElementById(containerId);
         if (!container || !data?.length) {
-            if (container) container.innerHTML = '<p style="padding: 2rem; text-align: center; color: #999;">Keine Daten vorhanden</p>';
+            if (container) container.innerHTML = '<div class="empty-state"><strong>Keine Daten</strong><span>Bitte Daten laden oder Filter anpassen.</span></div>';
             return;
         }
         
-        // Destroy existing chart
         if (DashboardState.chartInstances[containerId]) {
             DashboardState.chartInstances[containerId].destroy();
         }
@@ -169,7 +182,7 @@ const ChartManager = {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                devicePixelRatio: 2, // schärfer für PDF
+                devicePixelRatio: 2,
                 plugins: { 
                     legend: { display: type === 'pie', position: 'bottom' }
                 },
@@ -241,7 +254,6 @@ class SecurityAnalytics {
     detectPatterns() {
         const patterns = [];
         
-        // Hotspot Detection
         const siteEvents = Utils.groupAndCount(this.data, row =>
             this.headerMap.site ? row[this.headerMap.site] : "");
         
@@ -257,7 +269,6 @@ class SecurityAnalytics {
             });
         }
         
-        // Event Concentration
         const typeEvents = Utils.groupAndCount(this.data, row =>
             this.headerMap.type ? row[this.headerMap.type] : "");
         
@@ -282,7 +293,6 @@ class SecurityAnalytics {
         const recommendations = [];
         const risk = this.insights.risk;
         
-        // Risk-based recommendations
         if (risk.level === 'HOCH') {
             recommendations.push({
                 priority: 'high',
@@ -303,7 +313,6 @@ class SecurityAnalytics {
             });
         }
         
-        // General recommendations
         if (this.data.length > 20) {
             recommendations.push({
                 priority: 'medium',
@@ -314,7 +323,6 @@ class SecurityAnalytics {
             });
         }
         
-        // Sort by priority
         recommendations.sort((a, b) => {
             const priorityOrder = { 'high': 3, 'medium': 2, 'low': 1 };
             return priorityOrder[b.priority] - priorityOrder[a.priority];
@@ -327,7 +335,6 @@ class SecurityAnalytics {
         const trends = [];
         const risk = this.insights.risk;
         
-        // Risk trend
         const riskTrend = risk.score > 60 ? 'steigend' : risk.score < 30 ? 'fallend' : 'stabil';
         trends.push({
             metric: 'Gesamt-Risiko',
@@ -336,7 +343,6 @@ class SecurityAnalytics {
             confidence: '82%'
         });
         
-        // Volume forecast
         const monthlyGrowth = this.data.length > 50 ? '+12%' : 
                             this.data.length > 20 ? '+5%' : '-3%';
         trends.push({
@@ -346,7 +352,6 @@ class SecurityAnalytics {
             confidence: '75%'
         });
         
-        // Top risk type trend
         const topRiskType = risk.criticalTypes[0];
         if (topRiskType) {
             trends.push({
@@ -376,6 +381,9 @@ class SecurityAnalytics {
                 <div class="insight-value">Risiko-Level: ${risk.level} (${risk.score}%)</div>
                 <div class="insight-trend">
                     ${risk.highRiskEvents} kritische Ereignisse von ${risk.totalEvents} gesamt
+                </div>
+                <div class="insight-trend">
+                    Basis: gewichtete Häufigkeit nach Ereignisart (Einbruch, Diebstahl, Vandalismus etc.).
                 </div>
             </div>
             ${risk.criticalTypes.length > 0 ? `
@@ -450,7 +458,7 @@ const ThemeManager = {
         this.setTheme(savedTheme);
         
         toggle.addEventListener('click', () => {
-            const current = document.documentElement.getAttribute('data-theme');
+            const current = document.documentElement.getAttribute('data-theme') || 'light';
             const newTheme = current === 'dark' ? 'light' : 'dark';
             this.setTheme(newTheme);
         });
@@ -470,12 +478,12 @@ const ThemeManager = {
 };
 
 // =============================================
-// EXPORT MANAGER – NEUE EXECUTIVE-REPORT VERSION
+// EXPORT MANAGER – EXECUTIVE REPORT + TOASTS
 // =============================================
 const ExportManager = {
     toCSV() {
         if (!DashboardState.currentData || DashboardState.currentData.length === 0) {
-            alert('Keine Daten zum Exportieren vorhanden!');
+            UI.showToast('Keine Daten zum CSV-Export vorhanden. Bitte Daten laden oder Filter anpassen.', 'error');
             return;
         }
 
@@ -504,6 +512,8 @@ const ExportManager = {
             link.download = `security-events-${timestamp}.csv`;
             link.click();
 
+            UI.showToast(`CSV exportiert (${DashboardState.currentData.length} Datensätze).`, 'success');
+
             if (status) {
                 status.textContent = `✅ CSV exportiert (${DashboardState.currentData.length} Datensätze)`;
                 setTimeout(() => { status.style.display = 'none'; }, 3000);
@@ -511,6 +521,7 @@ const ExportManager = {
 
         } catch (error) {
             console.error('CSV Export Error:', error);
+            UI.showToast('Fehler beim CSV-Export: ' + error.message, 'error');
             if (status) {
                 status.textContent = '❌ Fehler beim CSV-Export';
                 setTimeout(() => { status.style.display = 'none'; }, 3000);
@@ -520,7 +531,7 @@ const ExportManager = {
 
     async toPDF() {
         if (!DashboardState.currentData || DashboardState.currentData.length === 0) {
-            alert('Keine Daten zum Exportieren vorhanden!');
+            UI.showToast('Keine Daten zum PDF-Export vorhanden. Bitte Daten laden oder Filter anpassen.', 'error');
             return;
         }
 
@@ -570,10 +581,7 @@ const ExportManager = {
                 }
             };
 
-            // =====================================
-            // SEITE 1 – EXECUTIVE SUMMARY
-            // =====================================
-
+            // Seite 1 – Executive Summary
             pdf.setFillColor(0, 163, 122);
             pdf.rect(0, 0, pageWidth, 26, 'F');
 
@@ -672,9 +680,7 @@ const ExportManager = {
                 yPos += 4;
             });
 
-            // =====================================
-            // SEITE 2 – VISUAL ANALYTICS
-            // =====================================
+            // Seite 2 – Visual Analytics
             newPage();
 
             pdf.setTextColor(0, 0, 0);
@@ -712,9 +718,7 @@ const ExportManager = {
             addChart('#chartSites', 'Ereignisse nach Liegenschaften');
             addChart('#chartTypes', 'Ereignisse nach Ereignisarten');
 
-            // =====================================
-            // SEITE 3 – RISIKO & KI-INSIGHTS
-            // =====================================
+            // Seite 3 – Risiko & KI-Insights
             newPage();
 
             let analytics;
@@ -806,9 +810,7 @@ const ExportManager = {
                 yPos += 5;
             }
 
-            // =====================================
-            // SEITE 4 – Aggregierte Tabellen
-            // =====================================
+            // Seite 4 – Aggregierte Tabellen
             if (pdf.autoTable) {
                 newPage();
 
@@ -881,9 +883,7 @@ const ExportManager = {
                 yPos = pdf.lastAutoTable.finalY + 10;
             }
 
-            // =====================================
-            // SEITE 5 – Detailtabelle (optional)
-            // =====================================
+            // Seite 5 – Detailtabelle (optional)
             if (pdf.autoTable && DashboardState.currentData.length > 0) {
                 newPage();
 
@@ -926,6 +926,8 @@ const ExportManager = {
 
             pdf.save(filename);
 
+            UI.showToast('PDF-Report erfolgreich erstellt: ' + filename, 'success');
+
             if (status) {
                 status.textContent = '✅ Professioneller PDF-Report erstellt: ' + filename;
                 setTimeout(() => { status.style.display = 'none'; }, 4000);
@@ -933,11 +935,13 @@ const ExportManager = {
 
         } catch (error) {
             console.error('PDF Error:', error);
+            UI.showToast('Fehler beim PDF-Export: ' + error.message, 'error');
             if (status) {
                 status.textContent = '❌ PDF Fehler: ' + error.message;
                 setTimeout(() => { status.style.display = 'none'; }, 5000);
             }
         } finally {
+            const btnPdf = document.getElementById('exportPDF');
             if (btnPdf) btnPdf.disabled = false;
         }
     }
@@ -1078,6 +1082,16 @@ const RenderManager = {
     },
 
     renderTables() {
+        if (DashboardState.currentData.length === 0) {
+            document.querySelector('#tableByCountry tbody').innerHTML =
+                '<tr><td colspan="2" class="empty-state"><strong>Keine Daten</strong><span>Bitte laden Sie Daten oder passen Sie die Filter an.</span></td></tr>';
+            document.querySelector('#tableBySite tbody').innerHTML =
+                '<tr><td colspan="3" class="empty-state"><strong>Keine Daten</strong><span>Bitte laden Sie Daten oder passen Sie die Filter an.</span></td></tr>';
+            document.querySelector('#tableByType tbody').innerHTML =
+                '<tr><td colspan="2" class="empty-state"><strong>Keine Daten</strong><span>Bitte laden Sie Daten oder passen Sie die Filter an.</span></td></tr>';
+            return;
+        }
+
         const byCountry = Utils.groupAndCount(DashboardState.currentData, row => 
             DashboardState.headerMap.country ? row[DashboardState.headerMap.country] : '');
         const bySite = Utils.groupAndCount(DashboardState.currentData, row => 
@@ -1113,6 +1127,21 @@ const RenderManager = {
     },
 
     renderCharts() {
+        if (DashboardState.currentData.length === 0) {
+            ['chartCountries', 'chartSites', 'chartTypes'].forEach(id => {
+                const c = document.getElementById(id);
+                if (c) {
+                    c.innerHTML = `
+                        <div class="empty-state">
+                            <strong>Keine Daten</strong>
+                            <span>Bitte laden Sie Daten oder ändern Sie die Filter.</span>
+                        </div>`;
+                }
+            });
+            ChartManager.destroyAll();
+            return;
+        }
+
         const countries = Utils.groupAndCount(DashboardState.currentData, row => 
             DashboardState.headerMap.country ? row[DashboardState.headerMap.country] : '');
         const sites = Utils.groupAndCount(DashboardState.currentData, row => 
@@ -1161,6 +1190,7 @@ const DataManager = {
         RenderManager.renderAll();
         
         console.log(`✅ Test data loaded: ${DashboardState.allData.length} records`);
+        UI.showToast('Testdaten wurden geladen (Demo-Modus).', 'info');
     },
 
     async loadCSVFile(file) {
@@ -1182,12 +1212,14 @@ const DataManager = {
             RenderManager.renderAll();
             
             console.log(`✅ CSV file loaded: ${DashboardState.allData.length} records`);
+            UI.showToast(`CSV-Datei "${file.name}" geladen.`, 'success');
             
         } catch (error) {
             console.error('CSV loading error:', error);
             const status = document.getElementById('fileStatus');
             status.textContent = `Fehler beim Lesen der Datei: ${error.message}`;
             status.className = 'status error';
+            UI.showToast('Fehler beim Laden der CSV-Datei: ' + error.message, 'error');
         }
     },
 
@@ -1262,9 +1294,10 @@ document.addEventListener('DOMContentLoaded', () => {
     Dashboard.init();
 });
 
-// Global error handler
+// Global error handler (ohne Alert, mit Toast)
 window.addEventListener('error', (e) => {
     console.error('Dashboard Error:', e.error || e.message);
+    UI.showToast('Unerwarteter Fehler im Dashboard. Details in der Konsole.', 'error', 6000);
 });
 
 // Export for debugging
