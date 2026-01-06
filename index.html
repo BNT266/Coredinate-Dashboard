@@ -73,21 +73,33 @@
         <div class="sidebar-section">
             <div class="sidebar-section-title">Export</div>
             <button class="btn secondary" id="exportCSV">📄 CSV exportieren</button>
-            <button class="btn primary" id="exportPDF">📊 PDF Report erstellen</button>
+            <button class="btn primary" id="exportPDF">📊 Executive PDF-Report erstellen</button>
             <div id="exportStatus" class="status" style="display: none;"></div>
         </div>
     </aside>
 
     <!-- ========== MAIN CONTENT ========== -->
     <main class="main">
-        <!-- Theme Toggle -->
-        <div class="theme-toggle-wrapper">
-            <button id="themeToggle" class="theme-toggle" title="Dark/Light Mode umschalten">
-                <span class="theme-icon sun">☀️</span>
-                <span class="theme-icon moon">🌙</span>
-                <div class="theme-toggle-slider"></div>
-            </button>
-            <span class="theme-label">Dark Mode</span>
+        <!-- Top Bar: Theme + Sprache -->
+        <div class="top-bar">
+            <!-- Theme Toggle -->
+            <div class="theme-toggle-wrapper">
+                <button id="themeToggle" class="theme-toggle" title="Dark/Light Mode umschalten">
+                    <span class="theme-icon sun">☀️</span>
+                    <span class="theme-icon moon">🌙</span>
+                    <div class="theme-toggle-slider"></div>
+                </button>
+                <span class="theme-label">Dark Mode</span>
+            </div>
+
+            <!-- Report-Sprache -->
+            <div class="language-select-wrapper">
+                <label for="reportLanguage">Report-Sprache:</label>
+                <select id="reportLanguage">
+                    <option value="de" selected>Deutsch</option>
+                    <option value="en">English</option>
+                </select>
+            </div>
         </div>
 
         <!-- Header -->
