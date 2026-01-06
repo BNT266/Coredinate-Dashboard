@@ -1,6 +1,6 @@
 /*
  * =============================================
- * SECURITY DASHBOARD - MAIN APPLICATION v3.0
+ * SECURITY DASHBOARD - MAIN APPLICATION v4.0
  * =============================================
  */
 
@@ -36,7 +36,7 @@ const CONFIG = {
 };
 
 // =============================================
-// TEST DATA (leicht erweiterbar für Uhrzeit)
+// TEST DATA (inkl. Uhrzeit für Zeitmuster)
 // =============================================
 const TestData = {
     csv: `Land;Liegenschaft;Ereignisart;Datum
@@ -124,6 +124,51 @@ const Utils = {
             year: 'numeric', month: '2-digit', day: '2-digit',
             hour: '2-digit', minute: '2-digit'
         });
+    },
+
+    // Domain-Klassifikation: Security / FM / SHE / Other
+    classifyCategory(row, headerMap) {
+        const fields = [];
+
+        if (headerMap.type && row[headerMap.type]) {
+            fields.push(row[headerMap.type]);
+        }
+        // Optionale Zusatzfelder (z. B. Beschreibung, Kategorie) automatisch mitnutzen
+        Object.keys(row).forEach(key => {
+            const lower = key.toLowerCase();
+            if (lower.includes('beschreibung') || lower.includes('description') || lower.includes('kategorie')) {
+                fields.push(row[key]);
+            }
+        });
+
+        const text = fields.join(' ').toLowerCase();
+
+        const securityKeywords = [
+            'diebstahl', 'einbruch', 'vandalismus', 'zutrittsverletzung',
+            'unbefugter zutritt', 'verdächtige person', 'security', 'sicherheitsdienst',
+            'alarm', 'alarmanlage', 'sabotage', 'überfall', 'raub'
+        ];
+
+        const fmKeywords = [
+            'facility', 'gebäudetechnik', 'aufzug', 'fahrstuhl', 'klima',
+            'heizung', 'hlk', 'wartung', 'instandhaltung', 'reinigung',
+            'betriebstechnik', 'stromausfall', 'wasserleck', 'wasserleckage',
+            'beleuchtung', 'sanitär'
+        ];
+
+        const sheKeywords = [
+            'arbeitssicherheit', 'unfall', 'arbeitsunfall', 'verletzung', 'verletzte',
+            'near miss', 'beinaheunfall', 'gefährdung', 'gefahrstoff', 'chemikalie',
+            'brandschutz', 'brand', 'evakuierung', 'umwelt', 'leckage', 'austritt'
+        ];
+
+        const matchesAny = (list) => list.some(kw => text.includes(kw));
+
+        if (matchesAny(securityKeywords)) return 'Security';
+        if (matchesAny(fmKeywords)) return 'FM';
+        if (matchesAny(sheKeywords)) return 'SHE';
+
+        return 'Other';
     }
 };
 
@@ -227,7 +272,8 @@ class SecurityAnalytics {
         this.detectPatterns();
         this.generateRecommendations();
         this.forecastTrends();
-        this.analyzeTimePatterns();      // Zeitmuster
+        this.analyzeTimePatterns();
+        this.analyzeDomainMix();      // NEU: Security / FM / SHE
         this.renderAllInsights();
     }
 
@@ -262,7 +308,6 @@ class SecurityAnalytics {
     detectPatterns() {
         const patterns = [];
 
-        // Hotspots nach Liegenschaft
         const siteEvents = Utils.groupAndCount(this.data, row =>
             this.headerMap.site ? row[this.headerMap.site] : "");
 
@@ -278,7 +323,6 @@ class SecurityAnalytics {
             });
         }
 
-        // Ereignis-Konzentration nach Typ
         const typeEvents = Utils.groupAndCount(this.data, row =>
             this.headerMap.type ? row[this.headerMap.type] : "");
 
@@ -375,7 +419,6 @@ class SecurityAnalytics {
         this.insights.trends = trends;
     }
 
-    // >>> NEU: Zeitliche Muster
     analyzeTimePatterns() {
         const dateField = this.headerMap.date;
         const timeField = this.headerMap.time;
@@ -386,7 +429,7 @@ class SecurityAnalytics {
         }
 
         const hourBuckets = { '00-06': 0, '06-12': 0, '12-18': 0, '18-24': 0 };
-        const weekdayCounts = [0, 0, 0, 0, 0, 0, 0]; // So=0 ... Sa=6
+        const weekdayCounts = [0, 0, 0, 0, 0, 0, 0];
 
         this.data.forEach(row => {
             let dateTimeStr = '';
@@ -441,6 +484,35 @@ class SecurityAnalytics {
         };
     }
 
+    // NEU: Domain-Mix (Security / FM / SHE / Other)
+    analyzeDomainMix() {
+        const counts = { Security: 0, FM: 0, SHE: 0, Other: 0 };
+        const riskByDomain = { Security: 0, FM: 0, SHE: 0, Other: 0 };
+
+        this.data.forEach(row => {
+            const domain = Utils.classifyCategory(row, this.headerMap);
+            counts[domain]++;
+
+            const typeValue = this.headerMap.type ? row[this.headerMap.type] : '';
+            const weight = CONFIG.riskWeights[typeValue] || 3;
+            riskByDomain[domain] += weight;
+        });
+
+        const totalEvents = this.data.length || 1;
+
+        const domainArray = Object.keys(counts).map(domain => ({
+            domain,
+            count: counts[domain],
+            share: Math.round((counts[domain] / totalEvents) * 100),
+            riskScore: Math.round(riskByDomain[domain])
+        })).sort((a, b) => b.count - a.count);
+
+        this.insights.domainMix = {
+            totalEvents,
+            byDomain: domainArray
+        };
+    }
+
     renderAllInsights() {
         this.renderRiskAssessment();
         this.renderPatternDetection();
@@ -473,27 +545,61 @@ class SecurityAnalytics {
         `;
     }
 
+    // Angepasst: Muster + Bereichszuordnung
     renderPatternDetection() {
         const container = document.getElementById('patternDetection');
         const patterns = this.insights.patterns;
+        const domainMix = this.insights.domainMix;
+
+        let html = '';
 
         if (patterns.length === 0) {
-            container.innerHTML = `
+            html += `
                 <div class="insight-item" title="Es wurden keine signifikanten Abweichungen in den Verteilungen erkannt.">
                     <div class="insight-value">✅ Keine kritischen Muster erkannt</div>
                     <div class="insight-trend">Ereignisverteilung ist ausgewogen</div>
                 </div>
             `;
-            return;
+        } else {
+            html += patterns.slice(0, 2).map(pattern => `
+                <div class="insight-item"
+                    title="Erkanntes Muster basierend auf Auffälligkeiten in Häufigkeiten (Hotspots / Dominanz einer Ereignisart).">
+                    <div class="insight-value">${pattern.severity === 'high' ? '🔴' : '🟡'} ${pattern.title}</div>
+                    <div class="insight-trend">${pattern.description}</div>
+                </div>
+            `).join('');
         }
 
-        container.innerHTML = patterns.slice(0, 2).map(pattern => `
-            <div class="insight-item"
-                 title="Erkanntes Muster basierend auf Auffälligkeiten in Häufigkeiten (Hotspots / Dominanz einer Ereignisart).">
-                <div class="insight-value">${pattern.severity === 'high' ? '🔴' : '🟡'} ${pattern.title}</div>
-                <div class="insight-trend">${pattern.description}</div>
-            </div>
-        `).join('');
+        if (domainMix && domainMix.byDomain && domainMix.byDomain.length) {
+            const top = domainMix.byDomain[0];
+            const sec = domainMix.byDomain.find(d => d.domain === 'Security');
+            const fm  = domainMix.byDomain.find(d => d.domain === 'FM');
+            const she = domainMix.byDomain.find(d => d.domain === 'SHE');
+
+            html += `
+                <div class="insight-item"
+                     title="Zuweisung der Ereignisse zu den Bereichen Security, Facility Management (FM) und SHE (Safety, Health, Environment) auf Basis der Ereignisbezeichnung.">
+                    <div class="insight-value">Bereichszuordnung (Security / FM / SHE)</div>
+                    <div class="insight-trend">
+                        Dominanter Bereich: <strong>${top.domain}</strong>
+                        (${top.count} Events, ${top.share}% Anteil).
+                    </div>
+                    <div class="insight-trend">
+                        Security: ${sec ? `${sec.count} (${sec.share}%)` : '0 (0%)'} |
+                        FM: ${fm ? `${fm.count} (${fm.share}%)` : '0 (0%)'} |
+                        SHE: ${she ? `${she.count} (${she.share}%)` : '0 (0%)'}
+                    </div>
+                    <div class="insight-trend">
+                        Risikobeitrag (Punkte): 
+                        Security ${sec ? sec.riskScore : 0}, 
+                        FM ${fm ? fm.riskScore : 0}, 
+                        SHE ${she ? she.riskScore : 0}.
+                    </div>
+                </div>
+            `;
+        }
+
+        container.innerHTML = html;
     }
 
     renderRecommendations() {
@@ -823,7 +929,7 @@ const ExportManager = {
             addChart('#chartSites', 'Ereignisse nach Liegenschaften');
             addChart('#chartTypes', 'Ereignisse nach Ereignisarten');
 
-            // Seite 3 – Risiko & KI-Insights (+ Zeitmuster)
+            // Seite 3 – Risiko & KI-Insights (+ Zeit & Domain-Mix)
             newPage();
 
             let analytics;
@@ -844,6 +950,7 @@ const ExportManager = {
                 const recs = analytics.insights.recommendations || [];
                 const trends = analytics.insights.trends || [];
                 const tp = analytics.insights.timePatterns;
+                const domainMix = analytics.insights.domainMix;
 
                 pdf.setFontSize(11);
                 pdf.text('Risikoprofil', marginX, yPos);
@@ -921,6 +1028,39 @@ const ExportManager = {
                         marginX,
                         yPos
                     );
+                    yPos += 6;
+                }
+
+                // Bereichszuordnung Security / FM / SHE
+                if (domainMix && domainMix.byDomain && domainMix.byDomain.length) {
+                    ensureSpace(25);
+                    pdf.setFontSize(11);
+                    pdf.setTextColor(0, 0, 0);
+                    pdf.text('Bereichszuordnung (Security / FM / SHE)', marginX, yPos);
+                    yPos += 5;
+
+                    pdf.setFontSize(9);
+                    pdf.setTextColor(80, 80, 80);
+
+                    const sec = domainMix.byDomain.find(d => d.domain === 'Security');
+                    const fm  = domainMix.byDomain.find(d => d.domain === 'FM');
+                    const she = domainMix.byDomain.find(d => d.domain === 'SHE');
+
+                    const line1 = `Dominanter Bereich: ${domainMix.byDomain[0].domain} (${domainMix.byDomain[0].count} Ereignisse, ${domainMix.byDomain[0].share}% Anteil).`;
+                    pdf.text(line1, marginX, yPos);
+                    yPos += 4;
+
+                    const line2 = `Verteilung: Security ${sec ? `${sec.count} (${sec.share}%)` : '0 (0%)'}, ` +
+                                  `FM ${fm ? `${fm.count} (${fm.share}%)` : '0 (0%)'}, ` +
+                                  `SHE ${she ? `${she.count} (${she.share}%)` : '0 (0%)'}.`;
+                    pdf.text(line2, marginX, yPos);
+                    yPos += 4;
+
+                    const line3 = `Risikobeitrag (gewichtete Punkte): ` +
+                                  `Security ${sec ? sec.riskScore : 0}, ` +
+                                  `FM ${fm ? fm.riskScore : 0}, ` +
+                                  `SHE ${she ? she.riskScore : 0}.`;
+                    pdf.text(line3, marginX, yPos);
                     yPos += 6;
                 }
 
