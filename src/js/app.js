@@ -1,4 +1,4 @@
-/* VOLLSTÄNDIGE, BEREINIGTE app.js v6 – PASSEND ZU DEINEM HTML */
+/* VOLLSTÄNDIGE, BEREINIGTE app.js – inkl. interaktiver Charts & Risiko-Konfiguration */
 
 console.log('🚀 Security Dashboard startet...');
 
@@ -396,7 +396,7 @@ const UI = {
 };
 
 // =============================================
-// CHART MANAGER
+// CHART MANAGER (mit interaktiven Klicks)
 // =============================================
 const ChartManager = {
     create(containerId, data, type = 'bar', maxBars = 6) {
@@ -451,7 +451,56 @@ const ChartManager = {
             }
         };
 
-        const chart = new Chart(canvas, config); DashboardState.chartInstances[containerId] = chart;  // Interaktives Drilldown: Klick auf Chart setzt Filter canvas.onclick = (evt) => {     const points = chart.getElementsAtEventForMode(         evt,         'nearest',         { intersect: true },         true     );     if (!points.length) return;      const index = points[0].index;     const label = chart.data.labels[index];      // Sicherstellen, dass wir einen Label-Wert haben     if (!label) return;      // Länder-Chart → Land-Filter setzen     if (containerId === 'chartCountries') {         const select = document.getElementById('filterCountry');         if (!select) return;          // Wenn das Label im Select existiert, Filter setzen         const option = Array.from(select.options).find(o => o.value === label);         if (option) {             select.value = label;             FilterManager.apply();         }     }      // Liegenschaften-Chart → Site-Filter setzen     if (containerId === 'chartSites') {         const select = document.getElementById('filterSite');         if (!select) return;          const option = Array.from(select.options).find(o => o.value === label);         if (option) {             select.value = label;             FilterManager.apply();         }     }      // Ereignisarten-Chart (Pie) → Typ-Filter setzen     if (containerId === 'chartTypes') {         const select = document.getElementById('filterType');         if (!select) return;          const option = Array.from(select.options).find(o => o.value === label);         if (option) {             select.value = label;             FilterManager.apply();         }     }      // OPTIONAL: Bei Klick auf Domains-Chart könnte man später Domain-Filter einbauen };
+        const chart = new Chart(canvas, config);
+        DashboardState.chartInstances[containerId] = chart;
+
+        // Interaktives Drilldown: Klick auf Chart setzt Filter
+        canvas.onclick = (evt) => {
+            const points = chart.getElementsAtEventForMode(
+                evt,
+                'nearest',
+                { intersect: true },
+                true
+            );
+            if (!points.length) return;
+
+            const index = points[0].index;
+            const label = chart.data.labels[index];
+            if (!label) return;
+
+            // Länder-Chart → Land-Filter
+            if (containerId === 'chartCountries') {
+                const select = document.getElementById('filterCountry');
+                if (!select) return;
+                const option = Array.from(select.options).find(o => o.value === label);
+                if (option) {
+                    select.value = label;
+                    FilterManager.apply();
+                }
+            }
+
+            // Liegenschaften-Chart → Site-Filter
+            if (containerId === 'chartSites') {
+                const select = document.getElementById('filterSite');
+                if (!select) return;
+                const option = Array.from(select.options).find(o => o.value === label);
+                if (option) {
+                    select.value = label;
+                    FilterManager.apply();
+                }
+            }
+
+            // Ereignisarten-Chart → Typ-Filter
+            if (containerId === 'chartTypes') {
+                const select = document.getElementById('filterType');
+                if (!select) return;
+                const option = Array.from(select.options).find(o => o.value === label);
+                if (option) {
+                    select.value = label;
+                    FilterManager.apply();
+                }
+            }
+        };
     },
 
     destroyAll() {
@@ -860,6 +909,7 @@ class SecurityAnalytics {
         container.innerHTML = html;
     }
 }
+
 // =============================================
 // THEME MANAGER
 // =============================================
@@ -890,6 +940,91 @@ const ThemeManager = {
         }
 
         console.log(`🎨 Theme changed to: ${theme}`);
+    }
+};
+
+// =============================================
+// RISK CONFIGURATION MANAGER
+// =============================================
+const RiskConfigManager = {
+    STORAGE_KEY: 'securityDashboardRiskWeights',
+
+    loadFromStorage() {
+        try {
+            const raw = localStorage.getItem(this.STORAGE_KEY);
+            if (!raw) return;
+            const stored = JSON.parse(raw);
+            Object.assign(CONFIG.riskWeights, stored);
+            console.log('🔐 Risk weights loaded from storage:', CONFIG.riskWeights);
+        } catch (e) {
+            console.warn('Could not load risk weights from storage:', e);
+        }
+    },
+
+    saveToStorage() {
+        try {
+            localStorage.setItem(
+                this.STORAGE_KEY,
+                JSON.stringify(CONFIG.riskWeights)
+            );
+            console.log('💾 Risk weights saved to storage:', CONFIG.riskWeights);
+        } catch (e) {
+            console.warn('Could not save risk weights:', e);
+        }
+    },
+
+    render() {
+        const container = document.getElementById('riskConfigContainer');
+        if (!container) return;
+
+        const types = [...new Set(
+            DashboardState.allData
+                .map(row => DashboardState.headerMap.type ? row[DashboardState.headerMap.type] : '')
+                .filter(Boolean)
+                .map(v => v.trim())
+        )].sort();
+
+        if (!types.length) {
+            container.innerHTML =
+                '<div class="hint">Keine Ereignisarten erkannt. Bitte Daten laden.</div>';
+            return;
+        }
+
+        const rowsHtml = types.map(type => {
+            const currentWeight = CONFIG.riskWeights[type] ?? 3;
+            return `
+                <div class="risk-config-row">
+                    <div class="risk-config-label" title="${type}">${type}</div>
+                    <input
+                        class="risk-config-input"
+                        type="number"
+                        min="1"
+                        max="10"
+                        step="1"
+                        data-risk-type="${type}"
+                        value="${currentWeight}"
+                    />
+                </div>
+            `;
+        }).join('');
+
+        container.innerHTML = rowsHtml;
+
+        container.querySelectorAll('.risk-config-input').forEach(input => {
+            input.addEventListener('change', (e) => {
+                let value = parseInt(e.target.value, 10);
+                if (isNaN(value)) value = 3;
+                if (value < 1) value = 1;
+                if (value > 10) value = 10;
+                e.target.value = value;
+
+                const type = e.target.getAttribute('data-risk-type');
+                CONFIG.riskWeights[type] = value;
+
+                this.saveToStorage();
+                RenderManager.runAnalytics();
+            });
+        });
     }
 };
 
@@ -1562,7 +1697,6 @@ const ExportManager = {
         }
     }
 };
-
 // =============================================
 // FILTER MANAGER
 // =============================================
@@ -1602,7 +1736,7 @@ const FilterManager = {
         this.apply();
     },
 
-   updateStatus() {
+    updateStatus() {
         const status = document.getElementById('filterStatus');
         const activeFilters = [];
 
@@ -1776,7 +1910,6 @@ const RenderManager = {
         ChartManager.create('chartSites', sites, 'bar');
         ChartManager.create('chartTypes', types, 'pie');
 
-        // Domain-Verteilung: Security / FM / SHE / Other
         const domainCounts = { Security: 0, FM: 0, SHE: 0, Other: 0 };
         DashboardState.currentData.forEach(row => {
             const domain = Utils.classifyCategory(row, DashboardState.headerMap);
@@ -1822,6 +1955,7 @@ const DataManager = {
         DashboardState.headerMap = Utils.createHeaderMap(parsed.headers);
         DashboardState.currentData = DashboardState.allData;
 
+        RiskConfigManager.render();
         this.updateUI('testdata');
         RenderManager.renderAll();
 
@@ -1844,6 +1978,7 @@ const DataManager = {
             DashboardState.headerMap = Utils.createHeaderMap(parsed.headers);
             DashboardState.currentData = DashboardState.allData;
 
+            RiskConfigManager.render();
             this.updateUI('csv', file.name);
             RenderManager.renderAll();
 
@@ -1899,6 +2034,7 @@ const Dashboard = {
         console.log('🚀 Initializing Security Dashboard...');
 
         ThemeManager.init();
+        RiskConfigManager.loadFromStorage();
         this.setupEventListeners();
         this.initializeUI();
 
@@ -1906,28 +2042,23 @@ const Dashboard = {
     },
 
     setupEventListeners() {
-        // Testdaten
         document.getElementById('loadTestData').addEventListener('click', () => {
             DataManager.loadTestData();
         });
 
-        // CSV Upload
         document.getElementById('fileInput').addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) DataManager.loadCSVFile(file);
         });
 
-        // Filter
         document.getElementById('filterCountry').addEventListener('change', FilterManager.apply.bind(FilterManager));
         document.getElementById('filterSite').addEventListener('change', FilterManager.apply.bind(FilterManager));
         document.getElementById('filterType').addEventListener('change', FilterManager.apply.bind(FilterManager));
         document.getElementById('resetFilters').addEventListener('click', FilterManager.reset.bind(FilterManager));
 
-        // Export
         document.getElementById('exportCSV').addEventListener('click', ExportManager.toCSV.bind(ExportManager));
         document.getElementById('exportPDF').addEventListener('click', ExportManager.toPDF.bind(ExportManager));
 
-        // Sprache für Report
         const langSelect = document.getElementById('reportLanguage');
         if (langSelect) {
             langSelect.addEventListener('change', (e) => {
@@ -1954,13 +2085,11 @@ document.addEventListener('DOMContentLoaded', () => {
     Dashboard.init();
 });
 
-// Global error handler
 window.addEventListener('error', (e) => {
     console.error('Dashboard Error:', e.error || e.message);
     UI.showToast('Unerwarteter Fehler im Dashboard. Details in der Konsole.', 'error', 6000);
 });
 
-// Export for debugging
 window.Dashboard = Dashboard;
 window.DashboardState = DashboardState;
 window.i18n = i18n;
