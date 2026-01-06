@@ -507,6 +507,11 @@ tbody tr:hover {
     padding: 0.3rem;
 }
 
+/* Charts klickbar machen */
+.chart canvas {
+    cursor: pointer;
+}
+
 .panel h3 {
     margin: 0.5rem 0 0.3rem;
 }
