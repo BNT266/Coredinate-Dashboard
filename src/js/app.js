@@ -1,6 +1,6 @@
 /*
  * =============================================
- * SECURITY DASHBOARD - MAIN APPLICATION v4.0
+ * SECURITY DASHBOARD - MAIN APPLICATION v6.0
  * =============================================
  */
 
@@ -36,7 +36,254 @@ const CONFIG = {
 };
 
 // =============================================
-// TEST DATA (inkl. Uhrzeit für Zeitmuster)
+// i18n – einfache Sprachverwaltung (DE/EN)
+// =============================================
+const i18n = {
+    current: 'de', // default
+
+    set(lang) {
+        this.current = ['de', 'en'].includes(lang) ? lang : 'de';
+        console.log('🌐 Report language set to:', this.current);
+    },
+
+    t(key, vars = {}) {
+        const lang = this.current;
+        const dict = this.strings[key]?.[lang] || this.strings[key]?.de || '';
+
+        return dict.replace(/\{\{(\w+)\}\}/g, (_, v) => {
+            return vars[v] !== undefined ? vars[v] : '';
+        });
+    },
+
+    strings: {
+        // PDF – Titel / Kopf
+        pdf_title: {
+            de: 'SECURITY EVENT DASHBOARD',
+            en: 'SECURITY EVENT DASHBOARD'
+        },
+        pdf_subtitle: {
+            de: 'Executive Summary Report',
+            en: 'Executive Summary Report'
+        },
+        pdf_created_at: {
+            de: 'Erstellt: {{date}}',
+            en: 'Generated: {{date}}'
+        },
+
+        // PDF – Abschnittsüberschriften
+        section_executive_summary: {
+            de: 'Executive Summary',
+            en: 'Executive Summary'
+        },
+        section_ai_insights: {
+            de: 'AI Executive Insights',
+            en: 'AI Executive Insights'
+        },
+        section_visual_analytics: {
+            de: 'Visual Analytics',
+            en: 'Visual Analytics'
+        },
+        section_aggregated_overview: {
+            de: 'Aggregierte Ereignisübersicht',
+            en: 'Aggregated Event Overview'
+        },
+        section_detailed_list: {
+            de: 'Detallierte Ereignisliste (erste {{count}} Events)',
+            en: 'Detailed Event List (first {{count}} events)'
+        },
+        section_risk_and_domain: {
+            de: 'Risikoprofil & Bereichszuordnung',
+            en: 'Risk Profile & Domain Allocation'
+        },
+        section_time_and_trends: {
+            de: 'Zeitliche Muster & Trendprognose',
+            en: 'Temporal Patterns & Trend Forecast'
+        },
+        section_actions: {
+            de: 'Empfohlene Maßnahmen (KI-gestützt)',
+            en: 'Recommended Actions (AI-driven)'
+        },
+        section_domain_focus: {
+            de: 'Schwerpunkte nach Bereich',
+            en: 'Focus by Domain'
+        },
+
+        // PDF – kurze Beschreibungen
+        desc_ai_insights: {
+            de: 'Zusammenfassung der KI-gestützten Risikoanalyse, Bereichszuordnung und Zeit-/Trendmuster.',
+            en: 'Summary of AI-based risk analysis, domain allocation, and time/trend patterns.'
+        },
+        desc_visual_analytics: {
+            de: 'Verteilung der Ereignisse über Länder, Liegenschaften, Ereignisarten und Bereiche.',
+            en: 'Distribution of events across countries, sites, event types, and domains.'
+        },
+
+        // PDF – Executive Summary Kennzahlenzeile
+        key_facts_line: {
+            de: 'Ereignisse gesamt: {{events}}  |  Länder: {{countries}}  |  Liegenschaften: {{sites}}  |  Ereignisarten: {{types}}',
+            en: 'Total events: {{events}}  |  Countries: {{countries}}  |  Sites: {{sites}}  |  Event types: {{types}}'
+        },
+
+        // PDF – Tabellenüberschriften
+        table_country_header: {
+            de: 'Land',
+            en: 'Country'
+        },
+        table_site_header: {
+            de: 'Liegenschaft',
+            en: 'Site'
+        },
+        table_type_header: {
+            de: 'Ereignisart',
+            en: 'Event Type'
+        },
+        table_count_header: {
+            de: 'Anzahl',
+            en: 'Count'
+        },
+
+        // PDF – Chart-Titel
+        chart_countries_title: {
+            de: 'Ereignisse nach Ländern',
+            en: 'Events by Country'
+        },
+        chart_sites_title: {
+            de: 'Ereignisse nach Liegenschaften',
+            en: 'Events by Site'
+        },
+        chart_types_title: {
+            de: 'Ereignisse nach Ereignisarten',
+            en: 'Events by Type'
+        },
+        chart_domains_title: {
+            de: 'Bereichsverteilung (Security / FM / SHE)',
+            en: 'Domain Distribution (Security / FM / SHE)'
+        },
+
+        // PDF – Footertext
+        footer_left: {
+            de: 'Security Events Dashboard – Executive Report',
+            en: 'Security Events Dashboard – Executive Report'
+        },
+        footer_page: {
+            de: 'Seite {{page}}',
+            en: 'Page {{page}}'
+        },
+
+        // Narrative – Risikoprofil
+        risk_intro_high: {
+            de: 'Das Gesamtrisiko wird aktuell als hoch ({{score}}% von 100%) eingestuft.',
+            en: 'The overall risk is currently assessed as high ({{score}}% out of 100%).'
+        },
+        risk_intro_medium: {
+            de: 'Das Gesamtrisiko wird aktuell als mittel ({{score}}% von 100%) eingestuft.',
+            en: 'The overall risk is currently assessed as medium ({{score}}% out of 100%).'
+        },
+        risk_intro_low: {
+            de: 'Das Gesamtrisiko wird aktuell als niedrig ({{score}}% von 100%) eingestuft.',
+            en: 'The overall risk is currently assessed as low ({{score}}% out of 100%).'
+        },
+        risk_detail_high: {
+            de: 'Die Anzahl und Gewichtung kritischer Ereignisse ist deutlich erhöht; {{count}} Vorfälle gelten als sicherheitskritisch.',
+            en: 'The number and weighting of critical incidents is significantly elevated; {{count}} incidents are classified as safety-critical.'
+        },
+        risk_detail_medium: {
+            de: 'Es liegt ein mittleres Risikoprofil vor, das kontinuierliches Monitoring und punktuelle Maßnahmen erfordert.',
+            en: 'The risk profile is moderate and requires continuous monitoring and targeted measures.'
+        },
+        risk_detail_low: {
+            de: 'Das aktuelle Risikoprofil ist eher niedrig, sollte jedoch weiterhin beobachtet werden.',
+            en: 'The current risk profile is rather low but should continue to be monitored.'
+        },
+        risk_critical_type: {
+            de: 'Die Ereignisart "{{type}}" trägt mit {{count}} Vorfällen am stärksten zum Gesamtrisiko bei.',
+            en: 'The event type "{{type}}" contributes most to the overall risk with {{count}} incidents.'
+        },
+
+        // Narrative – Domain-Mix
+        domain_main_line: {
+            de: 'Die meisten Ereignisse entfallen auf den Bereich {{domain}} ({{count}} Vorfälle, {{share}}% Anteil).',
+            en: 'Most events fall within the {{domain}} domain ({{count}} incidents, {{share}}% share).'
+        },
+        domain_distribution_line: {
+            de: 'Verteilung nach Bereichen: Security {{secCount}} ({{secShare}}%), FM {{fmCount}} ({{fmShare}}%), SHE {{sheCount}} ({{sheShare}}%).',
+            en: 'Distribution by domain: Security {{secCount}} ({{secShare}}%), FM {{fmCount}} ({{fmShare}}%), SHE {{sheCount}} ({{sheShare}}%).'
+        },
+        domain_risk_focus: {
+            de: 'Hinsichtlich Risikopunkten ist der Bereich {{domain}} am stärksten gewichtet (ca. {{score}} Punkte).',
+            en: 'In terms of risk points, the {{domain}} domain is weighted the highest (approx. {{score}} points).'
+        },
+
+        // Narrative – Trends
+        trend_risk_up: {
+            de: 'Das Risiko wird voraussichtlich weiter ansteigen.',
+            en: 'Risk levels are expected to increase further.'
+        },
+        trend_risk_down: {
+            de: 'Das Risiko entwickelt sich tendenziell rückläufig.',
+            en: 'Risk levels are expected to decline.'
+        },
+        trend_risk_stable: {
+            de: 'Das Risiko wird als weitgehend stabil eingeschätzt.',
+            en: 'Risk levels are expected to remain broadly stable.'
+        },
+        trend_volume: {
+            de: 'Das Ereignisaufkommen wird im nächsten Zeitraum mit {{forecast}} prognostiziert.',
+            en: 'Event volume for the next period is forecast at {{forecast}}.'
+        },
+        trend_risk_sentence: {
+            de: 'Für das Gesamtrisiko wird eine {{trend}} Entwicklung mit einer geschätzten Konfidenz von {{confidence}} erwartet.',
+            en: 'For overall risk, a {{trend}} development is expected with an estimated confidence level of {{confidence}}.'
+        },
+        trend_volume_sentence: {
+            de: 'Das Ereignisvolumen wird für den nächsten Zeitraum mit {{forecast}} prognostiziert (Konfidenz {{confidence}}).',
+            en: 'Event volume for the next period is forecast at {{forecast}} (confidence {{confidence}}).'
+        },
+
+        // Narrative – Zeitmuster
+        time_bucket_line: {
+            de: 'Zeitlich häufen sich die Ereignisse insbesondere im Zeitraum {{range}} Uhr ({{count}} Vorfälle).',
+            en: 'Events cluster particularly in the time window {{range}} hours ({{count}} incidents).'
+        },
+        time_weekday_line: {
+            de: 'Der auffälligste Wochentag ist {{weekday}} mit {{count}} Ereignissen.',
+            en: 'The most prominent weekday is {{weekday}} with {{count}} incidents.'
+        },
+        time_weekend_share: {
+            de: 'Rund {{weekdayShare}}% der Vorfälle treten an Werktagen auf, {{weekendShare}}% am Wochenende.',
+            en: 'Approximately {{weekdayShare}}% of incidents occur on weekdays and {{weekendShare}}% on weekends.'
+        },
+
+        // Narrative – Maßnahmen
+        actions_bullet_prefix: {
+            de: '• ',
+            en: '• '
+        },
+
+        // UI / Export-Messages (Toasts, Status)
+        toast_pdf_start: {
+            de: 'Professioneller PDF-Report wird erstellt...',
+            en: 'Generating professional PDF report...'
+        },
+        toast_pdf_success: {
+            de: 'Executive PDF-Report erfolgreich erstellt: {{file}}',
+            en: 'Executive PDF report successfully created: {{file}}'
+        },
+        toast_pdf_error: {
+            de: 'Fehler beim PDF-Export: {{error}}',
+            en: 'Error during PDF export: {{error}}'
+        },
+
+        // Dateiname
+        pdf_filename: {
+            de: 'Security-Executive-Report-{{date}}.pdf',
+            en: 'Security-Executive-Report-{{date}}.pdf'
+        }
+    }
+};
+
+// =============================================
+// TEST DATA
 // =============================================
 const TestData = {
     csv: `Land;Liegenschaft;Ereignisart;Datum
@@ -126,14 +373,12 @@ const Utils = {
         });
     },
 
-    // Domain-Klassifikation: Security / FM / SHE / Other
     classifyCategory(row, headerMap) {
         const fields = [];
 
         if (headerMap.type && row[headerMap.type]) {
             fields.push(row[headerMap.type]);
         }
-        // Optionale Zusatzfelder (z. B. Beschreibung, Kategorie) automatisch mitnutzen
         Object.keys(row).forEach(key => {
             const lower = key.toLowerCase();
             if (lower.includes('beschreibung') || lower.includes('description') || lower.includes('kategorie')) {
@@ -173,7 +418,7 @@ const Utils = {
 };
 
 // =============================================
-// UI HELPER (Toasts)
+// UI HELPER
 // =============================================
 const UI = {
     showToast(message, type = 'info', timeout = 4000) {
@@ -257,7 +502,7 @@ const ChartManager = {
 };
 
 // =============================================
-// ANALYTICS ENGINE (KI-Layer)
+// ANALYTICS ENGINE
 // =============================================
 class SecurityAnalytics {
     constructor(data, headerMap) {
@@ -273,7 +518,7 @@ class SecurityAnalytics {
         this.generateRecommendations();
         this.forecastTrends();
         this.analyzeTimePatterns();
-        this.analyzeDomainMix();      // NEU: Security / FM / SHE
+        this.analyzeDomainMix();
         this.renderAllInsights();
     }
 
@@ -334,7 +579,7 @@ class SecurityAnalytics {
                 patterns.push({
                     type: 'concentration',
                     title: 'Ereignis-Konzentration erkannt',
-                    description: `${Math.round(concentration)}% aller Ereignisse sind "${dominantType.key}"`,
+                    description: `$${Math.round(concentration)}% aller Ereignisse sind "$${dominantType.key}"`,
                     severity: concentration > 60 ? 'high' : 'medium'
                 });
             }
@@ -352,7 +597,9 @@ class SecurityAnalytics {
                 priority: 'high',
                 icon: '🚨',
                 title: 'Sofortige Sicherheitsmaßnahmen',
+                title_en: 'Immediate Security Measures',
                 action: 'Sicherheitsaudit durchführen und Notfallplan aktivieren',
+                action_en: 'Conduct a security audit and activate emergency response plans',
                 reason: `Risiko-Score von ${risk.score}% erfordert schnelles Handeln`
             });
         }
@@ -362,7 +609,9 @@ class SecurityAnalytics {
                 priority: 'high',
                 icon: '🔒',
                 title: 'Kritische Ereignisarten adressieren',
+                title_en: 'Address Critical Event Types',
                 action: `Präventionsmaßnahmen für ${risk.criticalTypes[0].key} verstärken`,
+                action_en: `Strengthen preventive measures for ${risk.criticalTypes[0].key}`,
                 reason: `${risk.criticalTypes[0].count} kritische Ereignisse registriert`
             });
         }
@@ -372,7 +621,9 @@ class SecurityAnalytics {
                 priority: 'medium',
                 icon: '📊',
                 title: 'Regelmäßiges Monitoring',
+                title_en: 'Regular Monitoring',
                 action: 'Wöchentliche Dashboard-Reviews etablieren',
+                action_en: 'Establish weekly dashboard review routines',
                 reason: `${this.data.length} Ereignisse zeigen hohe Aktivität`
             });
         }
@@ -484,7 +735,6 @@ class SecurityAnalytics {
         };
     }
 
-    // NEU: Domain-Mix (Security / FM / SHE / Other)
     analyzeDomainMix() {
         const counts = { Security: 0, FM: 0, SHE: 0, Other: 0 };
         const riskByDomain = { Security: 0, FM: 0, SHE: 0, Other: 0 };
@@ -525,27 +775,24 @@ class SecurityAnalytics {
         const risk = this.insights.risk;
 
         container.innerHTML = `
-            <div class="insight-item risk-${risk.class}"
-                 title="Risiko basierend auf gewichteter Häufigkeit (kritische Ereignisse wie Einbruch, Diebstahl, Vandalismus zählen stärker).">
-                <div class="insight-value">Risiko-Level: ${risk.level} (${risk.score}%)</div>
+            <div class="insight-item risk-${risk.class}">
+                <div class="insight-value">Risiko-Level: $${risk.level} ($${risk.score}%)</div>
                 <div class="insight-trend">
-                    ${risk.highRiskEvents} kritische Ereignisse von ${risk.totalEvents} gesamt
+                    $${risk.highRiskEvents} kritische Ereignisse von $${risk.totalEvents} gesamt
                 </div>
                 <div class="insight-trend">
                     Basis: gewichtete Häufigkeit nach Ereignisart (Einbruch, Diebstahl, Vandalismus etc.).
                 </div>
             </div>
             ${risk.criticalTypes.length > 0 ? `
-                <div class="insight-item"
-                     title="Ereignisart mit dem höchsten Beitrag zum Gesamtrisiko.">
+                <div class="insight-item">
                     <div class="insight-value">⚠️ Kritischster Typ:</div>
-                    <div class="insight-trend">${risk.criticalTypes[0].key} (${risk.criticalTypes[0].count}x)</div>
+                    <div class="insight-trend">$${risk.criticalTypes[0].key} ($${risk.criticalTypes[0].count}x)</div>
                 </div>
             ` : ''}
         `;
     }
 
-    // Angepasst: Muster + Bereichszuordnung
     renderPatternDetection() {
         const container = document.getElementById('patternDetection');
         const patterns = this.insights.patterns;
@@ -555,16 +802,15 @@ class SecurityAnalytics {
 
         if (patterns.length === 0) {
             html += `
-                <div class="insight-item" title="Es wurden keine signifikanten Abweichungen in den Verteilungen erkannt.">
+                <div class="insight-item">
                     <div class="insight-value">✅ Keine kritischen Muster erkannt</div>
                     <div class="insight-trend">Ereignisverteilung ist ausgewogen</div>
                 </div>
             `;
         } else {
             html += patterns.slice(0, 2).map(pattern => `
-                <div class="insight-item"
-                    title="Erkanntes Muster basierend auf Auffälligkeiten in Häufigkeiten (Hotspots / Dominanz einer Ereignisart).">
-                    <div class="insight-value">${pattern.severity === 'high' ? '🔴' : '🟡'} ${pattern.title}</div>
+                <div class="insight-item">
+                    <div class="insight-value">$${pattern.severity === 'high' ? '🔴' : '🟡'} $${pattern.title}</div>
                     <div class="insight-trend">${pattern.description}</div>
                 </div>
             `).join('');
@@ -577,17 +823,16 @@ class SecurityAnalytics {
             const she = domainMix.byDomain.find(d => d.domain === 'SHE');
 
             html += `
-                <div class="insight-item"
-                     title="Zuweisung der Ereignisse zu den Bereichen Security, Facility Management (FM) und SHE (Safety, Health, Environment) auf Basis der Ereignisbezeichnung.">
+                <div class="insight-item">
                     <div class="insight-value">Bereichszuordnung (Security / FM / SHE)</div>
                     <div class="insight-trend">
                         Dominanter Bereich: <strong>${top.domain}</strong>
-                        (${top.count} Events, ${top.share}% Anteil).
+                        ($${top.count} Events, $${top.share}% Anteil).
                     </div>
                     <div class="insight-trend">
-                        Security: ${sec ? `${sec.count} (${sec.share}%)` : '0 (0%)'} |
-                        FM: ${fm ? `${fm.count} (${fm.share}%)` : '0 (0%)'} |
-                        SHE: ${she ? `${she.count} (${she.share}%)` : '0 (0%)'}
+                        Security: ${sec ? `$${sec.count} ($${sec.share}%)` : '0 (0%)'} |
+                        FM: ${fm ? `$${fm.count} ($${fm.share}%)` : '0 (0%)'} |
+                        SHE: ${she ? `$${she.count} ($${she.share}%)` : '0 (0%)'}
                     </div>
                     <div class="insight-trend">
                         Risikobeitrag (Punkte): 
@@ -605,14 +850,18 @@ class SecurityAnalytics {
     renderRecommendations() {
         const container = document.getElementById('smartRecommendations');
         const recommendations = this.insights.recommendations;
+        const lang = i18n.current;
 
-        container.innerHTML = recommendations.slice(0, 3).map(rec => `
-            <div class="insight-item"
-                 title="Empfehlung abgeleitet aus Risiko-Level, kritischen Ereignisarten und Aktivitätsniveau.">
-                <div class="insight-value">${rec.icon} ${rec.title}</div>
-                <div class="insight-trend">${rec.action}</div>
-            </div>
-        `).join('');
+        container.innerHTML = recommendations.slice(0, 3).map(rec => {
+            const title = lang === 'de' ? rec.title : (rec.title_en || rec.title);
+            const action = lang === 'de' ? rec.action : (rec.action_en || rec.action);
+            return `
+                <div class="insight-item">
+                    <div class="insight-value">$${rec.icon} $${title}</div>
+                    <div class="insight-trend">${action}</div>
+                </div>
+            `;
+        }).join('');
     }
 
     renderTrendForecast() {
@@ -621,19 +870,17 @@ class SecurityAnalytics {
         const timePatterns = this.insights.timePatterns;
 
         let html = trends.slice(0, 3).map(trend => `
-            <div class="insight-item"
-                 title="Prognose basiert auf der aktuellen Ereigniszahl und einfachen Wachstumsannahmen.">
-                <div class="insight-value">${trend.metric}: ${trend.current}</div>
-                <div class="insight-trend trend-${trend.forecast.includes('+') ? 'up' : trend.forecast.includes('-') ? 'down' : 'stable'}">
-                    ${trend.forecast} (${trend.confidence} Konfidenz)
+            <div class="insight-item">
+                <div class="insight-value">$${trend.metric}: $${trend.current}</div>
+                <div class="insight-trend">
+                    $${trend.forecast} ($${trend.confidence} Konfidenz)
                 </div>
             </div>
         `).join('');
 
         if (timePatterns && timePatterns.topHourBucket && timePatterns.topWeekday) {
             html += `
-                <div class="insight-item"
-                     title="Analyse der zeitlichen Verteilung basierend auf Datum/Uhrzeit-Feldern.">
+                <div class="insight-item">
                     <div class="insight-value">Zeitliche Muster</div>
                     <div class="insight-trend">
                         Häufigste Zeitspanne: <strong>${timePatterns.topHourBucket.range} Uhr</strong>
@@ -689,7 +936,7 @@ const ThemeManager = {
 };
 
 // =============================================
-// EXPORT MANAGER (CSV + Executive PDF)
+// EXPORT MANAGER
 // =============================================
 const ExportManager = {
     toCSV() {
@@ -740,6 +987,130 @@ const ExportManager = {
         }
     },
 
+    // Executive Narrative – nutzt i18n
+    buildExecutiveNarrative(analytics) {
+        if (!analytics || !analytics.insights) return { summaryLines: [], actionLines: [] };
+
+        const risk = analytics.insights.risk;
+        const domainMix = analytics.insights.domainMix;
+        const trends = analytics.insights.trends || [];
+        const tp = analytics.insights.timePatterns;
+        const recs = analytics.insights.recommendations || [];
+        const summaryLines = [];
+        const actionLines = [];
+
+        // 1) Risiko
+        if (risk) {
+            let introKey;
+            if (risk.level === 'HOCH') introKey = 'risk_intro_high';
+            else if (risk.level === 'MITTEL') introKey = 'risk_intro_medium';
+            else introKey = 'risk_intro_low';
+
+            summaryLines.push(i18n.t(introKey, { score: risk.score }));
+
+            let detailKey;
+            if (risk.level === 'HOCH') detailKey = 'risk_detail_high';
+            else if (risk.level === 'MITTEL') detailKey = 'risk_detail_medium';
+            else detailKey = 'risk_detail_low';
+
+            summaryLines.push(i18n.t(detailKey, { count: risk.highRiskEvents }));
+
+            if (risk.criticalTypes && risk.criticalTypes[0]) {
+                const ct = risk.criticalTypes[0];
+                summaryLines.push(i18n.t('risk_critical_type', {
+                    type: ct.key,
+                    count: ct.count
+                }));
+            }
+        }
+
+        // 2) Domain-Mix
+        if (domainMix && domainMix.byDomain && domainMix.byDomain.length) {
+            const top = domainMix.byDomain[0];
+            const sec = domainMix.byDomain.find(d => d.domain === 'Security');
+            const fm  = domainMix.byDomain.find(d => d.domain === 'FM');
+            const she = domainMix.byDomain.find(d => d.domain === 'SHE');
+
+            summaryLines.push(i18n.t('domain_main_line', {
+                domain: top.domain,
+                count: top.count,
+                share: top.share
+            }));
+
+            summaryLines.push(i18n.t('domain_distribution_line', {
+                secCount: sec ? sec.count : 0,
+                secShare: sec ? sec.share : 0,
+                fmCount: fm ? fm.count : 0,
+                fmShare: fm ? fm.share : 0,
+                sheCount: she ? she.count : 0,
+                sheShare: she ? she.share : 0
+            }));
+
+            if (sec && fm && she) {
+                const topRisk = [sec, fm, she].sort((a, b) => b.riskScore - a.riskScore)[0];
+                summaryLines.push(i18n.t('domain_risk_focus', {
+                    domain: topRisk.domain,
+                    score: topRisk.riskScore
+                }));
+            }
+        }
+
+        // 3) Trends
+        const riskTrendInsight = trends.find(t => t.metric === 'Gesamt-Risiko');
+        const volumeTrendInsight = trends.find(t => t.metric === 'Ereignis-Volumen');
+
+        if (riskTrendInsight || volumeTrendInsight) {
+            if (riskTrendInsight) {
+                let t = riskTrendInsight.forecast;
+                let trendKey;
+                if (t.includes('steigend')) trendKey = 'trend_risk_up';
+                else if (t.includes('fallend')) trendKey = 'trend_risk_down';
+                else trendKey = 'trend_risk_stable';
+
+                // Satz mit Konfidenz
+                summaryLines.push(i18n.t('trend_risk_sentence', {
+                    trend: i18n.t(trendKey),
+                    confidence: riskTrendInsight.confidence
+                }));
+            }
+
+            if (volumeTrendInsight) {
+                const shortForecast = volumeTrendInsight.forecast.replace('Nächster Monat:', '').trim();
+                summaryLines.push(i18n.t('trend_volume_sentence', {
+                    forecast: shortForecast,
+                    confidence: volumeTrendInsight.confidence
+                }));
+            }
+        }
+
+        // 4) Zeitmuster
+        if (tp && tp.topHourBucket && tp.topWeekday) {
+            summaryLines.push(i18n.t('time_bucket_line', {
+                range: tp.topHourBucket.range,
+                count: tp.topHourBucket.count
+            }));
+            summaryLines.push(i18n.t('time_weekday_line', {
+                weekday: tp.topWeekday.name,
+                count: tp.topWeekday.count
+            }));
+            summaryLines.push(i18n.t('time_weekend_share', {
+                weekdayShare: tp.weekendVsWeekday.weekdayShare,
+                weekendShare: tp.weekendVsWeekday.weekendShare
+            }));
+        }
+
+        // 5) Maßnahmen (narrativ)
+        if (recs.length > 0) {
+            recs.slice(0, 3).forEach(rec => {
+                const title = i18n.current === 'de' ? rec.title : (rec.title_en || rec.title);
+                const action = i18n.current === 'de' ? rec.action : (rec.action_en || rec.action);
+                actionLines.push(`$${title}: $${action}.`);
+            });
+        }
+
+        return { summaryLines, actionLines };
+    },
+
     async toPDF() {
         if (!DashboardState.currentData || DashboardState.currentData.length === 0) {
             UI.showToast('Keine Daten zum PDF-Export vorhanden. Bitte Daten laden oder Filter anpassen.', 'error');
@@ -749,7 +1120,7 @@ const ExportManager = {
         const status = document.getElementById('exportStatus');
         if (status) {
             status.style.display = 'block';
-            status.textContent = '📄 Professioneller PDF-Report wird erstellt...';
+            status.textContent = i18n.t('toast_pdf_start');
         }
 
         const btnPdf = document.getElementById('exportPDF');
@@ -762,28 +1133,28 @@ const ExportManager = {
 
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF('p', 'mm', 'a4');
-            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageWidth  = pdf.internal.pageSize.getWidth();
             const pageHeight = pdf.internal.pageSize.getHeight();
             const marginX = 18;
             const footerHeight = 12;
-            let yPos = 18;
+            let yPos = 22;
             let pageNumber = 1;
 
             const addFooter = () => {
                 pdf.setFontSize(8);
                 pdf.setTextColor(130, 130, 130);
-                const footerTextLeft = 'Security Events Dashboard Report';
-                const footerTextRight = `Seite ${pageNumber}`;
-                pdf.text(footerTextLeft, marginX, pageHeight - 6);
-                const textWidth = pdf.getTextWidth(footerTextRight);
-                pdf.text(footerTextRight, pageWidth - marginX - textWidth, pageHeight - 6);
+                const footerLeft = i18n.t('footer_left');
+                const footerRight = i18n.t('footer_page', { page: pageNumber });
+                pdf.text(footerLeft, marginX, pageHeight - 6);
+                const textWidth = pdf.getTextWidth(footerRight);
+                pdf.text(footerRight, pageWidth - marginX - textWidth, pageHeight - 6);
             };
 
             const newPage = () => {
                 addFooter();
                 pdf.addPage();
                 pageNumber += 1;
-                yPos = 18;
+                yPos = 22;
             };
 
             const ensureSpace = (neededHeight) => {
@@ -792,34 +1163,20 @@ const ExportManager = {
                 }
             };
 
-            // Seite 1 – Executive Summary
-            pdf.setFillColor(0, 163, 122);
-            pdf.rect(0, 0, pageWidth, 26, 'F');
+            // Analytics
+            let analytics;
+            try {
+                analytics = new SecurityAnalytics(DashboardState.currentData, DashboardState.headerMap);
+                analytics.analyze();
+            } catch (e) {
+                console.warn('Analytics konnten nicht berechnet werden:', e);
+            }
 
-            pdf.setTextColor(255, 255, 255);
-            pdf.setFontSize(18);
-            pdf.text('SECURITY EVENT DASHBOARD', marginX, 15);
+            const narrative = this.buildExecutiveNarrative(analytics);
+            const risk      = analytics?.insights?.risk;
+            const domainMix = analytics?.insights?.domainMix;
 
-            pdf.setFontSize(10);
-            pdf.text('Executive Summary & Risikoanalyse', marginX, 21);
-
-            const now = new Date();
-            const dateStr = now.toLocaleDateString('de-DE', {
-                year: 'numeric', month: '2-digit', day: '2-digit',
-                hour: '2-digit', minute: '2-digit'
-            });
-            const dateText = `Erstellt: ${dateStr}`;
-            const dateWidth = pdf.getTextWidth(dateText);
-            pdf.text(dateText, pageWidth - marginX - dateWidth, 21);
-
-            yPos = 35;
-
-            pdf.setTextColor(0, 0, 0);
-            pdf.setFontSize(14);
-            pdf.text('Executive Summary', marginX, yPos);
-            yPos += 6;
-
-            const totalEvents = DashboardState.currentData.length;
+            const totalEvents   = DashboardState.currentData.length;
             const totalCountries = new Set(
                 DashboardState.currentData
                     .map(r => DashboardState.headerMap.country ? (r[DashboardState.headerMap.country] || '').trim() : '')
@@ -836,262 +1193,296 @@ const ExportManager = {
                     .filter(Boolean)
             ).size;
 
-            const kpis = [
-                { label: 'Ereignisse gesamt', value: totalEvents, color: [52, 152, 219] },
-                { label: 'Länder', value: totalCountries, color: [155, 89, 182] },
-                { label: 'Liegenschaften', value: totalSites, color: [230, 126, 34] },
-                { label: 'Ereignisarten', value: totalTypes, color: [231, 76, 60] }
-            ];
+            // ============================
+            // TITELSEITE
+            // ============================
+            pdf.setFillColor(0, 163, 122);
+            pdf.rect(0, 0, pageWidth, 30, 'F');
 
-            const cardWidth = (pageWidth - 2 * marginX - 3 * 5) / 4;
-            const cardHeight = 24;
-            const cardY = yPos;
-
-            kpis.forEach((kpi, i) => {
-                const x = marginX + i * (cardWidth + 5);
-
-                pdf.setFillColor(230, 230, 230);
-                pdf.roundedRect(x + 1.5, cardY + 1.5, cardWidth, cardHeight, 2, 2, 'F');
-
-                pdf.setFillColor(255, 255, 255);
-                pdf.roundedRect(x, cardY, cardWidth, cardHeight, 2, 2, 'F');
-
-                pdf.setFillColor(kpi.color[0], kpi.color[1], kpi.color[2]);
-                pdf.roundedRect(x, cardY, cardWidth, 3, 2, 2, 'F');
-
-                pdf.setDrawColor(230, 230, 230);
-                pdf.setLineWidth(0.3);
-                pdf.roundedRect(x, cardY, cardWidth, cardHeight, 2, 2, 'S');
-
-                pdf.setTextColor(kpi.color[0], kpi.color[1], kpi.color[2]);
-                pdf.setFontSize(14);
-                pdf.text(String(kpi.value), x + 3, cardY + 14);
-
-                pdf.setTextColor(90, 90, 90);
-                pdf.setFontSize(8);
-                pdf.text(kpi.label, x + 3, cardY + 20);
-            });
-
-            yPos = cardY + cardHeight + 10;
+            pdf.setTextColor(255, 255, 255);
+            pdf.setFontSize(18);
+            pdf.text(i18n.t('pdf_title'), marginX, 16);
 
             pdf.setFontSize(11);
+            pdf.text(i18n.t('pdf_subtitle'), marginX, 23);
+
+            const now = new Date();
+            const dateStr = now.toLocaleDateString(i18n.current === 'de' ? 'de-DE' : 'en-GB', {
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit'
+            });
+            const dateText = i18n.t('pdf_created_at', { date: dateStr });
+            const dateWidth = pdf.getTextWidth(dateText);
+            pdf.text(dateText, pageWidth - marginX - dateWidth, 23);
+
+            // Executive Summary
+            yPos = 40;
             pdf.setTextColor(0, 0, 0);
-            pdf.text('Zusammenfassung', marginX, yPos);
-            yPos += 5;
+            pdf.setFontSize(14);
+            pdf.text(i18n.t('section_executive_summary'), marginX, yPos);
+            yPos += 7;
 
             pdf.setFontSize(9);
             pdf.setTextColor(80, 80, 80);
-            const summaryLines = [
-                `Dieser Bericht fasst ${totalEvents} gemeldete Sicherheitsereignisse zusammen, verteilt über`,
-                `${totalCountries} Länder, ${totalSites} Liegenschaften und ${totalTypes} unterschiedliche Ereignisarten.`,
-                `Auf den folgenden Seiten werden Risikolevel, Muster und Handlungsempfehlungen im Detail dargestellt.`
-            ];
-            summaryLines.forEach(line => {
+
+            const keyFacts = i18n.t('key_facts_line', {
+                events: totalEvents,
+                countries: totalCountries,
+                sites: totalSites,
+                types: totalTypes
+            });
+            pdf.text(keyFacts, marginX, yPos);
+            yPos += 7;
+
+            const execLines = narrative.summaryLines.slice(0, 6);
+            const splitExecLines = pdf.splitTextToSize(execLines.join(' '), pageWidth - 2 * marginX);
+            splitExecLines.forEach(line => {
+                ensureSpace(5);
                 pdf.text(line, marginX, yPos);
-                yPos += 4;
+                yPos += 4.5;
             });
 
-            // Seite 2 – Visual Analytics
+            yPos += 4;
+
+            if (domainMix && domainMix.byDomain && domainMix.byDomain.length) {
+                ensureSpace(20);
+                pdf.setFontSize(11);
+                pdf.setTextColor(0, 0, 0);
+                pdf.text(i18n.t('section_domain_focus'), marginX, yPos);
+                yPos += 5;
+
+                pdf.setFontSize(9);
+                pdf.setTextColor(80, 80, 80);
+                const dm = domainMix.byDomain;
+                dm.slice(0, 3).forEach(d => {
+                    const line = `• $${d.domain}: $${d.count} ($${d.share}%, ~$${d.riskScore} pts)`;
+                    ensureSpace(5);
+                    pdf.text(line, marginX, yPos);
+                    yPos += 4;
+                });
+            }
+
+            // ============================
+            // SEITE 2 – AI INSIGHTS
+            // ============================
             newPage();
 
             pdf.setTextColor(0, 0, 0);
             pdf.setFontSize(14);
-            pdf.text('Visual Analytics', marginX, yPos);
-            yPos += 6;
+            pdf.text(i18n.t('section_ai_insights'), marginX, yPos);
+            yPos += 7;
 
             pdf.setFontSize(9);
-            pdf.setTextColor(80, 80, 80);
-            pdf.text('Ereignisverteilung nach Ländern, Liegenschaften und Ereignisarten.', marginX, yPos);
+            pdf.setTextColor(90, 90, 90);
+            pdf.text(i18n.t('desc_ai_insights'), marginX, yPos);
+            yPos += 7;
+
+            // Risk & Domains
+            if (risk) {
+                ensureSpace(30);
+                pdf.setFontSize(11);
+                pdf.setTextColor(0, 0, 0);
+                pdf.text(i18n.t('section_risk_and_domain'), marginX, yPos);
+                yPos += 5;
+
+                pdf.setFontSize(9);
+                pdf.setTextColor(80, 80, 80);
+
+                const riskTextParts = [];
+                let introKey;
+                if (risk.level === 'HOCH') introKey = 'risk_intro_high';
+                else if (risk.level === 'MITTEL') introKey = 'risk_intro_medium';
+                else introKey = 'risk_intro_low';
+
+                riskTextParts.push(i18n.t(introKey, { score: risk.score }));
+                riskTextParts.push(i18n.t('risk_detail_high', { count: risk.highRiskEvents }));
+                if (risk.criticalTypes && risk.criticalTypes[0]) {
+                    const ct = risk.criticalTypes[0];
+                    riskTextParts.push(i18n.t('risk_critical_type', { type: ct.key, count: ct.count }));
+                }
+
+                const riskBlock = pdf.splitTextToSize(riskTextParts.join(' '), pageWidth - 2 * marginX);
+                riskBlock.forEach(line => {
+                    ensureSpace(5);
+                    pdf.text(line, marginX, yPos);
+                    yPos += 4.5;
+                });
+
+                if (domainMix && domainMix.byDomain && domainMix.byDomain.length) {
+                    yPos += 4;
+                    const dm = domainMix.byDomain;
+                    const sec = dm.find(d => d.domain === 'Security');
+                    const fm  = dm.find(d => d.domain === 'FM');
+                    const she = dm.find(d => d.domain === 'SHE');
+
+                    const dmLines = [];
+
+                    const top = dm[0];
+                    dmLines.push(i18n.t('domain_main_line', {
+                        domain: top.domain,
+                        count: top.count,
+                        share: top.share
+                    }));
+
+                    dmLines.push(i18n.t('domain_distribution_line', {
+                        secCount: sec ? sec.count : 0,
+                        secShare: sec ? sec.share : 0,
+                        fmCount: fm ? fm.count : 0,
+                        fmShare: fm ? fm.share : 0,
+                        sheCount: she ? she.count : 0,
+                        sheShare: she ? she.share : 0
+                    }));
+
+                    const dmText = pdf.splitTextToSize(dmLines.join(' '), pageWidth - 2 * marginX);
+                    dmText.forEach(line => {
+                        ensureSpace(5);
+                        pdf.text(line, marginX, yPos);
+                        yPos += 4.5;
+                    });
+                }
+            }
+
+            // Time & Trends
+            const tp = analytics?.insights?.timePatterns;
+            const trends = analytics?.insights?.trends || [];
+
+            if (tp || (trends && trends.length)) {
+                yPos += 6;
+                ensureSpace(30);
+                pdf.setFontSize(11);
+                pdf.setTextColor(0, 0, 0);
+                pdf.text(i18n.t('section_time_and_trends'), marginX, yPos);
+                yPos += 5;
+
+                pdf.setFontSize(9);
+                pdf.setTextColor(80, 80, 80);
+
+                if (tp && tp.topHourBucket && tp.topWeekday) {
+                    const timeLines = [
+                        i18n.t('time_bucket_line', {
+                            range: tp.topHourBucket.range,
+                            count: tp.topHourBucket.count
+                        }),
+                        i18n.t('time_weekday_line', {
+                            weekday: tp.topWeekday.name,
+                            count: tp.topWeekday.count
+                        }),
+                        i18n.t('time_weekend_share', {
+                            weekdayShare: tp.weekendVsWeekday.weekdayShare,
+                            weekendShare: tp.weekendVsWeekday.weekendShare
+                        })
+                    ];
+                    const tt = pdf.splitTextToSize(timeLines.join(' '), pageWidth - 2 * marginX);
+                    tt.forEach(line => {
+                        ensureSpace(5);
+                        pdf.text(line, marginX, yPos);
+                        yPos += 4.5;
+                    });
+                }
+
+                if (trends && trends.length) {
+                    yPos += 4;
+                    const riskTrendInsight = trends.find(t => t.metric === 'Gesamt-Risiko');
+                    const volumeTrendInsight = trends.find(t => t.metric === 'Ereignis-Volumen');
+
+                    const trendParts = [];
+                    if (riskTrendInsight) {
+                        let t = riskTrendInsight.forecast;
+                        let trendKey;
+                        if (t.includes('steigend')) trendKey = 'trend_risk_up';
+                        else if (t.includes('fallend')) trendKey = 'trend_risk_down';
+                        else trendKey = 'trend_risk_stable';
+
+                        trendParts.push(i18n.t('trend_risk_sentence', {
+                            trend: i18n.t(trendKey),
+                            confidence: riskTrendInsight.confidence
+                        }));
+                    }
+                    if (volumeTrendInsight) {
+                        const shortForecast = volumeTrendInsight.forecast.replace('Nächster Monat:', '').trim();
+                        trendParts.push(i18n.t('trend_volume_sentence', {
+                            forecast: shortForecast,
+                            confidence: volumeTrendInsight.confidence
+                        }));
+                    }
+
+                    if (trendParts.length) {
+                        const trText = pdf.splitTextToSize(trendParts.join(' '), pageWidth - 2 * marginX);
+                        trText.forEach(line => {
+                            ensureSpace(5);
+                            pdf.text(line, marginX, yPos);
+                            yPos += 4.5;
+                        });
+                    }
+                }
+            }
+
+            // Maßnahmen
+            const actionLines = narrative.actionLines;
+            if (actionLines && actionLines.length) {
+                yPos += 8;
+                ensureSpace(30);
+                pdf.setFontSize(11);
+                pdf.setTextColor(0, 0, 0);
+                pdf.text(i18n.t('section_actions'), marginX, yPos);
+                yPos += 5;
+
+                pdf.setFontSize(9);
+                pdf.setTextColor(80, 80, 80);
+
+                const combined = actionLines.join(' ');
+                const text = pdf.splitTextToSize(combined, pageWidth - 2 * marginX);
+                text.forEach(line => {
+                    ensureSpace(5);
+                    pdf.text(i18n.t('actions_bullet_prefix') + line, marginX, yPos);
+                    yPos += 4.5;
+                });
+            }
+
+            // ============================
+            // SEITE 3 – VISUAL ANALYTICS
+            // ============================
+            newPage();
+
+            pdf.setTextColor(0, 0, 0);
+            pdf.setFontSize(14);
+            pdf.text(i18n.t('section_visual_analytics'), marginX, yPos);
+            yPos += 7;
+
+            pdf.setFontSize(9);
+            pdf.setTextColor(90, 90, 90);
+            pdf.text(i18n.t('desc_visual_analytics'), marginX, yPos);
             yPos += 6;
 
-            const addChart = (selector, titel) => {
+            const addChart = (selector, titleKey) => {
                 const container = document.querySelector(selector);
                 if (!container) return;
                 const canvas = container.querySelector('canvas');
                 if (!canvas) return;
 
                 const imgData = canvas.toDataURL('image/png', 1.0);
-                const imgHeight = 70;
+                const imgHeight = 60;
                 const imgWidth = pageWidth - 2 * marginX;
 
                 ensureSpace(imgHeight + 12);
 
                 pdf.setFontSize(11);
                 pdf.setTextColor(0, 0, 0);
-                pdf.text(titel, marginX, yPos);
+                pdf.text(i18n.t(titleKey), marginX, yPos);
                 yPos += 4;
 
                 pdf.addImage(imgData, 'PNG', marginX, yPos, imgWidth, imgHeight);
-                yPos += imgHeight + 8;
+                yPos += imgHeight + 6;
             };
 
-            addChart('#chartCountries', 'Ereignisse nach Ländern');
-            addChart('#chartSites', 'Ereignisse nach Liegenschaften');
-            addChart('#chartTypes', 'Ereignisse nach Ereignisarten');
+            addChart('#chartCountries', 'chart_countries_title');
+            addChart('#chartSites', 'chart_sites_title');
+            addChart('#chartTypes', 'chart_types_title');
+            addChart('#chartDomains', 'chart_domains_title');
 
-            // Seite 3 – Risiko & KI-Insights (+ Zeit & Domain-Mix)
-            newPage();
-
-            let analytics;
-            try {
-                analytics = new SecurityAnalytics(DashboardState.currentData, DashboardState.headerMap);
-                analytics.analyze();
-            } catch (e) {
-                console.warn('Analytics konnten nicht berechnet werden:', e);
-            }
-
-            pdf.setTextColor(0, 0, 0);
-            pdf.setFontSize(14);
-            pdf.text('Risikobewertung & KI-Insights', marginX, yPos);
-            yPos += 6;
-
-            if (analytics && analytics.insights && analytics.insights.risk) {
-                const risk = analytics.insights.risk;
-                const recs = analytics.insights.recommendations || [];
-                const trends = analytics.insights.trends || [];
-                const tp = analytics.insights.timePatterns;
-                const domainMix = analytics.insights.domainMix;
-
-                pdf.setFontSize(11);
-                pdf.text('Risikoprofil', marginX, yPos);
-                yPos += 5;
-
-                pdf.setFontSize(9);
-                pdf.setTextColor(80, 80, 80);
-
-                const riskLines = [
-                    `Gesamt-Risko-Level: ${risk.level} (${risk.score}%)`,
-                    `${risk.highRiskEvents} kritische Ereignisse von insgesamt ${risk.totalEvents} gemeldeten Vorfällen.`,
-                    `Berechnungsbasis: gewichtete Summe der Ereignisse nach Schwere (Einbruch, Diebstahl, Vandalismus etc.).`
-                ];
-                riskLines.forEach(line => {
-                    pdf.text(line, marginX, yPos);
-                    yPos += 4;
-                });
-
-                if (risk.criticalTypes && risk.criticalTypes[0]) {
-                    const crit = risk.criticalTypes[0];
-                    pdf.text(
-                        `Kritischste Ereignisart: ${crit.key} (${crit.count} Vorfälle)`,
-                        marginX,
-                        yPos
-                    );
-                    yPos += 6;
-                } else {
-                    yPos += 2;
-                }
-
-                // Trend-Prognosen
-                if (trends.length > 0) {
-                    ensureSpace(25);
-                    pdf.setFontSize(11);
-                    pdf.setTextColor(0, 0, 0);
-                    pdf.text('Trend-Prognose', marginX, yPos);
-                    yPos += 5;
-
-                    pdf.setFontSize(9);
-                    pdf.setTextColor(80, 80, 80);
-                    trends.slice(0, 3).forEach(trend => {
-                        const line = `• ${trend.metric}: aktuell ${trend.current}, Prognose ${trend.forecast} (${trend.confidence} Konfidenz)`;
-                        ensureSpace(6);
-                        pdf.text(line, marginX, yPos);
-                        yPos += 4.5;
-                    });
-                }
-
-                // Zeitliche Muster
-                if (tp && tp.topHourBucket && tp.topWeekday) {
-                    ensureSpace(25);
-                    pdf.setFontSize(11);
-                    pdf.setTextColor(0, 0, 0);
-                    pdf.text('Zeitliche Muster', marginX, yPos);
-                    yPos += 5;
-
-                    pdf.setFontSize(9);
-                    pdf.setTextColor(80, 80, 80);
-                    pdf.text(
-                        `Häufigste Zeitspanne: ${tp.topHourBucket.range} Uhr (${tp.topHourBucket.count} Ereignisse).`,
-                        marginX,
-                        yPos
-                    );
-                    yPos += 4;
-
-                    pdf.text(
-                        `Häufigster Wochentag: ${tp.topWeekday.name} (${tp.topWeekday.count} Ereignisse).`,
-                        marginX,
-                        yPos
-                    );
-                    yPos += 4;
-
-                    pdf.text(
-                        `Verteilung: ${tp.weekendVsWeekday.weekdayShare}% Werktag vs. ${tp.weekendVsWeekday.weekendShare}% Wochenende.`,
-                        marginX,
-                        yPos
-                    );
-                    yPos += 6;
-                }
-
-                // Bereichszuordnung Security / FM / SHE
-                if (domainMix && domainMix.byDomain && domainMix.byDomain.length) {
-                    ensureSpace(25);
-                    pdf.setFontSize(11);
-                    pdf.setTextColor(0, 0, 0);
-                    pdf.text('Bereichszuordnung (Security / FM / SHE)', marginX, yPos);
-                    yPos += 5;
-
-                    pdf.setFontSize(9);
-                    pdf.setTextColor(80, 80, 80);
-
-                    const sec = domainMix.byDomain.find(d => d.domain === 'Security');
-                    const fm  = domainMix.byDomain.find(d => d.domain === 'FM');
-                    const she = domainMix.byDomain.find(d => d.domain === 'SHE');
-
-                    const line1 = `Dominanter Bereich: ${domainMix.byDomain[0].domain} (${domainMix.byDomain[0].count} Ereignisse, ${domainMix.byDomain[0].share}% Anteil).`;
-                    pdf.text(line1, marginX, yPos);
-                    yPos += 4;
-
-                    const line2 = `Verteilung: Security ${sec ? `${sec.count} (${sec.share}%)` : '0 (0%)'}, ` +
-                                  `FM ${fm ? `${fm.count} (${fm.share}%)` : '0 (0%)'}, ` +
-                                  `SHE ${she ? `${she.count} (${she.share}%)` : '0 (0%)'}.`;
-                    pdf.text(line2, marginX, yPos);
-                    yPos += 4;
-
-                    const line3 = `Risikobeitrag (gewichtete Punkte): ` +
-                                  `Security ${sec ? sec.riskScore : 0}, ` +
-                                  `FM ${fm ? fm.riskScore : 0}, ` +
-                                  `SHE ${she ? she.riskScore : 0}.`;
-                    pdf.text(line3, marginX, yPos);
-                    yPos += 6;
-                }
-
-                // Empfehlungen
-                if (recs.length > 0) {
-                    ensureSpace(25);
-                    pdf.setFontSize(11);
-                    pdf.setTextColor(0, 0, 0);
-                    pdf.text('Empfohlene Maßnahmen', marginX, yPos);
-                    yPos += 5;
-
-                    pdf.setFontSize(9);
-                    pdf.setTextColor(80, 80, 80);
-                    recs.slice(0, 4).forEach(rec => {
-                        const lineTitle = `• ${rec.title}`;
-                        const lineAction = `   Handlung: ${rec.action}`;
-                        ensureSpace(9);
-                        pdf.text(lineTitle, marginX, yPos);
-                        yPos += 4;
-                        pdf.text(lineAction, marginX + 3, yPos);
-                        yPos += 4;
-                    });
-                }
-            } else {
-                pdf.setFontSize(9);
-                pdf.setTextColor(120, 120, 120);
-                pdf.text('Keine ausreichenden Daten für eine Risikobewertung vorhanden.', marginX, yPos);
-                yPos += 5;
-            }
-
-            // Seite 4 – Aggregierte Tabellen
+            // ============================
+            // SEITE 4 – AGGREGIERTE TABELLEN
+            // ============================
             if (pdf.autoTable) {
                 newPage();
 
@@ -1109,17 +1500,21 @@ const ExportManager = {
 
                 pdf.setFontSize(14);
                 pdf.setTextColor(0, 0, 0);
-                pdf.text('Aggregierte Ereignisübersicht', marginX, yPos);
-                yPos += 6;
+                pdf.text(i18n.t('section_aggregated_overview'), marginX, yPos);
+                yPos += 7;
 
+                // Country
                 pdf.setFontSize(11);
-                pdf.text('Ereignisse nach Land', marginX, yPos);
+                pdf.text(i18n.t('chart_countries_title'), marginX, yPos);
                 yPos += 4;
 
                 pdf.autoTable({
                     startY: yPos,
-                    head: [['Land', 'Anzahl']],
-                    body: byCountry.map(r => [r.key || '(leer)', r.count]),
+                    head: [[
+                        i18n.t('table_country_header'),
+                        i18n.t('table_count_header')
+                    ]],
+                    body: byCountry.map(r => [r.key || '(empty)', r.count]),
                     margin: { left: marginX, right: marginX },
                     styles: { fontSize: 8 },
                     headStyles: {
@@ -1129,14 +1524,18 @@ const ExportManager = {
                 });
                 yPos = pdf.lastAutoTable.finalY + 8;
 
+                // Site
                 pdf.setFontSize(11);
-                pdf.text('Ereignisse nach Liegenschaft', marginX, yPos);
+                pdf.text(i18n.t('chart_sites_title'), marginX, yPos);
                 yPos += 4;
 
                 pdf.autoTable({
                     startY: yPos,
-                    head: [['Liegenschaft', 'Anzahl']],
-                    body: bySite.map(r => [r.key || '(leer)', r.count]),
+                    head: [[
+                        i18n.t('table_site_header'),
+                        i18n.t('table_count_header')
+                    ]],
+                    body: bySite.map(r => [r.key || '(empty)', r.count]),
                     margin: { left: marginX, right: marginX },
                     styles: { fontSize: 8 },
                     headStyles: {
@@ -1146,14 +1545,18 @@ const ExportManager = {
                 });
                 yPos = pdf.lastAutoTable.finalY + 8;
 
+                // Type
                 pdf.setFontSize(11);
-                pdf.text('Ereignisse nach Ereignisart', marginX, yPos);
+                pdf.text(i18n.t('chart_types_title'), marginX, yPos);
                 yPos += 4;
 
                 pdf.autoTable({
                     startY: yPos,
-                    head: [['Ereignisart', 'Anzahl']],
-                    body: byType.map(r => [r.key || '(leer)', r.count]),
+                    head: [[
+                        i18n.t('table_type_header'),
+                        i18n.t('table_count_header')
+                    ]],
+                    body: byType.map(r => [r.key || '(empty)', r.count]),
                     margin: { left: marginX, right: marginX },
                     styles: { fontSize: 8 },
                     headStyles: {
@@ -1164,11 +1567,13 @@ const ExportManager = {
                 yPos = pdf.lastAutoTable.finalY + 10;
             }
 
-            // Seite 5 – Detailtabelle
+            // ============================
+            // SEITE 5 – DETAILTABELLE
+            // ============================
             if (pdf.autoTable && DashboardState.currentData.length > 0) {
                 newPage();
 
-                const maxRows = 100;
+                const maxRows = 80;
                 const headers = Object.keys(DashboardState.currentData[0]);
                 const rows = DashboardState.currentData
                     .slice(0, maxRows)
@@ -1177,7 +1582,9 @@ const ExportManager = {
                 pdf.setFontSize(14);
                 pdf.setTextColor(0, 0, 0);
                 pdf.text(
-                    `Detailierte Ereignisliste (erste ${Math.min(maxRows, DashboardState.currentData.length)} Events)`,
+                    i18n.t('section_detailed_list', {
+                        count: Math.min(maxRows, DashboardState.currentData.length)
+                    }),
                     marginX,
                     yPos
                 );
@@ -1199,26 +1606,26 @@ const ExportManager = {
             addFooter();
 
             const nowForName = new Date();
-            const filename =
-                'Security-Dashboard-Report-' +
+            const dateForName =
                 nowForName.getFullYear() + '-' +
                 String(nowForName.getMonth() + 1).padStart(2, '0') + '-' +
-                String(nowForName.getDate()).padStart(2, '0') + '.pdf';
+                String(nowForName.getDate()).padStart(2, '0');
 
+            const filename = i18n.t('pdf_filename', { date: dateForName });
             pdf.save(filename);
 
-            UI.showToast('PDF-Report erfolgreich erstellt: ' + filename, 'success');
+            UI.showToast(i18n.t('toast_pdf_success', { file: filename }), 'success');
 
             if (status) {
-                status.textContent = '✅ Professioneller PDF-Report erstellt: ' + filename;
+                status.textContent = i18n.t('toast_pdf_success', { file: filename });
                 setTimeout(() => { status.style.display = 'none'; }, 4000);
             }
 
         } catch (error) {
             console.error('PDF Error:', error);
-            UI.showToast('Fehler beim PDF-Export: ' + error.message, 'error');
+            UI.showToast(i18n.t('toast_pdf_error', { error: error.message }), 'error');
             if (status) {
-                status.textContent = '❌ PDF Fehler: ' + error.message;
+                status.textContent = i18n.t('toast_pdf_error', { error: error.message });
                 setTimeout(() => { status.style.display = 'none'; }, 5000);
             }
         } finally {
@@ -1257,7 +1664,7 @@ const FilterManager = {
 
         this.updateStatus();
         RenderManager.renderAll();
-        console.log(`🔍 Filter applied: ${DashboardState.currentData.length}/${DashboardState.allData.length} records`);
+        console.log(`🔍 Filter applied: $${DashboardState.currentData.length}/$${DashboardState.allData.length} records`);
     },
 
     reset() {
@@ -1290,7 +1697,7 @@ const FilterManager = {
 
         const total = DashboardState.allData.length;
         const current = DashboardState.currentData.length;
-        text += `  |  Zeige ${current} von ${total} Datensätzen`;
+        text += `  |  Zeige $${current} von $${total} Datensätzen`;
 
         status.textContent = text;
     },
@@ -1301,7 +1708,7 @@ const FilterManager = {
 
         select.innerHTML = `<option value="__ALL__">${placeholder}</option>`;
         values.forEach(value => {
-            select.innerHTML += `<option value="${value}">${value}</option>`;
+            select.innerHTML += `<option value="$${value}">$${value}</option>`;
         });
 
         if (values.includes(currentValue)) {
@@ -1388,13 +1795,13 @@ const RenderManager = {
             DashboardState.headerMap.type ? row[DashboardState.headerMap.type] : '');
 
         document.querySelector('#tableByCountry tbody').innerHTML =
-            byCountry.map(item => `<tr><td>${item.key || '(leer)'}</td><td>${item.count}</td></tr>`).join('');
+            byCountry.map(item => `<tr><td>$${item.key || '(leer)'}</td><td>$${item.count}</td></tr>`).join('');
 
         const siteMap = new Map();
         DashboardState.currentData.forEach(row => {
             const site = DashboardState.headerMap.site ? row[DashboardState.headerMap.site] : '';
             const country = DashboardState.headerMap.country ? row[DashboardState.headerMap.country] : '';
-            const key = `${site}||${country}`;
+            const key = `$${site}||$${country}`;
             siteMap.set(key, (siteMap.get(key) || 0) + 1);
         });
 
@@ -1407,16 +1814,16 @@ const RenderManager = {
 
         document.querySelector('#tableBySite tbody').innerHTML =
             siteArray.map(item =>
-                `<tr><td>${item.site}</td><td>${item.country}</td><td>${item.count}</td></tr>`
+                `<tr><td>$${item.site}</td><td>$${item.country}</td><td>${item.count}</td></tr>`
             ).join('');
 
         document.querySelector('#tableByType tbody').innerHTML =
-            byType.map(item => `<tr><td>${item.key || '(leer)'}</td><td>${item.count}</td></tr>`).join('');
+            byType.map(item => `<tr><td>$${item.key || '(leer)'}</td><td>$${item.count}</td></tr>`).join('');
     },
 
     renderCharts() {
         if (DashboardState.currentData.length === 0) {
-            ['chartCountries', 'chartSites', 'chartTypes'].forEach(id => {
+            ['chartCountries', 'chartSites', 'chartTypes', 'chartDomains'].forEach(id => {
                 const c = document.getElementById(id);
                 if (c) {
                     c.innerHTML = `
@@ -1437,9 +1844,23 @@ const RenderManager = {
         const types = Utils.groupAndCount(DashboardState.currentData, row =>
             DashboardState.headerMap.type ? row[DashboardState.headerMap.type] : '');
 
-        ChartManager.create('chartCountries', countries, 'bar');
+        ChartManager.create('chartCountries', countries, 'bar
+                            ChartManager.create('chartCountries', countries, 'bar');
         ChartManager.create('chartSites', sites, 'bar');
         ChartManager.create('chartTypes', types, 'pie');
+
+        // Domain-Verteilung: Security / FM / SHE / Other
+        const domainCounts = { Security: 0, FM: 0, SHE: 0, Other: 0 };
+        DashboardState.currentData.forEach(row => {
+            const domain = Utils.classifyCategory(row, DashboardState.headerMap);
+            domainCounts[domain] = (domainCounts[domain] || 0) + 1;
+        });
+
+        const domainData = Object.keys(domainCounts)
+            .map(domain => ({ key: domain, count: domainCounts[domain] }))
+            .filter(d => d.count > 0);
+
+        ChartManager.create('chartDomains', domainData, 'pie');
     },
 
     runAnalytics() {
@@ -1558,22 +1979,38 @@ const Dashboard = {
     },
 
     setupEventListeners() {
+        // Testdaten
         document.getElementById('loadTestData').addEventListener('click', () => {
             DataManager.loadTestData();
         });
 
+        // CSV Upload
         document.getElementById('fileInput').addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) DataManager.loadCSVFile(file);
         });
 
+        // Filter
         document.getElementById('filterCountry').addEventListener('change', FilterManager.apply.bind(FilterManager));
         document.getElementById('filterSite').addEventListener('change', FilterManager.apply.bind(FilterManager));
         document.getElementById('filterType').addEventListener('change', FilterManager.apply.bind(FilterManager));
         document.getElementById('resetFilters').addEventListener('click', FilterManager.reset.bind(FilterManager));
 
-        document.getElementById('exportCSV').addEventListener('click', ExportManager.toCSV);
-        document.getElementById('exportPDF').addEventListener('click', ExportManager.toPDF);
+        // Export
+        document.getElementById('exportCSV').addEventListener('click', ExportManager.toCSV.bind(ExportManager));
+        document.getElementById('exportPDF').addEventListener('click', ExportManager.toPDF.bind(ExportManager));
+
+        // Sprache für Report (Select mit id="reportLanguage")
+        const langSelect = document.getElementById('reportLanguage');
+        if (langSelect) {
+            langSelect.addEventListener('change', (e) => {
+                const lang = e.target.value || 'de';
+                i18n.set(lang);
+            });
+
+            // initialer Wert
+            i18n.set(langSelect.value || 'de');
+        }
 
         console.log('🔗 Event listeners attached');
     },
@@ -1601,3 +2038,4 @@ window.addEventListener('error', (e) => {
 // Export for debugging
 window.Dashboard = Dashboard;
 window.DashboardState = DashboardState;
+window.i18n = i18n;
