@@ -774,6 +774,38 @@ tbody tr:hover {
 }
 
 /* ===========
+   TOASTS
+   =========== */
+
+.toast-container {
+    position: fixed;
+    top: 80px;
+    right: 24px;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.toast {
+    min-width: 220px;
+    max-width: 320px;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    border-radius: 8px;
+    padding: 0.6rem 0.8rem;
+    box-shadow: 0 6px 15px var(--shadow-hover);
+    border: 1px solid var(--border-color);
+    font-size: 0.8rem;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+
+.toast-success { border-left: 4px solid var(--success); }
+.toast-error   { border-left: 4px solid var(--danger); }
+.toast-info    { border-left: 4px solid var(--info); }
+
+/* ===========
    RESPONSIVE
    =========== */
 
