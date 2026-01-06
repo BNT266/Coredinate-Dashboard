@@ -402,7 +402,8 @@ const ChartManager = {
     create(containerId, data, type = 'bar', maxBars = 6) {
         const container = document.getElementById(containerId);
         if (!container || !data?.length) {
-            if (container) container.innerHTML = '<div class="empty-state"><strong>Keine Daten</strong><span>Bitte Daten laden oder Filter anpassen.</span></div>';
+            if (container) container.innerHTML =
+                '<div class="empty-state"><strong>Keine Daten</strong><span>Bitte Daten laden oder Filter anpassen.</span></div>';
             return;
         }
 
@@ -537,7 +538,7 @@ class SecurityAnalytics {
                 patterns.push({
                     type: 'concentration',
                     title: 'Ereignis-Konzentration erkannt',
-                    description: `$${Math.round(concentration)}% aller Ereignisse sind "$${dominantType.key}"`,
+                    description: `${Math.round(concentration)}% aller Ereignisse sind "${dominantType.key}"`,
                     severity: concentration > 60 ? 'high' : 'medium'
                 });
             }
@@ -734,9 +735,9 @@ class SecurityAnalytics {
 
         container.innerHTML = `
             <div class="insight-item risk-${risk.class}">
-                <div class="insight-value">Risiko-Level: $${risk.level} ($${risk.score}%)</div>
+                <div class="insight-value">Risiko-Level: ${risk.level} (${risk.score}%)</div>
                 <div class="insight-trend">
-                    $${risk.highRiskEvents} kritische Ereignisse von $${risk.totalEvents} gesamt
+                    ${risk.highRiskEvents} kritische Ereignisse von ${risk.totalEvents} gesamt
                 </div>
                 <div class="insight-trend">
                     Basis: gewichtete Häufigkeit nach Ereignisart (Einbruch, Diebstahl, Vandalismus etc.).
@@ -745,7 +746,7 @@ class SecurityAnalytics {
             ${risk.criticalTypes.length > 0 ? `
                 <div class="insight-item">
                     <div class="insight-value">⚠️ Kritischster Typ:</div>
-                    <div class="insight-trend">$${risk.criticalTypes[0].key} ($${risk.criticalTypes[0].count}x)</div>
+                    <div class="insight-trend">${risk.criticalTypes[0].key} (${risk.criticalTypes[0].count}x)</div>
                 </div>
             ` : ''}
         `;
@@ -768,7 +769,7 @@ class SecurityAnalytics {
         } else {
             html += patterns.slice(0, 2).map(pattern => `
                 <div class="insight-item">
-                    <div class="insight-value">$${pattern.severity === 'high' ? '🔴' : '🟡'} $${pattern.title}</div>
+                    <div class="insight-value">${pattern.severity === 'high' ? '🔴' : '🟡'} ${pattern.title}</div>
                     <div class="insight-trend">${pattern.description}</div>
                 </div>
             `).join('');
@@ -785,12 +786,12 @@ class SecurityAnalytics {
                     <div class="insight-value">Bereichszuordnung (Security / FM / SHE)</div>
                     <div class="insight-trend">
                         Dominanter Bereich: <strong>${top.domain}</strong>
-                        ($${top.count} Events, $${top.share}% Anteil).
+                        (${top.count} Events, ${top.share}% Anteil).
                     </div>
                     <div class="insight-trend">
-                        Security: ${sec ? `$${sec.count} ($${sec.share}%)` : '0 (0%)'} |
-                        FM: ${fm ? `$${fm.count} ($${fm.share}%)` : '0 (0%)'} |
-                        SHE: ${she ? `$${she.count} ($${she.share}%)` : '0 (0%)'}
+                        Security: ${sec ? `${sec.count} (${sec.share}%)` : '0 (0%)'} |
+                        FM: ${fm ? `${fm.count} (${fm.share}%)` : '0 (0%)'} |
+                        SHE: ${she ? `${she.count} (${she.share}%)` : '0 (0%)'}
                     </div>
                     <div class="insight-trend">
                         Risikobeitrag (Punkte): 
@@ -815,7 +816,7 @@ class SecurityAnalytics {
             const action = lang === 'de' ? rec.action : (rec.action_en || rec.action);
             return `
                 <div class="insight-item">
-                    <div class="insight-value">$${rec.icon} $${title}</div>
+                    <div class="insight-value">${rec.icon} ${title}</div>
                     <div class="insight-trend">${action}</div>
                 </div>
             `;
@@ -829,9 +830,9 @@ class SecurityAnalytics {
 
         let html = trends.slice(0, 3).map(trend => `
             <div class="insight-item">
-                <div class="insight-value">$${trend.metric}: $${trend.current}</div>
+                <div class="insight-value">${trend.metric}: ${trend.current}</div>
                 <div class="insight-trend">
-                    $${trend.forecast} ($${trend.confidence} Konfidenz)
+                    ${trend.forecast} (${trend.confidence} Konfidenz)
                 </div>
             </div>
         `).join('');
@@ -859,7 +860,6 @@ class SecurityAnalytics {
         container.innerHTML = html;
     }
 }
-
 // =============================================
 // THEME MANAGER
 // =============================================
@@ -1055,7 +1055,7 @@ const ExportManager = {
             recs.slice(0, 3).forEach(rec => {
                 const title = i18n.current === 'de' ? rec.title : (rec.title_en || rec.title);
                 const action = i18n.current === 'de' ? rec.action : (rec.action_en || rec.action);
-                actionLines.push(`$${title}: $${action}.`);
+                actionLines.push(`${title}: ${action}.`);
             });
         }
 
@@ -1201,7 +1201,7 @@ const ExportManager = {
                 pdf.setTextColor(80, 80, 80);
                 const dm = domainMix.byDomain;
                 dm.slice(0, 3).forEach(d => {
-                    const line = `• $${d.domain}: $${d.count} ($${d.share}%, ~$${d.riskScore} pts)`;
+                    const line = `• ${d.domain}: ${d.count} (${d.share}%, ~${d.riskScore} pts)`;
                     ensureSpace(5);
                     pdf.text(line, marginX, yPos);
                     yPos += 4;
@@ -1323,12 +1323,12 @@ const ExportManager = {
 
                 if (trends && trends.length) {
                     yPos += 4;
-                    const riskTrendInsight = trends.find(t => t.metric === 'Gesamt-Risiko');
-                    const volumeTrendInsight = trends.find(t => t.metric === 'Ereignis-Volumen');
+                    const riskTrendInsight2 = trends.find(t => t.metric === 'Gesamt-Risiko');
+                    const volumeTrendInsight2 = trends.find(t => t.metric === 'Ereignis-Volumen');
 
                     const trendParts = [];
-                    if (riskTrendInsight) {
-                        let t = riskTrendInsight.forecast;
+                    if (riskTrendInsight2) {
+                        let t = riskTrendInsight2.forecast;
                         let trendKey;
                         if (t.includes('steigend')) trendKey = 'trend_risk_up';
                         else if (t.includes('fallend')) trendKey = 'trend_risk_down';
@@ -1336,14 +1336,14 @@ const ExportManager = {
 
                         trendParts.push(i18n.t('trend_risk_sentence', {
                             trend: i18n.t(trendKey),
-                            confidence: riskTrendInsight.confidence
+                            confidence: riskTrendInsight2.confidence
                         }));
                     }
-                    if (volumeTrendInsight) {
-                        const shortForecast = volumeTrendInsight.forecast.replace('Nächster Monat:', '').trim();
+                    if (volumeTrendInsight2) {
+                        const shortForecast = volumeTrendInsight2.forecast.replace('Nächster Monat:', '').trim();
                         trendParts.push(i18n.t('trend_volume_sentence', {
                             forecast: shortForecast,
-                            confidence: volumeTrendInsight.confidence
+                            confidence: volumeTrendInsight2.confidence
                         }));
                     }
 
@@ -1592,7 +1592,7 @@ const FilterManager = {
 
         this.updateStatus();
         RenderManager.renderAll();
-        console.log(`🔍 Filter applied: $${DashboardState.currentData.length}/$${DashboardState.allData.length} records`);
+        console.log(`🔍 Filter applied: ${DashboardState.currentData.length}/${DashboardState.allData.length} records`);
     },
 
     reset() {
@@ -1602,7 +1602,7 @@ const FilterManager = {
         this.apply();
     },
 
-    updateStatus() {
+   updateStatus() {
         const status = document.getElementById('filterStatus');
         const activeFilters = [];
 
@@ -1625,7 +1625,7 @@ const FilterManager = {
 
         const total = DashboardState.allData.length;
         const current = DashboardState.currentData.length;
-        text += `  |  Zeige $${current} von $${total} Datensätzen`;
+        text += `  |  Zeige ${current} von ${total} Datensätzen`;
 
         status.textContent = text;
     },
@@ -1636,7 +1636,7 @@ const FilterManager = {
 
         select.innerHTML = `<option value="__ALL__">${placeholder}</option>`;
         values.forEach(value => {
-            select.innerHTML += `<option value="$${value}">$${value}</option>`;
+            select.innerHTML += `<option value="${value}">${value}</option>`;
         });
 
         if (values.includes(currentValue)) {
@@ -1723,13 +1723,13 @@ const RenderManager = {
             DashboardState.headerMap.type ? row[DashboardState.headerMap.type] : '');
 
         document.querySelector('#tableByCountry tbody').innerHTML =
-            byCountry.map(item => `<tr><td>$${item.key || '(leer)'}</td><td>$${item.count}</td></tr>`).join('');
+            byCountry.map(item => `<tr><td>${item.key || '(leer)'}</td><td>${item.count}</td></tr>`).join('');
 
         const siteMap = new Map();
         DashboardState.currentData.forEach(row => {
             const site = DashboardState.headerMap.site ? row[DashboardState.headerMap.site] : '';
             const country = DashboardState.headerMap.country ? row[DashboardState.headerMap.country] : '';
-            const key = `$${site}||$${country}`;
+            const key = `${site}||${country}`;
             siteMap.set(key, (siteMap.get(key) || 0) + 1);
         });
 
@@ -1742,11 +1742,11 @@ const RenderManager = {
 
         document.querySelector('#tableBySite tbody').innerHTML =
             siteArray.map(item =>
-                `<tr><td>$${item.site}</td><td>$${item.country}</td><td>${item.count}</td></tr>`
+                `<tr><td>${item.site}</td><td>${item.country}</td><td>${item.count}</td></tr>`
             ).join('');
 
         document.querySelector('#tableByType tbody').innerHTML =
-            byType.map(item => `<tr><td>$${item.key || '(leer)'}</td><td>$${item.count}</td></tr>`).join('');
+            byType.map(item => `<tr><td>${item.key || '(leer)'}</td><td>${item.count}</td></tr>`).join('');
     },
 
     renderCharts() {
@@ -1754,8 +1754,7 @@ const RenderManager = {
             ['chartCountries', 'chartSites', 'chartTypes', 'chartDomains'].forEach(id => {
                 const c = document.getElementById(id);
                 if (c) {
-                    c.innerHTML =
-                        c.innerHTML = `
+                    c.innerHTML = `
                         <div class="empty-state">
                             <strong>Keine Daten</strong>
                             <span>Bitte laden Sie Daten oder ändern Sie die Filter.</span>
