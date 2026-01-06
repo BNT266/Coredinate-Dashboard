@@ -169,6 +169,7 @@ const ChartManager = {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                devicePixelRatio: 2, // schärfer für PDF
                 plugins: { 
                     legend: { display: type === 'pie', position: 'bottom' }
                 },
@@ -469,7 +470,7 @@ const ThemeManager = {
 };
 
 // =============================================
-// EXPORT MANAGER – NEUE PROFESSIONELLE VERSION
+// EXPORT MANAGER – NEUE EXECUTIVE-REPORT VERSION
 // =============================================
 const ExportManager = {
     toCSV() {
@@ -529,6 +530,9 @@ const ExportManager = {
             status.textContent = '📄 Professioneller PDF-Report wird erstellt...';
         }
 
+        const btnPdf = document.getElementById('exportPDF');
+        if (btnPdf) btnPdf.disabled = true;
+
         try {
             if (typeof window.jspdf === 'undefined') {
                 throw new Error('jsPDF ist nicht geladen (prüfe Script-Tags)!');
@@ -538,57 +542,75 @@ const ExportManager = {
             const pdf = new jsPDF('p', 'mm', 'a4');
             const pageWidth = pdf.internal.pageSize.getWidth();
             const pageHeight = pdf.internal.pageSize.getHeight();
-            const marginX = 15;
-            let yPos = 10;
+            const marginX = 18;
+            const footerHeight = 12;
+            let yPos = 18;
+            let pageNumber = 1;
+
+            const addFooter = () => {
+                pdf.setFontSize(8);
+                pdf.setTextColor(130, 130, 130);
+                const footerTextLeft = 'Security Events Dashboard Report';
+                const footerTextRight = `Seite ${pageNumber}`;
+                pdf.text(footerTextLeft, marginX, pageHeight - 6);
+                const textWidth = pdf.getTextWidth(footerTextRight);
+                pdf.text(footerTextRight, pageWidth - marginX - textWidth, pageHeight - 6);
+            };
+
+            const newPage = () => {
+                addFooter();
+                pdf.addPage();
+                pageNumber += 1;
+                yPos = 18;
+            };
 
             const ensureSpace = (neededHeight) => {
-                if (yPos + neededHeight > pageHeight - 15) {
-                    pdf.addPage();
-                    yPos = 20;
+                if (yPos + neededHeight > pageHeight - footerHeight) {
+                    newPage();
                 }
             };
 
-            // HEADER
+            // =====================================
+            // SEITE 1 – EXECUTIVE SUMMARY
+            // =====================================
+
             pdf.setFillColor(0, 163, 122);
-            pdf.rect(0, 0, pageWidth, 40, 'F');
+            pdf.rect(0, 0, pageWidth, 26, 'F');
 
             pdf.setTextColor(255, 255, 255);
             pdf.setFontSize(18);
-            pdf.text('SECURITY EVENT DASHBOARD', marginX, 18);
+            pdf.text('SECURITY EVENT DASHBOARD', marginX, 15);
 
             pdf.setFontSize(10);
-            pdf.text('Professional Security Events Analysis Report', marginX, 25);
+            pdf.text('Executive Summary & Risikoanalyse', marginX, 21);
 
             const now = new Date();
             const dateStr = now.toLocaleDateString('de-DE', {
                 year: 'numeric', month: '2-digit', day: '2-digit',
                 hour: '2-digit', minute: '2-digit'
             });
-            pdf.setFontSize(9);
-            pdf.text(`Erstellt: ${dateStr}`, pageWidth - marginX - 55, 34);
+            const dateText = `Erstellt: ${dateStr}`;
+            const dateWidth = pdf.getTextWidth(dateText);
+            pdf.text(dateText, pageWidth - marginX - dateWidth, 21);
 
-            yPos = 50;
+            yPos = 35;
 
-            // EXECUTIVE SUMMARY / KPIs
             pdf.setTextColor(0, 0, 0);
             pdf.setFontSize(14);
             pdf.text('Executive Summary', marginX, yPos);
-            yPos += 8;
+            yPos += 6;
 
             const totalEvents = DashboardState.currentData.length;
-
             const totalCountries = new Set(
                 DashboardState.currentData
                     .map(r => DashboardState.headerMap.country ? (r[DashboardState.headerMap.country] || '').trim() : '')
                     .filter(Boolean)
             ).size;
-
             const totalSites = new Set(
                 DashboardState.currentData
                     .map(r => DashboardState.headerMap.site ? (r[DashboardState.headerMap.site] || '').trim() : '')
                     .filter(Boolean)
             ).size;
-
             const totalTypes = new Set(
                 DashboardState.currentData
                     .map(r => DashboardState.headerMap.type ? (r[DashboardState.headerMap.type] || '').trim() : '')
@@ -596,53 +618,73 @@ const ExportManager = {
             ).size;
 
             const kpis = [
-                { label: 'Ereignisse', value: totalEvents, color: [52, 152, 219] },
+                { label: 'Ereignisse gesamt', value: totalEvents, color: [52, 152, 219] },
                 { label: 'Länder', value: totalCountries, color: [155, 89, 182] },
                 { label: 'Liegenschaften', value: totalSites, color: [230, 126, 34] },
                 { label: 'Ereignisarten', value: totalTypes, color: [231, 76, 60] }
             ];
 
-            const cardWidth = 40;
-            const cardHeight = 22;
-            const cardSpacing = 5;
+            const cardWidth = (pageWidth - 2 * marginX - 3 * 5) / 4;
+            const cardHeight = 24;
+            const cardY = yPos;
 
             kpis.forEach((kpi, i) => {
-                const x = marginX + i * (cardWidth + cardSpacing);
+                const x = marginX + i * (cardWidth + 5);
 
-                // Schatten
                 pdf.setFillColor(230, 230, 230);
-                pdf.rect(x + 1, yPos + 1, cardWidth, cardHeight, 'F');
+                pdf.roundedRect(x + 1.5, cardY + 1.5, cardWidth, cardHeight, 2, 2, 'F');
 
-                // Card
                 pdf.setFillColor(255, 255, 255);
-                pdf.rect(x, yPos, cardWidth, cardHeight, 'F');
+                pdf.roundedRect(x, cardY, cardWidth, cardHeight, 2, 2, 'F');
 
-                // Oberer Rand
                 pdf.setFillColor(kpi.color[0], kpi.color[1], kpi.color[2]);
-                pdf.rect(x, yPos, cardWidth, 3, 'F');
+                pdf.roundedRect(x, cardY, cardWidth, 3, 2, 2, 'F');
 
-                // Rahmen
-                pdf.setDrawColor(kpi.color[0], kpi.color[1], kpi.color[2]);
-                pdf.setLineWidth(0.4);
-                pdf.rect(x, yPos, cardWidth, cardHeight, 'S');
+                pdf.setDrawColor(230, 230, 230);
+                pdf.setLineWidth(0.3);
+                pdf.roundedRect(x, cardY, cardWidth, cardHeight, 2, 2, 'S');
 
-                // Wert
                 pdf.setTextColor(kpi.color[0], kpi.color[1], kpi.color[2]);
                 pdf.setFontSize(14);
-                pdf.text(String(kpi.value), x + 3, yPos + 13);
+                pdf.text(String(kpi.value), x + 3, cardY + 14);
 
-                // Label
-                pdf.setTextColor(80, 80, 80);
+                pdf.setTextColor(90, 90, 90);
                 pdf.setFontSize(8);
-                pdf.text(kpi.label, x + 3, yPos + 19);
+                pdf.text(kpi.label, x + 3, cardY + 20);
             });
 
-            yPos += cardHeight + 10;
+            yPos = cardY + cardHeight + 10;
 
-            // CHARTS ALS PNG
-            pdf.setFontSize(13);
+            pdf.setFontSize(11);
             pdf.setTextColor(0, 0, 0);
-            pdf.text('Visualisierte Ereignisverteilung', marginX, yPos);
+            pdf.text('Zusammenfassung', marginX, yPos);
+            yPos += 5;
+
+            pdf.setFontSize(9);
+            pdf.setTextColor(80, 80, 80);
+            const summaryLines = [
+                `Dieser Bericht fasst ${totalEvents} gemeldete Sicherheitsereignisse zusammen, verteilt über`,
+                `${totalCountries} Länder, ${totalSites} Liegenschaften und ${totalTypes} unterschiedliche Ereignisarten.`,
+                `Auf den folgenden Seiten werden Risikolevel, Muster und Handlungsempfehlungen im Detail dargestellt.`
+            ];
+            summaryLines.forEach(line => {
+                pdf.text(line, marginX, yPos);
+                yPos += 4;
+            });
+
+            // =====================================
+            // SEITE 2 – VISUAL ANALYTICS
+            // =====================================
+            newPage();
+
+            pdf.setTextColor(0, 0, 0);
+            pdf.setFontSize(14);
+            pdf.text('Visual Analytics', marginX, yPos);
+            yPos += 6;
+
+            pdf.setFontSize(9);
+            pdf.setTextColor(80, 80, 80);
+            pdf.text('Ereignisverteilung nach Ländern, Liegenschaften und Ereignisarten.', marginX, yPos);
             yPos += 6;
 
             const addChart = (selector, titel) => {
@@ -652,24 +694,29 @@ const ExportManager = {
                 if (!canvas) return;
 
                 const imgData = canvas.toDataURL('image/png', 1.0);
-                const imgHeight = 60;
+                const imgHeight = 70;
                 const imgWidth = pageWidth - 2 * marginX;
 
-                ensureSpace(imgHeight + 10);
+                ensureSpace(imgHeight + 12);
 
                 pdf.setFontSize(11);
+                pdf.setTextColor(0, 0, 0);
                 pdf.text(titel, marginX, yPos);
-                yPos += 3;
+                yPos += 4;
 
                 pdf.addImage(imgData, 'PNG', marginX, yPos, imgWidth, imgHeight);
                 yPos += imgHeight + 8;
             };
 
             addChart('#chartCountries', 'Ereignisse nach Ländern');
-            addChart('#chartSites',      'Ereignisse nach Liegenschaften');
-            addChart('#chartTypes',      'Ereignisse nach Ereignisarten');
+            addChart('#chartSites', 'Ereignisse nach Liegenschaften');
+            addChart('#chartTypes', 'Ereignisse nach Ereignisarten');
 
-            // ANALYTICS: Risiko & Empfehlungen
+            // =====================================
+            // SEITE 3 – RISIKO & KI-INSIGHTS
+            // =====================================
+            newPage();
+
             let analytics;
             try {
                 analytics = new SecurityAnalytics(DashboardState.currentData, DashboardState.headerMap);
@@ -678,25 +725,31 @@ const ExportManager = {
                 console.warn('Analytics konnten nicht berechnet werden:', e);
             }
 
+            pdf.setTextColor(0, 0, 0);
+            pdf.setFontSize(14);
+            pdf.text('Risikobewertung & KI-Insights', marginX, yPos);
+            yPos += 6;
+
             if (analytics && analytics.insights && analytics.insights.risk) {
-                ensureSpace(50);
                 const risk = analytics.insights.risk;
                 const recs = analytics.insights.recommendations || [];
                 const trends = analytics.insights.trends || [];
 
-                pdf.setFontSize(13);
-                pdf.text('Risikobewertung & KI-Empfehlungen', marginX, yPos);
-                yPos += 6;
-
-                pdf.setFontSize(10);
-
-                const riskLevelText = `Risiko-Level: ${risk.level} (${risk.score}%)`;
-                pdf.text(riskLevelText, marginX, yPos);
+                pdf.setFontSize(11);
+                pdf.text('Risikoprofil', marginX, yPos);
                 yPos += 5;
 
-                const riskDetails = `${risk.highRiskEvents} kritische Ereignisse von ${risk.totalEvents} gesamt.`;
-                pdf.text(riskDetails, marginX, yPos);
-                yPos += 5;
+                pdf.setFontSize(9);
+                pdf.setTextColor(80, 80, 80);
+
+                const riskLines = [
+                    `Gesamt-Risko-Level: ${risk.level} (${risk.score}%)`,
+                    `${risk.highRiskEvents} kritische Ereignisse von insgesamt ${risk.totalEvents} gemeldeten Vorfällen.`
+                ];
+                riskLines.forEach(line => {
+                    pdf.text(line, marginX, yPos);
+                    yPos += 4;
+                });
 
                 if (risk.criticalTypes && risk.criticalTypes[0]) {
                     const crit = risk.criticalTypes[0];
@@ -706,38 +759,58 @@ const ExportManager = {
                         yPos
                     );
                     yPos += 6;
+                } else {
+                    yPos += 2;
                 }
 
                 if (trends.length > 0) {
-                    ensureSpace(20);
-                    pdf.text('Trend-Prognose:', marginX, yPos);
+                    ensureSpace(25);
+                    pdf.setFontSize(11);
+                    pdf.setTextColor(0, 0, 0);
+                    pdf.text('Trend-Prognose', marginX, yPos);
                     yPos += 5;
-                    trends.slice(0, 2).forEach(trend => {
+
+                    pdf.setFontSize(9);
+                    pdf.setTextColor(80, 80, 80);
+                    trends.slice(0, 3).forEach(trend => {
                         const line = `• ${trend.metric}: aktuell ${trend.current}, Prognose ${trend.forecast} (${trend.confidence} Konfidenz)`;
                         ensureSpace(6);
                         pdf.text(line, marginX, yPos);
-                        yPos += 5;
+                        yPos += 4.5;
                     });
                 }
 
                 if (recs.length > 0) {
-                    ensureSpace(20);
-                    pdf.text('Empfohlene Maßnahmen:', marginX, yPos);
+                    ensureSpace(25);
+                    pdf.setFontSize(11);
+                    pdf.setTextColor(0, 0, 0);
+                    pdf.text('Empfohlene Maßnahmen', marginX, yPos);
                     yPos += 5;
 
-                    recs.slice(0, 3).forEach(rec => {
-                        const line = `• ${rec.title}: ${rec.action}`;
-                        ensureSpace(6);
-                        pdf.text(line, marginX, yPos);
-                        yPos += 5;
+                    pdf.setFontSize(9);
+                    pdf.setTextColor(80, 80, 80);
+                    recs.slice(0, 4).forEach(rec => {
+                        const lineTitle = `• ${rec.title}`;
+                        const lineAction = `   Handlung: ${rec.action}`;
+                        ensureSpace(9);
+                        pdf.text(lineTitle, marginX, yPos);
+                        yPos += 4;
+                        pdf.text(lineAction, marginX + 3, yPos);
+                        yPos += 4;
                     });
                 }
+            } else {
+                pdf.setFontSize(9);
+                pdf.setTextColor(120, 120, 120);
+                pdf.text('Keine ausreichenden Daten für eine Risikobewertung vorhanden.', marginX, yPos);
+                yPos += 5;
             }
 
-            // AGGREGIERTE TABELLEN (mit AutoTable)
+            // =====================================
+            // SEITE 4 – Aggregierte Tabellen
+            // =====================================
             if (pdf.autoTable) {
-                pdf.addPage();
-                yPos = 20;
+                newPage();
 
                 const byCountry = Utils.groupAndCount(DashboardState.currentData, row =>
                     DashboardState.headerMap.country ? row[DashboardState.headerMap.country] : ''
@@ -751,11 +824,11 @@ const ExportManager = {
                     DashboardState.headerMap.type ? row[DashboardState.headerMap.type] : ''
                 );
 
-                pdf.setFontSize(13);
+                pdf.setFontSize(14);
+                pdf.setTextColor(0, 0, 0);
                 pdf.text('Aggregierte Ereignisübersicht', marginX, yPos);
                 yPos += 6;
 
-                // nach Land
                 pdf.setFontSize(11);
                 pdf.text('Ereignisse nach Land', marginX, yPos);
                 yPos += 4;
@@ -773,7 +846,6 @@ const ExportManager = {
                 });
                 yPos = pdf.lastAutoTable.finalY + 8;
 
-                // nach Liegenschaft
                 pdf.setFontSize(11);
                 pdf.text('Ereignisse nach Liegenschaft', marginX, yPos);
                 yPos += 4;
@@ -791,7 +863,6 @@ const ExportManager = {
                 });
                 yPos = pdf.lastAutoTable.finalY + 8;
 
-                // nach Ereignisart
                 pdf.setFontSize(11);
                 pdf.text('Ereignisse nach Ereignisart', marginX, yPos);
                 yPos += 4;
@@ -810,10 +881,11 @@ const ExportManager = {
                 yPos = pdf.lastAutoTable.finalY + 10;
             }
 
-            // DETAILTABELLE (erste N Datensätze)
+            // =====================================
+            // SEITE 5 – Detailtabelle (optional)
+            // =====================================
             if (pdf.autoTable && DashboardState.currentData.length > 0) {
-                pdf.addPage();
-                yPos = 20;
+                newPage();
 
                 const maxRows = 100;
                 const headers = Object.keys(DashboardState.currentData[0]);
@@ -821,7 +893,8 @@ const ExportManager = {
                     .slice(0, maxRows)
                     .map(row => headers.map(h => row[h] || ''));
 
-                pdf.setFontSize(13);
+                pdf.setFontSize(14);
+                pdf.setTextColor(0, 0, 0);
                 pdf.text(
                     `Detailierte Ereignisliste (erste ${Math.min(maxRows, DashboardState.currentData.length)} Events)`,
                     marginX,
@@ -842,11 +915,14 @@ const ExportManager = {
                 });
             }
 
+            addFooter();
+
+            const nowForName = new Date();
             const filename =
                 'Security-Dashboard-Report-' +
-                now.getFullYear() + '-' +
-                String(now.getMonth() + 1).padStart(2, '0') + '-' +
-                String(now.getDate()).padStart(2, '0') + '.pdf';
+                nowForName.getFullYear() + '-' +
+                String(nowForName.getMonth() + 1).padStart(2, '0') + '-' +
+                String(nowForName.getDate()).padStart(2, '0') + '.pdf';
 
             pdf.save(filename);
 
@@ -861,6 +937,8 @@ const ExportManager = {
                 status.textContent = '❌ PDF Fehler: ' + error.message;
                 setTimeout(() => { status.style.display = 'none'; }, 5000);
             }
+        } finally {
+            if (btnPdf) btnPdf.disabled = false;
         }
     }
 };
@@ -1010,7 +1088,6 @@ const RenderManager = {
         document.querySelector('#tableByCountry tbody').innerHTML = 
             byCountry.map(item => `<tr><td>${item.key || '(leer)'}</td><td>${item.count}</td></tr>`).join('');
 
-        // Site table with country information
         const siteMap = new Map();
         DashboardState.currentData.forEach(row => {
             const site = DashboardState.headerMap.site ? row[DashboardState.headerMap.site] : '';
@@ -1151,7 +1228,6 @@ const Dashboard = {
     },
 
     setupEventListeners() {
-        // Data loading
         document.getElementById('loadTestData').addEventListener('click', () => {
             DataManager.loadTestData();
         });
@@ -1161,13 +1237,11 @@ const Dashboard = {
             if (file) DataManager.loadCSVFile(file);
         });
 
-        // Filters
         document.getElementById('filterCountry').addEventListener('change', FilterManager.apply.bind(FilterManager));
         document.getElementById('filterSite').addEventListener('change', FilterManager.apply.bind(FilterManager));
         document.getElementById('filterType').addEventListener('change', FilterManager.apply.bind(FilterManager));
         document.getElementById('resetFilters').addEventListener('click', FilterManager.reset.bind(FilterManager));
 
-        // Export
         document.getElementById('exportCSV').addEventListener('click', ExportManager.toCSV);
         document.getElementById('exportPDF').addEventListener('click', ExportManager.toPDF);
 
