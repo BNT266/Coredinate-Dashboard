@@ -4,13 +4,17 @@
     <meta charset="UTF-8">
     <title>Security Event Dashboard</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
-    <!-- External CSS -->
+
+    <!-- Styles -->
     <link rel="stylesheet" href="src/css/styles.css">
-    
+
     <!-- External Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- jsPDF (UMD) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- jsPDF AutoTable für Tabellen im PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <!-- html2canvas (optional; aktuell nicht zwingend benötigt, könnte aber für Screenshots genutzt werden) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
@@ -30,7 +34,9 @@
                     CSV-Datei für Ereignismeldungen auswählen
                     <input type="file" id="fileInput" accept=".csv">
                 </label>
-                <div class="hint">Erwartete Spalten z.B.: <strong>Land, Liegenschaft, Ereignisart, Datum</strong></div>
+                <div class="hint">
+                    Erwartete Spalten z.B.: <strong>Land, Liegenschaft, Ereignisart, Datum</strong>
+                </div>
                 <div id="fileStatus" class="status">Keine Datei geladen.</div>
             </div>
             <button class="btn outline-light" id="loadTestData">Testdaten laden (Demo-Modus)</button>
@@ -42,15 +48,21 @@
             <div class="filters">
                 <div class="filter-row">
                     <label for="filterCountry">Land</label>
-                    <select id="filterCountry"><option value="__ALL__">Alle Länder</option></select>
+                    <select id="filterCountry">
+                        <option value="__ALL__">Alle Länder</option>
+                    </select>
                 </div>
                 <div class="filter-row">
                     <label for="filterSite">Liegenschaft</label>
-                    <select id="filterSite"><option value="__ALL__">Alle Liegenschaften</option></select>
+                    <select id="filterSite">
+                        <option value="__ALL__">Alle Liegenschaften</option>
+                    </select>
                 </div>
                 <div class="filter-row">
                     <label for="filterType">Ereignisart</label>
-                    <select id="filterType"><option value="__ALL__">Alle Ereignisarten</option></select>
+                    <select id="filterType">
+                        <option value="__ALL__">Alle Ereignisarten</option>
+                    </select>
                 </div>
                 <button class="btn secondary" id="resetFilters">Filter zurücksetzen</button>
                 <div id="filterStatus" class="status"></div>
@@ -85,7 +97,9 @@
                 <h3>Echtzeit-Übersicht über gemeldete Ereignisse nach Land, Liegenschaft und Ereignisart</h3>
             </div>
             <div class="main-header-right">
-                <div class="pill"><span id="recordCount">0</span> Datensätze geladen</div>
+                <div class="pill">
+                    <span id="recordCount">0</span> Datensätze geladen
+                </div>
                 <div class="pill secondary" id="modeIndicator">Modus: Keine Daten</div>
             </div>
         </header>
@@ -119,7 +133,9 @@
             <div class="panel-header">
                 <div>
                     <div class="panel-title">🧠 Smart Analytics & Insights</div>
-                    <div class="panel-subtitle">KI-basierte Muster-Erkennung und automatische Sicherheitsanalyse</div>
+                    <div class="panel-subtitle">
+                        KI-basierte Muster-Erkennung und automatische Sicherheitsanalyse
+                    </div>
                 </div>
             </div>
             <div class="insights-grid">
@@ -169,14 +185,21 @@
                 <div class="panel-header">
                     <div>
                         <div class="panel-title">Aggregierte Übersicht</div>
-                        <div class="panel-subtitle">Häufigkeiten nach Land, Liegenschaft und Ereignisart</div>
+                        <div class="panel-subtitle">
+                            Häufigkeiten nach Land, Liegenschaft und Ereignisart
+                        </div>
                     </div>
                 </div>
-                
+
                 <h3>Nach Land</h3>
                 <div class="table-wrapper">
                     <table id="tableByCountry">
-                        <thead><tr><th>Land</th><th>Anzahl Ereignisse</th></tr></thead>
+                        <thead>
+                        <tr>
+                            <th>Land</th>
+                            <th>Anzahl Ereignisse</th>
+                        </tr>
+                        </thead>
                         <tbody></tbody>
                     </table>
                 </div>
@@ -184,7 +207,13 @@
                 <h3>Nach Liegenschaft</h3>
                 <div class="table-wrapper">
                     <table id="tableBySite">
-                        <thead><tr><th>Liegenschaft</th><th>Land</th><th>Anzahl Ereignisse</th></tr></thead>
+                        <thead>
+                        <tr>
+                            <th>Liegenschaft</th>
+                            <th>Land</th>
+                            <th>Anzahl Ereignisse</th>
+                        </tr>
+                        </thead>
                         <tbody></tbody>
                     </table>
                 </div>
@@ -192,7 +221,12 @@
                 <h3>Nach Ereignisart</h3>
                 <div class="table-wrapper">
                     <table id="tableByType">
-                        <thead><tr><th>Ereignisart</th><th>Anzahl Ereignisse</th></tr></thead>
+                        <thead>
+                        <tr>
+                            <th>Ereignisart</th>
+                            <th>Anzahl Ereignisse</th>
+                        </tr>
+                        </thead>
                         <tbody></tbody>
                     </table>
                 </div>
@@ -203,7 +237,9 @@
                 <div class="panel-header">
                     <div>
                         <div class="panel-title">Visualisierung & Benchmark</div>
-                        <div class="panel-subtitle">Top-Länder, Liegenschaften und Ereignisarten nach Häufigkeit</div>
+                        <div class="panel-subtitle">
+                            Top-Länder, Liegenschaften und Ereignisarten nach Häufigkeit
+                        </div>
                     </div>
                 </div>
 
@@ -220,7 +256,7 @@
     </main>
 </div>
 
-<!-- Load JavaScript -->
+<!-- Haupt-JavaScript -->
 <script src="src/js/app.js"></script>
 </body>
 </html>
