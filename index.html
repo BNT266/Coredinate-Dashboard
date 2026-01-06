@@ -34,11 +34,11 @@
                     CSV-Datei für Ereignismeldungen auswählen
                     <input type="file" id="fileInput" accept=".csv">
                 </label>
-                <div class="hint">
-                    Erwartete Spalten z.B.: <strong>Land, Liegenschaft, Ereignisart, Datum</strong>
-                </div>
-                <div id="fileStatus" class="status">Keine Datei geladen.</div>
             </div>
+            <div class="hint">
+                Erwartete Spalten z.B.: <strong>Land, Liegenschaft, Ereignisart, Datum</strong>
+            </div>
+            <div id="fileStatus" class="status">Keine Datei geladen.</div>
             <button class="btn outline-light" id="loadTestData">Testdaten laden (Demo-Modus)</button>
         </div>
 
@@ -251,6 +251,9 @@
 
                 <h3>Top Ereignisarten</h3>
                 <div id="chartTypes" class="chart"></div>
+
+                <h3>Bereichsverteilung (Security / FM / SHE)</h3>
+                <div id="chartDomains" class="chart"></div>
             </section>
         </section>
     </main>
