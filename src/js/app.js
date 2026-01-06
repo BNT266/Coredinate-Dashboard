@@ -1,8 +1,4 @@
-/*
- * =============================================
- * SECURITY DASHBOARD - MAIN APPLICATION v6.0
- * =============================================
- */
+/* VOLLSTÄNDIGE, BEREINIGTE app.js v6 – PASSEND ZU DEINEM HTML */
 
 console.log('🚀 Security Dashboard startet...');
 
@@ -56,7 +52,6 @@ const i18n = {
     },
 
     strings: {
-        // PDF – Titel / Kopf
         pdf_title: {
             de: 'SECURITY EVENT DASHBOARD',
             en: 'SECURITY EVENT DASHBOARD'
@@ -69,8 +64,6 @@ const i18n = {
             de: 'Erstellt: {{date}}',
             en: 'Generated: {{date}}'
         },
-
-        // PDF – Abschnittsüberschriften
         section_executive_summary: {
             de: 'Executive Summary',
             en: 'Executive Summary'
@@ -107,8 +100,6 @@ const i18n = {
             de: 'Schwerpunkte nach Bereich',
             en: 'Focus by Domain'
         },
-
-        // PDF – kurze Beschreibungen
         desc_ai_insights: {
             de: 'Zusammenfassung der KI-gestützten Risikoanalyse, Bereichszuordnung und Zeit-/Trendmuster.',
             en: 'Summary of AI-based risk analysis, domain allocation, and time/trend patterns.'
@@ -117,14 +108,10 @@ const i18n = {
             de: 'Verteilung der Ereignisse über Länder, Liegenschaften, Ereignisarten und Bereiche.',
             en: 'Distribution of events across countries, sites, event types, and domains.'
         },
-
-        // PDF – Executive Summary Kennzahlenzeile
         key_facts_line: {
             de: 'Ereignisse gesamt: {{events}}  |  Länder: {{countries}}  |  Liegenschaften: {{sites}}  |  Ereignisarten: {{types}}',
             en: 'Total events: {{events}}  |  Countries: {{countries}}  |  Sites: {{sites}}  |  Event types: {{types}}'
         },
-
-        // PDF – Tabellenüberschriften
         table_country_header: {
             de: 'Land',
             en: 'Country'
@@ -141,8 +128,6 @@ const i18n = {
             de: 'Anzahl',
             en: 'Count'
         },
-
-        // PDF – Chart-Titel
         chart_countries_title: {
             de: 'Ereignisse nach Ländern',
             en: 'Events by Country'
@@ -159,8 +144,6 @@ const i18n = {
             de: 'Bereichsverteilung (Security / FM / SHE)',
             en: 'Domain Distribution (Security / FM / SHE)'
         },
-
-        // PDF – Footertext
         footer_left: {
             de: 'Security Events Dashboard – Executive Report',
             en: 'Security Events Dashboard – Executive Report'
@@ -169,8 +152,6 @@ const i18n = {
             de: 'Seite {{page}}',
             en: 'Page {{page}}'
         },
-
-        // Narrative – Risikoprofil
         risk_intro_high: {
             de: 'Das Gesamtrisiko wird aktuell als hoch ({{score}}% von 100%) eingestuft.',
             en: 'The overall risk is currently assessed as high ({{score}}% out of 100%).'
@@ -199,8 +180,6 @@ const i18n = {
             de: 'Die Ereignisart "{{type}}" trägt mit {{count}} Vorfällen am stärksten zum Gesamtrisiko bei.',
             en: 'The event type "{{type}}" contributes most to the overall risk with {{count}} incidents.'
         },
-
-        // Narrative – Domain-Mix
         domain_main_line: {
             de: 'Die meisten Ereignisse entfallen auf den Bereich {{domain}} ({{count}} Vorfälle, {{share}}% Anteil).',
             en: 'Most events fall within the {{domain}} domain ({{count}} incidents, {{share}}% share).'
@@ -213,8 +192,6 @@ const i18n = {
             de: 'Hinsichtlich Risikopunkten ist der Bereich {{domain}} am stärksten gewichtet (ca. {{score}} Punkte).',
             en: 'In terms of risk points, the {{domain}} domain is weighted the highest (approx. {{score}} points).'
         },
-
-        // Narrative – Trends
         trend_risk_up: {
             de: 'Das Risiko wird voraussichtlich weiter ansteigen.',
             en: 'Risk levels are expected to increase further.'
@@ -235,8 +212,6 @@ const i18n = {
             de: 'Das Ereignisvolumen wird für den nächsten Zeitraum mit {{forecast}} prognostiziert (Konfidenz {{confidence}}).',
             en: 'Event volume for the next period is forecast at {{forecast}} (confidence {{confidence}}).'
         },
-
-        // Narrative – Zeitmuster
         time_bucket_line: {
             de: 'Zeitlich häufen sich die Ereignisse insbesondere im Zeitraum {{range}} Uhr ({{count}} Vorfälle).',
             en: 'Events cluster particularly in the time window {{range}} hours ({{count}} incidents).'
@@ -249,14 +224,10 @@ const i18n = {
             de: 'Rund {{weekdayShare}}% der Vorfälle treten an Werktagen auf, {{weekendShare}}% am Wochenende.',
             en: 'Approximately {{weekdayShare}}% of incidents occur on weekdays and {{weekendShare}}% on weekends.'
         },
-
-        // Narrative – Maßnahmen
         actions_bullet_prefix: {
             de: '• ',
             en: '• '
         },
-
-        // UI / Export-Messages
         toast_pdf_start: {
             de: 'Professioneller PDF-Report wird erstellt...',
             en: 'Generating professional PDF report...'
@@ -269,8 +240,6 @@ const i18n = {
             de: 'Fehler beim PDF-Export: {{error}}',
             en: 'Error during PDF export: {{error}}'
         },
-
-        // Dateiname
         pdf_filename: {
             de: 'Security-Executive-Report-{{date}}.pdf',
             en: 'Security-Executive-Report-{{date}}.pdf'
@@ -360,13 +329,6 @@ const Utils = {
         return Array.from(map.entries())
             .map(([key, count]) => ({ key, count }))
             .sort((a, b) => b.count - a.count);
-    },
-
-    formatTimestamp() {
-        return new Date().toLocaleDateString('de-DE', {
-            year: 'numeric', month: '2-digit', day: '2-digit',
-            hour: '2-digit', minute: '2-digit'
-        });
     },
 
     classifyCategory(row, headerMap) {
@@ -983,19 +945,17 @@ const ExportManager = {
         }
     },
 
-    // Executive Narrative – nutzt i18n
     buildExecutiveNarrative(analytics) {
         if (!analytics || !analytics.insights) return { summaryLines: [], actionLines: [] };
 
         const risk = analytics.insights.risk;
         const domainMix = analytics.insights.domainMix;
         const trends = analytics.insights.trends || [];
-        the tp = analytics.insights.timePatterns;
+        const tp = analytics.insights.timePatterns;
         const recs = analytics.insights.recommendations || [];
         const summaryLines = [];
         const actionLines = [];
 
-        // 1) Risiko
         if (risk) {
             let introKey;
             if (risk.level === 'HOCH') introKey = 'risk_intro_high';
@@ -1020,7 +980,6 @@ const ExportManager = {
             }
         }
 
-        // 2) Domain-Mix
         if (domainMix && domainMix.byDomain && domainMix.byDomain.length) {
             const top = domainMix.byDomain[0];
             const sec = domainMix.byDomain.find(d => d.domain === 'Security');
@@ -1051,7 +1010,6 @@ const ExportManager = {
             }
         }
 
-        // 3) Trends
         const riskTrendInsight = trends.find(t => t.metric === 'Gesamt-Risiko');
         const volumeTrendInsight = trends.find(t => t.metric === 'Ereignis-Volumen');
 
@@ -1078,7 +1036,6 @@ const ExportManager = {
             }
         }
 
-        // 4) Zeitmuster
         if (tp && tp.topHourBucket && tp.topWeekday) {
             summaryLines.push(i18n.t('time_bucket_line', {
                 range: tp.topHourBucket.range,
@@ -1094,7 +1051,6 @@ const ExportManager = {
             }));
         }
 
-        // 5) Maßnahmen
         if (recs.length > 0) {
             recs.slice(0, 3).forEach(rec => {
                 const title = i18n.current === 'de' ? rec.title : (rec.title_en || rec.title);
@@ -1158,7 +1114,6 @@ const ExportManager = {
                 }
             };
 
-            // Analytics
             let analytics;
             try {
                 analytics = new SecurityAnalytics(DashboardState.currentData, DashboardState.headerMap);
@@ -1188,7 +1143,6 @@ const ExportManager = {
                     .filter(Boolean)
             ).size;
 
-            // TITELSEITE
             pdf.setFillColor(0, 163, 122);
             pdf.rect(0, 0, pageWidth, 30, 'F');
 
@@ -1208,7 +1162,6 @@ const ExportManager = {
             const dateWidth = pdf.getTextWidth(dateText);
             pdf.text(dateText, pageWidth - marginX - dateWidth, 23);
 
-            // Executive Summary
             yPos = 40;
             pdf.setTextColor(0, 0, 0);
             pdf.setFontSize(14);
@@ -1255,7 +1208,6 @@ const ExportManager = {
                 });
             }
 
-            // SEITE 2 – AI INSIGHTS
             newPage();
 
             pdf.setTextColor(0, 0, 0);
@@ -1268,7 +1220,6 @@ const ExportManager = {
             pdf.text(i18n.t('desc_ai_insights'), marginX, yPos);
             yPos += 7;
 
-            // Risk & Domains
             if (risk) {
                 ensureSpace(30);
                 pdf.setFontSize(11);
@@ -1333,7 +1284,6 @@ const ExportManager = {
                 }
             }
 
-            // Time & Trends
             const tp = analytics?.insights?.timePatterns;
             const trends = analytics?.insights?.trends || [];
 
@@ -1408,7 +1358,6 @@ const ExportManager = {
                 }
             }
 
-            // Maßnahmen
             const actionLines = narrative.actionLines;
             if (actionLines && actionLines.length) {
                 yPos += 8;
@@ -1430,7 +1379,6 @@ const ExportManager = {
                 });
             }
 
-            // SEITE 3 – VISUAL ANALYTICS
             newPage();
 
             pdf.setTextColor(0, 0, 0);
@@ -1469,7 +1417,6 @@ const ExportManager = {
             addChart('#chartTypes', 'chart_types_title');
             addChart('#chartDomains', 'chart_domains_title');
 
-            // SEITE 4 – AGGREGIERTE TABELLEN
             if (pdf.autoTable) {
                 newPage();
 
@@ -1490,7 +1437,6 @@ const ExportManager = {
                 pdf.text(i18n.t('section_aggregated_overview'), marginX, yPos);
                 yPos += 7;
 
-                // Country
                 pdf.setFontSize(11);
                 pdf.text(i18n.t('chart_countries_title'), marginX, yPos);
                 yPos += 4;
@@ -1511,7 +1457,6 @@ const ExportManager = {
                 });
                 yPos = pdf.lastAutoTable.finalY + 8;
 
-                // Site
                 pdf.setFontSize(11);
                 pdf.text(i18n.t('chart_sites_title'), marginX, yPos);
                 yPos += 4;
@@ -1532,7 +1477,6 @@ const ExportManager = {
                 });
                 yPos = pdf.lastAutoTable.finalY + 8;
 
-                // Type
                 pdf.setFontSize(11);
                 pdf.text(i18n.t('chart_types_title'), marginX, yPos);
                 yPos += 4;
@@ -1554,7 +1498,6 @@ const ExportManager = {
                 yPos = pdf.lastAutoTable.finalY + 10;
             }
 
-            // SEITE 5 – DETAILTABELLE
             if (pdf.autoTable && DashboardState.currentData.length > 0) {
                 newPage();
 
@@ -1811,7 +1754,8 @@ const RenderManager = {
             ['chartCountries', 'chartSites', 'chartTypes', 'chartDomains'].forEach(id => {
                 const c = document.getElementById(id);
                 if (c) {
-                    c.innerHTML = `
+                    c.innerHTML =
+                        c.innerHTML = `
                         <div class="empty-state">
                             <strong>Keine Daten</strong>
                             <span>Bitte laden Sie Daten oder ändern Sie die Filter.</span>
@@ -1843,7 +1787,8 @@ const RenderManager = {
         const domainData = Object.keys(domainCounts)
             .map(domain => ({ key: domain, count: domainCounts[domain] }))
             .filter(d => d.count > 0);
-         ChartManager.create('chartDomains', domainData, 'pie');
+
+        ChartManager.create('chartDomains', domainData, 'pie');
     },
 
     runAnalytics() {
@@ -2020,5 +1965,3 @@ window.addEventListener('error', (e) => {
 window.Dashboard = Dashboard;
 window.DashboardState = DashboardState;
 window.i18n = i18n;
-
-        ChartManager.create('chartDomains
