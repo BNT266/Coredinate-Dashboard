@@ -38,7 +38,7 @@ const CONFIG = {
 // Error handler ganz oben
 window.addEventListener('error', (e) => {
     console.error('💥 KRITISCHER FEHLER:', e.error);
-    alert(`JavaScript Fehler: ${e.error.message} in Zeile ${e.lineno}`);
+    alert(`JavaScript Fehler: ${e.error?.message || e.message} in Zeile ${e.lineno || ''}`);
 });
 
 // =============================================
@@ -268,7 +268,7 @@ class SecurityAnalytics {
                 patterns.push({
                     type: 'concentration',
                     title: 'Ereignis-Konzentration erkannt',
-                    description: `$${Math.round(concentration)}% aller Ereignisse sind "$${dominantType.key}"`,
+                    description: `${Math.round(concentration)}% aller Ereignisse sind "${dominantType.key}"`,
                     severity: concentration > 60 ? 'high' : 'medium'
                 });
             }
@@ -372,15 +372,15 @@ class SecurityAnalytics {
         
         container.innerHTML = `
             <div class="insight-item risk-${risk.class}">
-                <div class="insight-value">Risiko-Level: $${risk.level} ($${risk.score}%)</div>
+                <div class="insight-value">Risiko-Level: ${risk.level} (${risk.score}%)</div>
                 <div class="insight-trend">
-                    $${risk.highRiskEvents} kritische Ereignisse von $${risk.totalEvents} gesamt
+                    ${risk.highRiskEvents} kritische Ereignisse von ${risk.totalEvents} gesamt
                 </div>
             </div>
             ${risk.criticalTypes.length > 0 ? `
                 <div class="insight-item">
                     <div class="insight-value">⚠️ Kritischster Typ:</div>
-                    <div class="insight-trend">$${risk.criticalTypes[0].key} ($${risk.criticalTypes[0].count}x)</div>
+                    <div class="insight-trend">${risk.criticalTypes[0].key} (${risk.criticalTypes[0].count}x)</div>
                 </div>
             ` : ''}
         `;
@@ -402,7 +402,7 @@ class SecurityAnalytics {
         
         container.innerHTML = patterns.slice(0, 2).map(pattern => `
             <div class="insight-item">
-                <div class="insight-value">$${pattern.severity === 'high' ? '🔴' : '🟡'} $${pattern.title}</div>
+                <div class="insight-value">${pattern.severity === 'high' ? '🔴' : '🟡'} ${pattern.title}</div>
                 <div class="insight-trend">${pattern.description}</div>
             </div>
         `).join('');
@@ -414,7 +414,7 @@ class SecurityAnalytics {
         
         container.innerHTML = recommendations.slice(0, 3).map(rec => `
             <div class="insight-item">
-                <div class="insight-value">$${rec.icon} $${rec.title}</div>
+                <div class="insight-value">${rec.icon} ${rec.title}</div>
                 <div class="insight-trend">${rec.action}</div>
             </div>
         `).join('');
@@ -426,9 +426,9 @@ class SecurityAnalytics {
         
         container.innerHTML = trends.slice(0, 3).map(trend => `
             <div class="insight-item">
-                <div class="insight-value">$${trend.metric}: $${trend.current}</div>
+                <div class="insight-value">${trend.metric}: ${trend.current}</div>
                 <div class="insight-trend trend-${trend.forecast.includes('+') ? 'up' : trend.forecast.includes('-') ? 'down' : 'stable'}">
-                    $${trend.forecast} ($${trend.confidence} Konfidenz)
+                    ${trend.forecast} (${trend.confidence} Konfidenz)
                 </div>
             </div>
         `).join('');
@@ -469,7 +469,7 @@ const ThemeManager = {
 };
 
 // =============================================
-// EXPORT MANAGER - KORRIGIERT
+// EXPORT MANAGER – NEUE PROFESSIONELLE VERSION
 // =============================================
 const ExportManager = {
     toCSV() {
@@ -479,8 +479,10 @@ const ExportManager = {
         }
 
         const status = document.getElementById('exportStatus');
-        status.style.display = 'block';
-        status.textContent = 'CSV wird erstellt...';
+        if (status) {
+            status.style.display = 'block';
+            status.textContent = 'CSV wird erstellt...';
+        }
 
         try {
             const headers = Object.keys(DashboardState.currentData[0]);
@@ -501,124 +503,367 @@ const ExportManager = {
             link.download = `security-events-${timestamp}.csv`;
             link.click();
 
-            status.textContent = `✅ CSV exportiert (${DashboardState.currentData.length} Datensätze)`;
-            setTimeout(() => { status.style.display = 'none'; }, 3000);
+            if (status) {
+                status.textContent = `✅ CSV exportiert (${DashboardState.currentData.length} Datensätze)`;
+                setTimeout(() => { status.style.display = 'none'; }, 3000);
+            }
 
         } catch (error) {
             console.error('CSV Export Error:', error);
-            status.textContent = '❌ Fehler beim CSV-Export';
-            setTimeout(() => { status.style.display = 'none'; }, 3000);
+            if (status) {
+                status.textContent = '❌ Fehler beim CSV-Export';
+                setTimeout(() => { status.style.display = 'none'; }, 3000);
+            }
         }
     },
 
     async toPDF() {
         if (!DashboardState.currentData || DashboardState.currentData.length === 0) {
-            alert('Keine Daten!');
+            alert('Keine Daten zum Exportieren vorhanden!');
             return;
         }
 
         const status = document.getElementById('exportStatus');
-        status.style.display = 'block';
-        status.textContent = '🎨 Professionelle PDF wird erstellt...';
+        if (status) {
+            status.style.display = 'block';
+            status.textContent = '📄 Professioneller PDF-Report wird erstellt...';
+        }
 
         try {
             if (typeof window.jspdf === 'undefined') {
-                throw new Error('jsPDF ist nicht geladen!');
+                throw new Error('jsPDF ist nicht geladen (prüfe Script-Tags)!');
             }
 
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF('p', 'mm', 'a4');
             const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            const marginX = 15;
+            let yPos = 10;
 
-            // ===== MODERNE HEADER SECTION =====
-            
-            // Gradient-artiger Header (Dunkelgrün zu Hellgrün)
+            const ensureSpace = (neededHeight) => {
+                if (yPos + neededHeight > pageHeight - 15) {
+                    pdf.addPage();
+                    yPos = 20;
+                }
+            };
+
+            // HEADER
             pdf.setFillColor(0, 163, 122);
-            pdf.rect(0, 0, pageWidth, 50, 'F');
-            
-            pdf.setFillColor(46, 204, 113);
-            pdf.rect(0, 35, pageWidth, 15, 'F');
-            
-            // Titel
-            pdf.setTextColor(255, 255, 255);
-            pdf.setFontSize(24);
-            pdf.text('SECURITY DASHBOARD', 20, 25);
-            
-            pdf.setFontSize(11);
-            pdf.text('Professional Security Events Analysis Report', 20, 35);
-            
-            // Datum in der rechten Ecke
-            const now = new Date();
-            const dateStr = now.getDate() + '.' + (now.getMonth() + 1) + '.' + now.getFullYear();
-            pdf.setFontSize(10);
-            pdf.text('Erstellt: ' + dateStr, pageWidth - 45, 45);
+            pdf.rect(0, 0, pageWidth, 40, 'F');
 
-            // ===== KPI DASHBOARD CARDS =====
-            
-            let yPos = 65;
+            pdf.setTextColor(255, 255, 255);
+            pdf.setFontSize(18);
+            pdf.text('SECURITY EVENT DASHBOARD', marginX, 18);
+
+            pdf.setFontSize(10);
+            pdf.text('Professional Security Events Analysis Report', marginX, 25);
+
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('de-DE', {
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit'
+            });
+            pdf.setFontSize(9);
+            pdf.text(`Erstellt: ${dateStr}`, pageWidth - marginX - 55, 34);
+
+            yPos = 50;
+
+            // EXECUTIVE SUMMARY / KPIs
             pdf.setTextColor(0, 0, 0);
-            pdf.setFontSize(16);
-            pdf.text('Executive Summary', 20, yPos);
-            
-            yPos += 15;
-            
-            // KPI Cards nebeneinander
+            pdf.setFontSize(14);
+            pdf.text('Executive Summary', marginX, yPos);
+            yPos += 8;
+
+            const totalEvents = DashboardState.currentData.length;
+
+            const totalCountries = new Set(
+                DashboardState.currentData
+                    .map(r => DashboardState.headerMap.country ? (r[DashboardState.headerMap.country] || '').trim() : '')
+                    .filter(Boolean)
+            ).size;
+
+            const totalSites = new Set(
+                DashboardState.currentData
+                    .map(r => DashboardState.headerMap.site ? (r[DashboardState.headerMap.site] || '').trim() : '')
+                    .filter(Boolean)
+            ).size;
+
+            const totalTypes = new Set(
+                DashboardState.currentData
+                    .map(r => DashboardState.headerMap.type ? (r[DashboardState.headerMap.type] || '').trim() : '')
+                    .filter(Boolean)
+            ).size;
+
             const kpis = [
-                { label: 'Ereignisse', value: DashboardState.currentData.length, color: [52, 152, 219] },
-                { label: 'Laender', value: new Set(DashboardState.currentData.map(r => 
-                    DashboardState.headerMap.country ? r[DashboardState.headerMap.country] : '')).size, color: [155, 89, 182] },
-                { label: 'Standorte', value: new Set(DashboardState.currentData.map(r => 
-                    DashboardState.headerMap.site ? r[DashboardState.headerMap.site] : '')).size, color: [230, 126, 34] },
-                { label: 'Event-Arten', value: new Set(DashboardState.currentData.map(r => 
-                    DashboardState.headerMap.type ? r[DashboardState.headerMap.type] : '')).size, color: [231, 76, 60] }
+                { label: 'Ereignisse', value: totalEvents, color: [52, 152, 219] },
+                { label: 'Länder', value: totalCountries, color: [155, 89, 182] },
+                { label: 'Liegenschaften', value: totalSites, color: [230, 126, 34] },
+                { label: 'Ereignisarten', value: totalTypes, color: [231, 76, 60] }
             ];
-            
+
+            const cardWidth = 40;
+            const cardHeight = 22;
+            const cardSpacing = 5;
+
             kpis.forEach((kpi, i) => {
-                const x = 20 + (i * 42);
-                
-                // Card Background mit Schatten-Effekt
-                pdf.setFillColor(240, 240, 240);
-                pdf.rect(x + 1, yPos + 1, 38, 25, 'F'); // Schatten
-                
+                const x = marginX + i * (cardWidth + cardSpacing);
+
+                // Schatten
+                pdf.setFillColor(230, 230, 230);
+                pdf.rect(x + 1, yPos + 1, cardWidth, cardHeight, 'F');
+
+                // Card
                 pdf.setFillColor(255, 255, 255);
-                pdf.rect(x, yPos, 38, 25, 'F'); // Card
-                
-                // Farbiger oberer Rand
+                pdf.rect(x, yPos, cardWidth, cardHeight, 'F');
+
+                // Oberer Rand
                 pdf.setFillColor(kpi.color[0], kpi.color[1], kpi.color[2]);
-                pdf.rect(x, yPos, 38, 3, 'F');
-                
+                pdf.rect(x, yPos, cardWidth, 3, 'F');
+
                 // Rahmen
                 pdf.setDrawColor(kpi.color[0], kpi.color[1], kpi.color[2]);
-                pdf.setLineWidth(0.5);
-                pdf.rect(x, yPos, 38, 25, 'S');
-                
-                // Wert (groß und farbig)
+                pdf.setLineWidth(0.4);
+                pdf.rect(x, yPos, cardWidth, cardHeight, 'S');
+
+                // Wert
                 pdf.setTextColor(kpi.color[0], kpi.color[1], kpi.color[2]);
-                pdf.setFontSize(18);
-                pdf.text(String(kpi.value), x + 5, yPos + 14);
-                
-                // Label (klein und grau)
+                pdf.setFontSize(14);
+                pdf.text(String(kpi.value), x + 3, yPos + 13);
+
+                // Label
                 pdf.setTextColor(80, 80, 80);
                 pdf.setFontSize(8);
-                pdf.text(kpi.label, x + 5, yPos + 22);
+                pdf.text(kpi.label, x + 3, yPos + 19);
             });
 
-            // Download
-            const filename = 'Security-Dashboard-Report-' + now.getFullYear() + '-' + 
-                            String(now.getMonth() + 1).padStart(2, '0') + '-' + 
-                            String(now.getDate()).padStart(2, '0') + '.pdf';
+            yPos += cardHeight + 10;
+
+            // CHARTS ALS PNG
+            pdf.setFontSize(13);
+            pdf.setTextColor(0, 0, 0);
+            pdf.text('Visualisierte Ereignisverteilung', marginX, yPos);
+            yPos += 6;
+
+            const addChart = (selector, titel) => {
+                const container = document.querySelector(selector);
+                if (!container) return;
+                const canvas = container.querySelector('canvas');
+                if (!canvas) return;
+
+                const imgData = canvas.toDataURL('image/png', 1.0);
+                const imgHeight = 60;
+                const imgWidth = pageWidth - 2 * marginX;
+
+                ensureSpace(imgHeight + 10);
+
+                pdf.setFontSize(11);
+                pdf.text(titel, marginX, yPos);
+                yPos += 3;
+
+                pdf.addImage(imgData, 'PNG', marginX, yPos, imgWidth, imgHeight);
+                yPos += imgHeight + 8;
+            };
+
+            addChart('#chartCountries', 'Ereignisse nach Ländern');
+            addChart('#chartSites',      'Ereignisse nach Liegenschaften');
+            addChart('#chartTypes',      'Ereignisse nach Ereignisarten');
+
+            // ANALYTICS: Risiko & Empfehlungen
+            let analytics;
+            try {
+                analytics = new SecurityAnalytics(DashboardState.currentData, DashboardState.headerMap);
+                analytics.analyze();
+            } catch (e) {
+                console.warn('Analytics konnten nicht berechnet werden:', e);
+            }
+
+            if (analytics && analytics.insights && analytics.insights.risk) {
+                ensureSpace(50);
+                const risk = analytics.insights.risk;
+                const recs = analytics.insights.recommendations || [];
+                const trends = analytics.insights.trends || [];
+
+                pdf.setFontSize(13);
+                pdf.text('Risikobewertung & KI-Empfehlungen', marginX, yPos);
+                yPos += 6;
+
+                pdf.setFontSize(10);
+
+                const riskLevelText = `Risiko-Level: ${risk.level} (${risk.score}%)`;
+                pdf.text(riskLevelText, marginX, yPos);
+                yPos += 5;
+
+                const riskDetails = `${risk.highRiskEvents} kritische Ereignisse von ${risk.totalEvents} gesamt.`;
+                pdf.text(riskDetails, marginX, yPos);
+                yPos += 5;
+
+                if (risk.criticalTypes && risk.criticalTypes[0]) {
+                    const crit = risk.criticalTypes[0];
+                    pdf.text(
+                        `Kritischste Ereignisart: ${crit.key} (${crit.count} Vorfälle)`,
+                        marginX,
+                        yPos
+                    );
+                    yPos += 6;
+                }
+
+                if (trends.length > 0) {
+                    ensureSpace(20);
+                    pdf.text('Trend-Prognose:', marginX, yPos);
+                    yPos += 5;
+                    trends.slice(0, 2).forEach(trend => {
+                        const line = `• ${trend.metric}: aktuell ${trend.current}, Prognose ${trend.forecast} (${trend.confidence} Konfidenz)`;
+                        ensureSpace(6);
+                        pdf.text(line, marginX, yPos);
+                        yPos += 5;
+                    });
+                }
+
+                if (recs.length > 0) {
+                    ensureSpace(20);
+                    pdf.text('Empfohlene Maßnahmen:', marginX, yPos);
+                    yPos += 5;
+
+                    recs.slice(0, 3).forEach(rec => {
+                        const line = `• ${rec.title}: ${rec.action}`;
+                        ensureSpace(6);
+                        pdf.text(line, marginX, yPos);
+                        yPos += 5;
+                    });
+                }
+            }
+
+            // AGGREGIERTE TABELLEN (mit AutoTable)
+            if (pdf.autoTable) {
+                pdf.addPage();
+                yPos = 20;
+
+                const byCountry = Utils.groupAndCount(DashboardState.currentData, row =>
+                    DashboardState.headerMap.country ? row[DashboardState.headerMap.country] : ''
+                );
+
+                const bySite = Utils.groupAndCount(DashboardState.currentData, row =>
+                    DashboardState.headerMap.site ? row[DashboardState.headerMap.site] : ''
+                );
+
+                const byType = Utils.groupAndCount(DashboardState.currentData, row =>
+                    DashboardState.headerMap.type ? row[DashboardState.headerMap.type] : ''
+                );
+
+                pdf.setFontSize(13);
+                pdf.text('Aggregierte Ereignisübersicht', marginX, yPos);
+                yPos += 6;
+
+                // nach Land
+                pdf.setFontSize(11);
+                pdf.text('Ereignisse nach Land', marginX, yPos);
+                yPos += 4;
+
+                pdf.autoTable({
+                    startY: yPos,
+                    head: [['Land', 'Anzahl']],
+                    body: byCountry.map(r => [r.key || '(leer)', r.count]),
+                    margin: { left: marginX, right: marginX },
+                    styles: { fontSize: 8 },
+                    headStyles: {
+                        fillColor: [0, 163, 122],
+                        textColor: 255
+                    }
+                });
+                yPos = pdf.lastAutoTable.finalY + 8;
+
+                // nach Liegenschaft
+                pdf.setFontSize(11);
+                pdf.text('Ereignisse nach Liegenschaft', marginX, yPos);
+                yPos += 4;
+
+                pdf.autoTable({
+                    startY: yPos,
+                    head: [['Liegenschaft', 'Anzahl']],
+                    body: bySite.map(r => [r.key || '(leer)', r.count]),
+                    margin: { left: marginX, right: marginX },
+                    styles: { fontSize: 8 },
+                    headStyles: {
+                        fillColor: [0, 163, 122],
+                        textColor: 255
+                    }
+                });
+                yPos = pdf.lastAutoTable.finalY + 8;
+
+                // nach Ereignisart
+                pdf.setFontSize(11);
+                pdf.text('Ereignisse nach Ereignisart', marginX, yPos);
+                yPos += 4;
+
+                pdf.autoTable({
+                    startY: yPos,
+                    head: [['Ereignisart', 'Anzahl']],
+                    body: byType.map(r => [r.key || '(leer)', r.count]),
+                    margin: { left: marginX, right: marginX },
+                    styles: { fontSize: 8 },
+                    headStyles: {
+                        fillColor: [0, 163, 122],
+                        textColor: 255
+                    }
+                });
+                yPos = pdf.lastAutoTable.finalY + 10;
+            }
+
+            // DETAILTABELLE (erste N Datensätze)
+            if (pdf.autoTable && DashboardState.currentData.length > 0) {
+                pdf.addPage();
+                yPos = 20;
+
+                const maxRows = 100;
+                const headers = Object.keys(DashboardState.currentData[0]);
+                const rows = DashboardState.currentData
+                    .slice(0, maxRows)
+                    .map(row => headers.map(h => row[h] || ''));
+
+                pdf.setFontSize(13);
+                pdf.text(
+                    `Detailierte Ereignisliste (erste ${Math.min(maxRows, DashboardState.currentData.length)} Events)`,
+                    marginX,
+                    yPos
+                );
+                yPos += 6;
+
+                pdf.autoTable({
+                    startY: yPos,
+                    head: [headers],
+                    body: rows,
+                    margin: { left: marginX, right: marginX },
+                    styles: { fontSize: 7 },
+                    headStyles: {
+                        fillColor: [0, 163, 122],
+                        textColor: 255
+                    }
+                });
+            }
+
+            const filename =
+                'Security-Dashboard-Report-' +
+                now.getFullYear() + '-' +
+                String(now.getMonth() + 1).padStart(2, '0') + '-' +
+                String(now.getDate()).padStart(2, '0') + '.pdf';
+
             pdf.save(filename);
 
-            status.textContent = '✅ Professionelle PDF erstellt: ' + filename;
-            setTimeout(() => { status.style.display = 'none'; }, 4000);
+            if (status) {
+                status.textContent = '✅ Professioneller PDF-Report erstellt: ' + filename;
+                setTimeout(() => { status.style.display = 'none'; }, 4000);
+            }
 
         } catch (error) {
             console.error('PDF Error:', error);
-            status.textContent = '❌ PDF Fehler: ' + error.message;
-            setTimeout(() => { status.style.display = 'none'; }, 5000);
+            if (status) {
+                status.textContent = '❌ PDF Fehler: ' + error.message;
+                setTimeout(() => { status.style.display = 'none'; }, 5000);
+            }
         }
     }
-}; //
+};
 
 // =============================================
 // FILTER MANAGER
@@ -649,7 +894,7 @@ const FilterManager = {
 
         this.updateStatus();
         RenderManager.renderAll();
-        console.log(`🔍 Filter applied: $${DashboardState.currentData.length}/$${DashboardState.allData.length} records`);
+        console.log(`🔍 Filter applied: ${DashboardState.currentData.length}/${DashboardState.allData.length} records`);
     },
 
     reset() {
@@ -686,10 +931,9 @@ const FilterManager = {
         
         select.innerHTML = `<option value="__ALL__">${placeholder}</option>`;
         values.forEach(value => {
-            select.innerHTML += `<option value="$${value}">$${value}</option>`;
+            select.innerHTML += `<option value="${value}">${value}</option>`;
         });
         
-        // Restore selection if still valid
         if (values.includes(currentValue)) {
             select.value = currentValue;
         }
@@ -716,7 +960,6 @@ const RenderManager = {
         document.getElementById('kpiTotalEvents').textContent = total;
         document.getElementById('kpiTotalEventsSub').textContent = `${current} nach Filter`;
 
-        // Calculate unique values from all data
         const countries = new Set();
         const sites = new Set();
         const types = new Set();
@@ -739,7 +982,6 @@ const RenderManager = {
     },
 
     renderFilters() {
-        // Extract unique values for filters
         const countries = [...new Set(DashboardState.allData
             .map(row => DashboardState.headerMap.country ? row[DashboardState.headerMap.country].trim() : '')
             .filter(Boolean))].sort();
@@ -758,7 +1000,6 @@ const RenderManager = {
     },
 
     renderTables() {
-        // Group current data
         const byCountry = Utils.groupAndCount(DashboardState.currentData, row => 
             DashboardState.headerMap.country ? row[DashboardState.headerMap.country] : '');
         const bySite = Utils.groupAndCount(DashboardState.currentData, row => 
@@ -766,11 +1007,10 @@ const RenderManager = {
         const byType = Utils.groupAndCount(DashboardState.currentData, row => 
             DashboardState.headerMap.type ? row[DashboardState.headerMap.type] : '');
 
-        // Render tables
         document.querySelector('#tableByCountry tbody').innerHTML = 
-            byCountry.map(item => `<tr><td>$${item.key || '(leer)'}</td><td>$${item.count}</td></tr>`).join('');
+            byCountry.map(item => `<tr><td>${item.key || '(leer)'}</td><td>${item.count}</td></tr>`).join('');
 
-    // Site table with country information
+        // Site table with country information
         const siteMap = new Map();
         DashboardState.currentData.forEach(row => {
             const site = DashboardState.headerMap.site ? row[DashboardState.headerMap.site] : '';
@@ -868,22 +1108,30 @@ const DataManager = {
             
         } catch (error) {
             console.error('CSV loading error:', error);
-            document.getElementById('fileStatus').textContent = `Fehler beim Lesen der Datei: ${error.message}`;
-            document.getElementById('fileStatus').className = 'status error';
+            const status = document.getElementById('fileStatus');
+            status.textContent = `Fehler beim Lesen der Datei: ${error.message}`;
+            status.className = 'status error';
         }
     },
 
     updateUI(mode, filename = '') {
         document.getElementById('recordCount').textContent = DashboardState.allData.length;
         
+        const modeIndicator = document.getElementById('modeIndicator');
+        const fileStatus = document.getElementById('fileStatus');
+
         if (mode === 'testdata') {
-            document.getElementById('modeIndicator').textContent = 'Modus: Testdaten (Demo)';
-            document.getElementById('fileStatus').textContent = 'Testdaten sind geladen (Demo-Modus).';
-            document.getElementById('fileStatus').className = 'status';
+            modeIndicator.textContent = 'Modus: Testdaten (Demo)';
+            fileStatus.textContent = 'Testdaten sind geladen (Demo-Modus).';
+            fileStatus.className = 'status';
         } else if (mode === 'csv') {
-            document.getElementById('modeIndicator').textContent = 'Modus: CSV-Datei';
-            document.getElementById('fileStatus').textContent = `Datei "${filename}" geladen. Datensätze: ${DashboardState.allData.length}.`;
-            document.getElementById('fileStatus').className = 'status';
+            modeIndicator.textContent = 'Modus: CSV-Datei';
+            fileStatus.textContent = `Datei "${filename}" geladen. Datensätze: ${DashboardState.allData.length}.`;
+            fileStatus.className = 'status';
+        } else {
+            modeIndicator.textContent = 'Modus: Keine Daten';
+            fileStatus.textContent = 'Keine Datei geladen.';
+            fileStatus.className = 'status';
         }
     }
 };
@@ -895,13 +1143,8 @@ const Dashboard = {
     init() {
         console.log('🚀 Initializing Security Dashboard...');
         
-        // Initialize theme
         ThemeManager.init();
-        
-        // Setup event listeners
         this.setupEventListeners();
-        
-        // Initialize UI state
         this.initializeUI();
         
         console.log('✅ Dashboard initialized successfully!');
@@ -932,12 +1175,8 @@ const Dashboard = {
     },
 
     initializeUI() {
-        // Set initial filter status
         FilterManager.updateStatus();
-        
-        // Clear analytics panels
         RenderManager.clearAnalytics();
-        
         console.log('🎨 UI initialized');
     }
 };
@@ -951,7 +1190,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Global error handler
 window.addEventListener('error', (e) => {
-    console.error('Dashboard Error:', e.error);
+    console.error('Dashboard Error:', e.error || e.message);
 });
 
 // Export for debugging
