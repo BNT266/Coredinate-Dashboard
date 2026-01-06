@@ -39,7 +39,7 @@ const CONFIG = {
 // i18n – einfache Sprachverwaltung (DE/EN)
 // =============================================
 const i18n = {
-    current: 'de', // default
+    current: 'de',
 
     set(lang) {
         this.current = ['de', 'en'].includes(lang) ? lang : 'de';
@@ -227,10 +227,6 @@ const i18n = {
             de: 'Das Risiko wird als weitgehend stabil eingeschätzt.',
             en: 'Risk levels are expected to remain broadly stable.'
         },
-        trend_volume: {
-            de: 'Das Ereignisaufkommen wird im nächsten Zeitraum mit {{forecast}} prognostiziert.',
-            en: 'Event volume for the next period is forecast at {{forecast}}.'
-        },
         trend_risk_sentence: {
             de: 'Für das Gesamtrisiko wird eine {{trend}} Entwicklung mit einer geschätzten Konfidenz von {{confidence}} erwartet.',
             en: 'For overall risk, a {{trend}} development is expected with an estimated confidence level of {{confidence}}.'
@@ -260,7 +256,7 @@ const i18n = {
             en: '• '
         },
 
-        // UI / Export-Messages (Toasts, Status)
+        // UI / Export-Messages
         toast_pdf_start: {
             de: 'Professioneller PDF-Report wird erstellt...',
             en: 'Generating professional PDF report...'
@@ -994,7 +990,7 @@ const ExportManager = {
         const risk = analytics.insights.risk;
         const domainMix = analytics.insights.domainMix;
         const trends = analytics.insights.trends || [];
-        const tp = analytics.insights.timePatterns;
+        the tp = analytics.insights.timePatterns;
         const recs = analytics.insights.recommendations || [];
         const summaryLines = [];
         const actionLines = [];
@@ -1067,7 +1063,6 @@ const ExportManager = {
                 else if (t.includes('fallend')) trendKey = 'trend_risk_down';
                 else trendKey = 'trend_risk_stable';
 
-                // Satz mit Konfidenz
                 summaryLines.push(i18n.t('trend_risk_sentence', {
                     trend: i18n.t(trendKey),
                     confidence: riskTrendInsight.confidence
@@ -1099,7 +1094,7 @@ const ExportManager = {
             }));
         }
 
-        // 5) Maßnahmen (narrativ)
+        // 5) Maßnahmen
         if (recs.length > 0) {
             recs.slice(0, 3).forEach(rec => {
                 const title = i18n.current === 'de' ? rec.title : (rec.title_en || rec.title);
@@ -1193,9 +1188,7 @@ const ExportManager = {
                     .filter(Boolean)
             ).size;
 
-            // ============================
             // TITELSEITE
-            // ============================
             pdf.setFillColor(0, 163, 122);
             pdf.rect(0, 0, pageWidth, 30, 'F');
 
@@ -1262,9 +1255,7 @@ const ExportManager = {
                 });
             }
 
-            // ============================
             // SEITE 2 – AI INSIGHTS
-            // ============================
             newPage();
 
             pdf.setTextColor(0, 0, 0);
@@ -1439,9 +1430,7 @@ const ExportManager = {
                 });
             }
 
-            // ============================
             // SEITE 3 – VISUAL ANALYTICS
-            // ============================
             newPage();
 
             pdf.setTextColor(0, 0, 0);
@@ -1480,9 +1469,7 @@ const ExportManager = {
             addChart('#chartTypes', 'chart_types_title');
             addChart('#chartDomains', 'chart_domains_title');
 
-            // ============================
             // SEITE 4 – AGGREGIERTE TABELLEN
-            // ============================
             if (pdf.autoTable) {
                 newPage();
 
@@ -1567,9 +1554,7 @@ const ExportManager = {
                 yPos = pdf.lastAutoTable.finalY + 10;
             }
 
-            // ============================
             // SEITE 5 – DETAILTABELLE
-            // ============================
             if (pdf.autoTable && DashboardState.currentData.length > 0) {
                 newPage();
 
@@ -1844,8 +1829,7 @@ const RenderManager = {
         const types = Utils.groupAndCount(DashboardState.currentData, row =>
             DashboardState.headerMap.type ? row[DashboardState.headerMap.type] : '');
 
-        ChartManager.create('chartCountries', countries, 'bar
-                            ChartManager.create('chartCountries', countries, 'bar');
+        ChartManager.create('chartCountries', countries, 'bar');
         ChartManager.create('chartSites', sites, 'bar');
         ChartManager.create('chartTypes', types, 'pie');
 
@@ -1859,8 +1843,7 @@ const RenderManager = {
         const domainData = Object.keys(domainCounts)
             .map(domain => ({ key: domain, count: domainCounts[domain] }))
             .filter(d => d.count > 0);
-
-        ChartManager.create('chartDomains', domainData, 'pie');
+         ChartManager.create('chartDomains', domainData, 'pie');
     },
 
     runAnalytics() {
@@ -2000,15 +1983,13 @@ const Dashboard = {
         document.getElementById('exportCSV').addEventListener('click', ExportManager.toCSV.bind(ExportManager));
         document.getElementById('exportPDF').addEventListener('click', ExportManager.toPDF.bind(ExportManager));
 
-        // Sprache für Report (Select mit id="reportLanguage")
+        // Sprache für Report
         const langSelect = document.getElementById('reportLanguage');
         if (langSelect) {
             langSelect.addEventListener('change', (e) => {
                 const lang = e.target.value || 'de';
                 i18n.set(lang);
             });
-
-            // initialer Wert
             i18n.set(langSelect.value || 'de');
         }
 
@@ -2029,7 +2010,7 @@ document.addEventListener('DOMContentLoaded', () => {
     Dashboard.init();
 });
 
-// Global error handler (ohne Alert, mit Toast)
+// Global error handler
 window.addEventListener('error', (e) => {
     console.error('Dashboard Error:', e.error || e.message);
     UI.showToast('Unerwarteter Fehler im Dashboard. Details in der Konsole.', 'error', 6000);
@@ -2039,3 +2020,5 @@ window.addEventListener('error', (e) => {
 window.Dashboard = Dashboard;
 window.DashboardState = DashboardState;
 window.i18n = i18n;
+
+        ChartManager.create('chartDomains
