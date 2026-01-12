@@ -2245,3 +2245,457 @@ const RenderManager = {
                 sites.add(row[DashboardState.headerMap.site].trim());
             }
             if (DashboardState.headerMap.type && row[DashboardState.header
+                if (DashboardState.headerMap.type && row[DashboardState.headerMap.type]) {
+                types.add(row[DashboardState.headerMap.type].trim());
+            }
+        });
+
+        UI.updateText('kpiCountries', countries.size);
+        UI.updateText('kpiSites', sites.size);
+        UI.updateText('kpiTypes', types.size);
+    },
+
+    /**
+     * Rendert die Filter-Dropdowns
+     */
+    renderFilters() {
+        const countries = [...new Set(
+            DashboardState.allData
+                .map(row => DashboardState.headerMap.country ? (row[DashboardState.headerMap.country] || '').trim() : '')
+                .filter(Boolean)
+        )].sort();
+
+        const sites = [...new Set(
+            DashboardState.allData
+                .map(row => DashboardState.headerMap.site ? (row[DashboardState.headerMap.site] || '').trim() : '')
+                .filter(Boolean)
+        )].sort();
+
+        const types = [...new Set(
+            DashboardState.allData
+                .map(row => DashboardState.headerMap.type ? (row[DashboardState.headerMap.type] || '').trim() : '')
+                .filter(Boolean)
+        )].sort();
+
+        FilterManager.updateSelectOptions('filterCountry', countries, 'Alle Länder');
+        FilterManager.updateSelectOptions('filterSite', sites, 'Alle Liegenschaften');
+        FilterManager.updateSelectOptions('filterType', types, 'Alle Ereignisarten');
+    },
+
+    /**
+     * Rendert die Datentabellen
+     */
+    renderTables() {
+        const emptyStateHtml = (colspan) => `
+            <tr>
+                <td colspan="${colspan}" class="empty-state">
+                    <strong>Keine Daten</strong>
+                    <span>Bitte laden Sie Daten oder passen Sie die Filter an.</span>
+                </td>
+            </tr>
+        `;
+
+        if (DashboardState.currentData.length === 0) {
+            const tbodyCountry = document.querySelector('#tableByCountry tbody');
+            const tbodySite = document.querySelector('#tableBySite tbody');
+            const tbodyType = document.querySelector('#tableByType tbody');
+
+            if (tbodyCountry) tbodyCountry.innerHTML = emptyStateHtml(2);
+            if (tbodySite) tbodySite.innerHTML = emptyStateHtml(3);
+            if (tbodyType) tbodyType.innerHTML = emptyStateHtml(2);
+            return;
+        }
+
+        // Nach Land gruppieren
+        const byCountry = Utils.groupAndCount(DashboardState.currentData, row =>
+            DashboardState.headerMap.country ? row[DashboardState.headerMap.country] : ''
+        );
+
+        // Nach Ereignisart gruppieren
+        const byType = Utils.groupAndCount(DashboardState.currentData, row =>
+            DashboardState.headerMap.type ? row[DashboardState.headerMap.type] : ''
+        );
+
+        // Nach Liegenschaft gruppieren (mit Land)
+        const siteMap = new Map();
+        DashboardState.currentData.forEach(row => {
+            const site = DashboardState.headerMap.site ? row[DashboardState.headerMap.site] : '';
+            const country = DashboardState.headerMap.country ? row[DashboardState.headerMap.country] : '';
+            const key = `${site}||${country}`;
+            siteMap.set(key, (siteMap.get(key) || 0) + 1);
+        });
+
+        const siteArray = Array.from(siteMap.entries())
+            .map(([key, count]) => {
+                const [site, country] = key.split('||');
+                return {
+                    site: site || '(leer)',
+                    country: country || '(leer)',
+                    count
+                };
+            })
+            .sort((a, b) => b.count - a.count);
+
+        // Tabellen befüllen
+        const tbodyCountry = document.querySelector('#tableByCountry tbody');
+        if (tbodyCountry) {
+            tbodyCountry.innerHTML = byCountry.map(item => `
+                <tr>
+                    <td>${Utils.escapeHtml(item.key || '(leer)')}</td>
+                    <td>${item.count}</td>
+                </tr>
+            `).join('');
+        }
+
+        const tbodySite = document.querySelector('#tableBySite tbody');
+        if (tbodySite) {
+            tbodySite.innerHTML = siteArray.map(item => `
+                <tr>
+                    <td>${Utils.escapeHtml(item.site)}</td>
+                    <td>${Utils.escapeHtml(item.country)}</td>
+                    <td>${item.count}</td>
+                </tr>
+            `).join('');
+        }
+
+        const tbodyType = document.querySelector('#tableByType tbody');
+        if (tbodyType) {
+            tbodyType.innerHTML = byType.map(item => `
+                <tr>
+                    <td>${Utils.escapeHtml(item.key || '(leer)')}</td>
+                    <td>${item.count}</td>
+                </tr>
+            `).join('');
+        }
+    },
+
+    /**
+     * Rendert alle Charts
+     */
+    renderCharts() {
+        const emptyHtml = `
+            <div class="empty-state">
+                <strong>Keine Daten</strong>
+                <span>Bitte laden Sie Daten oder ändern Sie die Filter.</span>
+            </div>
+        `;
+
+        if (DashboardState.currentData.length === 0) {
+            ['chartCountries', 'chartSites', 'chartTypes', 'chartDomains'].forEach(id => {
+                const container = document.getElementById(id);
+                if (container) {
+                    container.innerHTML = emptyHtml;
+                }
+            });
+            ChartManager.destroyAll();
+            return;
+        }
+
+        // Daten für Charts vorbereiten
+        const countries = Utils.groupAndCount(DashboardState.currentData, row =>
+            DashboardState.headerMap.country ? row[DashboardState.headerMap.country] : ''
+        );
+
+        const sites = Utils.groupAndCount(DashboardState.currentData, row =>
+            DashboardState.headerMap.site ? row[DashboardState.headerMap.site] : ''
+        );
+
+        const types = Utils.groupAndCount(DashboardState.currentData, row =>
+            DashboardState.headerMap.type ? row[DashboardState.headerMap.type] : ''
+        );
+
+        // Domain-Verteilung berechnen
+        const domainCounts = { Security: 0, FM: 0, SHE: 0, Other: 0 };
+        DashboardState.currentData.forEach(row => {
+            const domain = Utils.classifyCategory(row, DashboardState.headerMap);
+            domainCounts[domain] = (domainCounts[domain] || 0) + 1;
+        });
+
+        const domainData = Object.keys(domainCounts)
+            .map(domain => ({ key: domain, count: domainCounts[domain] }))
+            .filter(d => d.count > 0);
+
+        // Charts erstellen
+        ChartManager.create('chartCountries', countries, 'bar');
+        ChartManager.create('chartSites', sites, 'bar');
+        ChartManager.create('chartTypes', types, 'pie');
+        ChartManager.create('chartDomains', domainData, 'pie');
+    },
+
+    /**
+     * Führt die Analytics aus
+     */
+    runAnalytics() {
+        if (DashboardState.currentData.length === 0) {
+            this.clearAnalytics();
+            return;
+        }
+
+        try {
+            const analytics = new SecurityAnalytics(DashboardState.currentData, DashboardState.headerMap);
+            analytics.analyze();
+        } catch (error) {
+            console.error('Analytics error:', error);
+            this.clearAnalytics();
+        }
+    },
+
+    /**
+     * Leert die Analytics-Anzeigen
+     */
+    clearAnalytics() {
+        const loadingHtml = '<div class="loading">Keine Daten für Analyse verfügbar</div>';
+
+        ['riskAssessment', 'patternDetection', 'smartRecommendations', 'trendForecast'].forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.innerHTML = loadingHtml;
+            }
+        });
+    }
+};
+
+// =============================================
+// DATA MANAGER
+// =============================================
+const DataManager = {
+    /**
+     * Lädt die Testdaten
+     */
+    loadTestData() {
+        console.log('📊 Loading test data...');
+
+        try {
+            const parsed = Utils.parseCSV(TestData.csv);
+
+            DashboardState.allData = parsed.rows;
+            DashboardState.headerMap = Utils.createHeaderMap(parsed.headers);
+            DashboardState.currentData = [...DashboardState.allData];
+
+            RiskConfigManager.render();
+            this.updateUI('testdata');
+            RenderManager.renderAll();
+
+            console.log(`✅ Test data loaded: ${DashboardState.allData.length} records`);
+            UI.showToast(i18n.t('toast_testdata_loaded'), 'info');
+
+        } catch (error) {
+            console.error('Error loading test data:', error);
+            UI.showToast('Fehler beim Laden der Testdaten: ' + error.message, 'error');
+        }
+    },
+
+    /**
+     * Lädt eine CSV-Datei
+     * @param {File} file - Die zu ladende Datei
+     */
+    async loadCSVFile(file) {
+        console.log(`📁 Loading CSV file: ${file.name}`);
+
+        const status = document.getElementById('fileStatus');
+
+        try {
+            const text = await file.text();
+            const parsed = Utils.parseCSV(text);
+
+            if (parsed.rows.length === 0) {
+                throw new Error('CSV-Datei enthält keine gültigen Daten');
+            }
+
+            DashboardState.allData = parsed.rows;
+            DashboardState.headerMap = Utils.createHeaderMap(parsed.headers);
+            DashboardState.currentData = [...DashboardState.allData];
+
+            RiskConfigManager.render();
+            this.updateUI('csv', file.name);
+            RenderManager.renderAll();
+
+            console.log(`✅ CSV file loaded: ${DashboardState.allData.length} records`);
+            UI.showToast(i18n.t('toast_csv_loaded', { filename: file.name }), 'success');
+
+            // Warnung bei fehlenden Spalten
+            if (!DashboardState.headerMap.country ||
+                !DashboardState.headerMap.site ||
+                !DashboardState.headerMap.type) {
+                UI.showToast(i18n.t('toast_columns_warning'), 'info', 8000);
+            }
+
+        } catch (error) {
+            console.error('CSV loading error:', error);
+
+            if (status) {
+                status.textContent = `Fehler beim Lesen der Datei: ${error.message}`;
+                status.className = 'status error';
+            }
+
+            UI.showToast('Fehler beim Laden der CSV-Datei: ' + error.message, 'error');
+        }
+    },
+
+    /**
+     * Aktualisiert die UI nach dem Laden von Daten
+     * @param {string} mode - 'testdata', 'csv' oder ''
+     * @param {string} filename - Dateiname (optional)
+     */
+    updateUI(mode, filename = '') {
+        UI.updateText('recordCount', DashboardState.allData.length);
+
+        const modeIndicator = document.getElementById('modeIndicator');
+        const fileStatus = document.getElementById('fileStatus');
+
+        if (mode === 'testdata') {
+            if (modeIndicator) modeIndicator.textContent = 'Modus: Testdaten (Demo)';
+            if (fileStatus) {
+                fileStatus.textContent = 'Testdaten sind geladen (Demo-Modus).';
+                fileStatus.className = 'status';
+            }
+        } else if (mode === 'csv') {
+            if (modeIndicator) modeIndicator.textContent = 'Modus: CSV-Datei';
+            if (fileStatus) {
+                fileStatus.textContent = `Datei "${filename}" geladen. Datensätze: ${DashboardState.allData.length}.`;
+                fileStatus.className = 'status';
+            }
+        } else {
+            if (modeIndicator) modeIndicator.textContent = 'Modus: Keine Daten';
+            if (fileStatus) {
+                fileStatus.textContent = 'Keine Datei geladen.';
+                fileStatus.className = 'status';
+            }
+        }
+    }
+};
+
+// =============================================
+// APPLICATION INITIALIZATION
+// =============================================
+const Dashboard = {
+    /**
+     * Initialisiert das Dashboard
+     */
+    init() {
+        console.log('🚀 Initializing Security Dashboard...');
+
+        try {
+            ThemeManager.init();
+            RiskConfigManager.loadFromStorage();
+            this.setupEventListeners();
+            this.initializeUI();
+
+            DashboardState.isInitialized = true;
+            console.log('✅ Dashboard initialized successfully!');
+
+        } catch (error) {
+            console.error('Dashboard initialization error:', error);
+            UI.showToast('Fehler bei der Initialisierung des Dashboards', 'error');
+        }
+    },
+
+    /**
+     * Richtet alle Event Listener ein
+     */
+    setupEventListeners() {
+        // Testdaten laden
+        const loadTestDataBtn = document.getElementById('loadTestData');
+        if (loadTestDataBtn) {
+            loadTestDataBtn.addEventListener('click', () => {
+                DataManager.loadTestData();
+            });
+        }
+
+        // CSV-Datei laden
+        const fileInput = document.getElementById('fileInput');
+        if (fileInput) {
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                    DataManager.loadCSVFile(file);
+                }
+            });
+        }
+
+        // Filter
+        const filterCountry = document.getElementById('filterCountry');
+        const filterSite = document.getElementById('filterSite');
+        const filterType = document.getElementById('filterType');
+        const resetFiltersBtn = document.getElementById('resetFilters');
+
+        if (filterCountry) {
+            filterCountry.addEventListener('change', () => FilterManager.apply());
+        }
+        if (filterSite) {
+            filterSite.addEventListener('change', () => FilterManager.apply());
+        }
+        if (filterType) {
+            filterType.addEventListener('change', () => FilterManager.apply());
+        }
+        if (resetFiltersBtn) {
+            resetFiltersBtn.addEventListener('click', () => FilterManager.reset());
+        }
+
+        // Export
+        const exportCSVBtn = document.getElementById('exportCSV');
+        const exportPDFBtn = document.getElementById('exportPDF');
+
+        if (exportCSVBtn) {
+            exportCSVBtn.addEventListener('click', () => ExportManager.toCSV());
+        }
+        if (exportPDFBtn) {
+            exportPDFBtn.addEventListener('click', () => ExportManager.toPDF());
+        }
+
+        // Sprachauswahl
+        const langSelect = document.getElementById('reportLanguage');
+        if (langSelect) {
+            langSelect.addEventListener('change', (e) => {
+                const lang = e.target.value || 'de';
+                i18n.set(lang);
+            });
+            // Initiale Sprache setzen
+            i18n.set(langSelect.value || 'de');
+        }
+
+        console.log('🔗 Event listeners attached');
+    },
+
+    /**
+     * Initialisiert die UI
+     */
+    initializeUI() {
+        FilterManager.updateStatus();
+        RenderManager.clearAnalytics();
+        console.log('🎨 UI initialized');
+    }
+};
+
+// =============================================
+// START THE APPLICATION
+// =============================================
+document.addEventListener('DOMContentLoaded', () => {
+    Dashboard.init();
+});
+
+// Globaler Error Handler
+window.addEventListener('error', (e) => {
+    console.error('Dashboard Error:', e.error || e.message);
+    UI.showToast('Unerwarteter Fehler im Dashboard. Details in der Konsole.', 'error', 6000);
+});
+
+// Unhandled Promise Rejection Handler
+window.addEventListener('unhandledrejection', (e) => {
+    console.error('Unhandled Promise Rejection:', e.reason);
+    UI.showToast('Unerwarteter Fehler im Dashboard. Details in der Konsole.', 'error', 6000);
+});
+
+// Globale Exports für Debugging
+window.Dashboard = Dashboard;
+window.DashboardState = DashboardState;
+window.i18n = i18n;
+window.CONFIG = CONFIG;
+window.Utils = Utils;
+window.ChartManager = ChartManager;
+window.FilterManager = FilterManager;
+window.ExportManager = ExportManager;
+window.RenderManager = RenderManager;
+window.DataManager = DataManager;
+
+console.log('📦 Security Dashboard module loaded');
