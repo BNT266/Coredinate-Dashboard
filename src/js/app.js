@@ -269,6 +269,10 @@ var SecurityAnalytics = function(data, headerMap) {
 SecurityAnalytics.prototype.analyze = function() {
     this.calculateRisk();
     this.analyzeDomains();
+    this.analyzeLocationsAndTypes();
+    this.analyzeTemporalPatterns();
+    this.buildRecommendations();
+    this.buildForecastHint();
     this.renderAll();
 };
 
@@ -295,7 +299,9 @@ SecurityAnalytics.prototype.calculateRisk = function() {
         level: level,
         riskClass: riskClass,
         highRiskEvents: high,
-        criticalTypes: byType.filter(function(e) { return (CONFIG.riskWeights[e.key] || 0) >= 8; })
+        totalEvents: this.data.length,
+        criticalTypes: byType.filter(function(e) { return (CONFIG.riskWeights[e.key] || 0) >= 8; }),
+        byType: byType
     };
 };
 
@@ -315,61 +321,221 @@ SecurityAnalytics.prototype.analyzeDomains = function() {
     this.insights.domains = arr;
 };
 
+SecurityAnalytics.prototype.analyzeLocationsAndTypes = function() {
+    var self = this;
+    var bySite = {};
+    var byCountry = {};
+    var byType = {};
+
+    this.data.forEach(function(r) {
+        var c = self.headerMap.country ? r[self.headerMap.country] : '';
+        var s = self.headerMap.site ? r[self.headerMap.site] : '';
+        var t = self.headerMap.type ? r[self.headerMap.type] : '';
+
+        if (c) byCountry[c] = (byCountry[c] || 0) + 1;
+        if (s) bySite[s] = (bySite[s] || 0) + 1;
+        if (t) byType[t] = (byType[t] || 0) + 1;
+    });
+
+    function toArray(map) {
+        var out = [];
+        for (var k in map) out.push({ key: k, count: map[k] });
+        out.sort(function(a, b){ return b.count - a.count; });
+        return out;
+    }
+
+    this.insights.topCountries = toArray(byCountry).slice(0, 3);
+    this.insights.topSites = toArray(bySite).slice(0, 3);
+    this.insights.topTypes = toArray(byType).slice(0, 3);
+};
+
+SecurityAnalytics.prototype.analyzeTemporalPatterns = function() {
+    var self = this;
+    var byHour = new Array(24).fill(0);
+    var byWeekday = new Array(7).fill(0);
+
+    this.data.forEach(function(r) {
+        if (!self.headerMap.date) return;
+        var raw = r[self.headerMap.date];
+        if (!raw) return;
+        var d = new Date(raw);
+        if (isNaN(d.getTime())) return;
+
+        byHour[d.getHours()]++;
+        byWeekday[d.getDay()]++; // 0=So, 1=Mo, ...
+    });
+
+    function peakIndex(arr) {
+        var max = -1, idx = -1;
+        arr.forEach(function(v, i) {
+            if (v > max) { max = v; idx = i; }
+        });
+        return { index: idx, value: max };
+    }
+
+    var h = peakIndex(byHour);
+    var w = peakIndex(byWeekday);
+
+    var weekdayNames = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+
+    this.insights.timePatterns = {
+        byHour: byHour,
+        byWeekday: byWeekday,
+        peakHour: h.index >= 0 ? h.index : null,
+        peakHourValue: h.value,
+        peakWeekday: w.index >= 0 ? weekdayNames[w.index] : null,
+        peakWeekdayValue: w.value
+    };
+};
+
+SecurityAnalytics.prototype.buildRecommendations = function() {
+    var r = this.insights.risk;
+    var d = this.insights.domains || [];
+    var time = this.insights.timePatterns || {};
+    var recs = [];
+
+    // Basis-Empfehlung nach Risiko-Level
+    if (r.level === 'HOCH') {
+        recs.push('Risikoniveau ist HOCH. Kurzfristig sollten zusätzliche Sicherungsmaßnahmen an den kritischen Standorten umgesetzt werden (z.B. Zutrittskontrollen verschärfen, Wachpersonal verstärken, technische Anlagen überprüfen).');
+    } else if (r.level === 'MITTEL') {
+        recs.push('Risikoniveau ist MITTEL. Empfohlen wird eine gezielte Überprüfung der aktuellen Maßnahmen und ein Fokus auf die am stärksten betroffenen Bereiche und Ereignisarten.');
+    } else {
+        recs.push('Risikoniveau ist NIEDRIG. Die aktuelle Sicherheitslage ist stabil; regelmäßige Kontrollen und Monitoring sollten dennoch beibehalten werden.');
+    }
+
+    // Kritische Ereignistypen
+    if (r.criticalTypes && r.criticalTypes.length) {
+        var topCrit = r.criticalTypes[0];
+        recs.push('Besonders kritisch fällt die Ereignisart "' + (topCrit.key || 'Unbekannt') + '" auf (' + topCrit.count + ' Vorkommen). Hier sollten gezielt Ursachen analysiert und spezifische Gegenmaßnahmen definiert werden.');
+    }
+
+    // Dominanter Bereich (Security, FM, SHE)
+    if (d && d.length && d[0].count > 0) {
+        var dom = d[0];
+        if (dom.domain === 'Security') {
+            recs.push('Der überwiegende Teil der Ereignisse entfällt auf klassische Security-Vorfälle. Empfehlung: Überarbeitung des Sicherheitskonzeptes, Schulung des Personals zu Meldewegen und Verhalten sowie Überprüfung von Zutritts- und Alarmmanagement.');
+        } else if (dom.domain === 'FM') {
+            recs.push('Viele Ereignisse stehen im Zusammenhang mit Facility-Management. Prüfen Sie Wartungsintervalle und Störungsmeldungen (z.B. Aufzüge, Klima, Energieversorgung) und optimieren Sie die Eskalationswege.');
+        } else if (dom.domain === 'SHE') {
+            recs.push('Ein signifikanter Anteil der Ereignisse entfällt auf SHE-Themen (Safety, Health, Environment). Empfehlung: Safety-Begehungen, Trainings zu Arbeitssicherheit und Überprüfung der Brandschutz- und Evakuierungspläne.');
+        } else {
+            recs.push('Ein relevanter Teil der Ereignisse lässt sich keinem Kernbereich klar zuordnen. Hier lohnt eine bessere Klassifizierung und Harmonisierung der Eventtypen.');
+        }
+    }
+
+    // Zeitliche Muster
+    if (time.peakHourValue > 0) {
+        recs.push('Auffällig ist eine Häufung von Ereignissen gegen ca. ' + time.peakHour + ':00 Uhr. In diesem Zeitfenster sollten verstärkte Kontrollen oder zusätzliche Präsenz eingeplant werden.');
+    }
+    if (time.peakWeekdayValue > 0 && time.peakWeekday) {
+        recs.push('Der Wochentag mit den meisten Ereignissen ist der ' + time.peakWeekday + '. Planen Sie an diesem Tag zusätzliche Ressourcen oder Monitoring-Maßnahmen ein.');
+    }
+
+    this.insights.recommendations = recs;
+};
+
+SecurityAnalytics.prototype.buildForecastHint = function() {
+    var r = this.insights.risk;
+    var time = this.insights.timePatterns || {};
+    var domains = this.insights.domains || [];
+    var text;
+
+    if (!this.data.length) {
+        text = 'Keine Daten vorhanden, um einen Trend oder eine Prognose zu erstellen.';
+    } else if (r.score > 70) {
+        text = 'Die aktuelle Entwicklung deutet auf einen anhaltend erhöhten Risiko-Level hin. Ohne zusätzliche Maßnahmen ist mittelfristig mit einer weiteren Zunahme von kritischen Ereignissen zu rechnen.';
+    } else if (r.score > 40) {
+        text = 'Der Trend liegt im mittleren Bereich. Bei gleichbleibenden Rahmenbedingungen ist von einer moderaten Entwicklung auszugehen – einzelne Peaks (z.B. in Stoßzeiten oder an bestimmten Wochentagen) sollten jedoch aktiv beobachtet werden.';
+    } else {
+        text = 'Der aktuelle Trend wirkt stabil mit eher niedrigen Eventzahlen. Dennoch sollten Änderungen im Umfeld (z.B. neue Standorte, bauliche Maßnahmen, Personalwechsel) regelmäßig bewertet werden.';
+    }
+
+    if (time.peakHourValue > 0 && time.peakWeekdayValue > 0) {
+        text += ' Besonders im Zeitraum um ' + time.peakHour + ':00 Uhr am ' + time.peakWeekday + ' ist mit einer überdurchschnittlichen Ereigniswahrscheinlichkeit zu rechnen.';
+    }
+
+    if (domains.length && domains[0].count > 0) {
+        text += ' Der dominierende Bereich "' + domains[0].domain + '" sollte in zukünftigen Planungen (Ressourcen, Budget, Maßnahmen) vorrangig berücksichtigt werden.';
+    }
+
+    this.insights.forecastText = text;
+};
+
 SecurityAnalytics.prototype.renderAll = function() {
     var r = this.insights.risk;
-    var d = this.insights.domains;
+    var d = this.insights.domains || [];
+    var recList = this.insights.recommendations || [];
+    var forecastText = this.insights.forecastText || 'Keine Trendinformationen verfügbar.';
 
+    // Risiko-Einschätzung
     var riskEl = document.getElementById('riskAssessment');
-    if (riskEl) {
+    if (riskEl && r) {
         var html = '<div class="insight-item risk-' + r.riskClass + '">';
         html += '<div class="insight-value">Risiko: ' + r.level + ' (' + r.score + '%)</div>';
-        html += '<div class="insight-trend">' + r.highRiskEvents + ' kritische von ' + this.data.length + ' Events</div>';
+        html += '<div class="insight-trend">' + r.highRiskEvents + ' kritische von ' + r.totalEvents + ' Events</div>';
         html += '</div>';
-        if (r.criticalTypes && r.criticalTypes[0]) {
-            html += '<div class="insight-item"><div class="insight-value">Kritisch: ' +
-                Utils.escapeHtml(r.criticalTypes[0].key) + ' (' + r.criticalTypes[0].count + 'x)</div></div>';
+
+        if (r.criticalTypes && r.criticalTypes.length) {
+            html += '<div class="insight-item"><div class="insight-value">Top-kritische Ereignistypen:</div>';
+            html += '<ul class="insight-list">';
+            r.criticalTypes.slice(0, 3).forEach(function(ct) {
+                html += '<li>' + Utils.escapeHtml(ct.key || '(leer)') + ' – ' + ct.count + ' Vorkommen</li>';
+            });
+            html += '</ul></div>';
         }
+
         riskEl.innerHTML = html;
     }
 
+    // Muster & Bereiche
     var patternEl = document.getElementById('patternDetection');
-    if (patternEl && d && d[0]) {
+    if (patternEl && d && d.length) {
         var html2 = '<div class="insight-item">';
         html2 += '<div class="insight-value">Top-Bereich: ' + d[0].domain + '</div>';
         html2 += '<div class="insight-trend">' + d[0].count + ' Events (' + d[0].share + '%)</div>';
         html2 += '</div>';
+
+        var secCount = (d.find(function(x){return x.domain==='Security';})||{count:0}).count;
+        var fmCount  = (d.find(function(x){return x.domain==='FM';})||{count:0}).count;
+        var sheCount = (d.find(function(x){return x.domain==='SHE';})||{count:0}).count;
+        var otherCount = (d.find(function(x){return x.domain==='Other';})||{count:0}).count;
+
         html2 += '<div class="insight-item"><div class="insight-trend">';
-        html2 += 'Security: ' + (d.find(function(x){return x.domain==='Security';})||{count:0}).count + ' | ';
-        html2 += 'FM: ' + (d.find(function(x){return x.domain==='FM';})||{count:0}).count + ' | ';
-        html2 += 'SHE: ' + (d.find(function(x){return x.domain==='SHE';})||{count:0}).count;
+        html2 += 'Security: ' + secCount + ' | ';
+        html2 += 'FM: ' + fmCount + ' | ';
+        html2 += 'SHE: ' + sheCount + ' | ';
+        html2 += 'Other: ' + otherCount;
         html2 += '</div></div>';
+
         patternEl.innerHTML = html2;
     }
 
+    // Empfehlungen
     var recEl = document.getElementById('smartRecommendations');
     if (recEl) {
-        var html3 = '';
-        if (r.level === 'HOCH') {
-            html3 = '<div class="insight-item"><div class="insight-value">🚨 Sofortige Massnahmen empfohlen</div></div>';
-        } else if (r.level === 'MITTEL') {
-            html3 = '<div class="insight-item"><div class="insight-value">⚠️ Erhoehte Aufmerksamkeit</div></div>';
+        if (!recList.length) {
+            recEl.innerHTML = '<div class="loading">Keine spezifischen Empfehlungen ableitbar.</div>';
         } else {
-            html3 = '<div class="insight-item"><div class="insight-value">✅ Normalbetrieb</div></div>';
+            var html3 = '<div class="insight-item"><div class="insight-value">Handlungsempfehlungen</div>';
+            html3 += '<ul class="insight-list">';
+            recList.forEach(function(line) {
+                html3 += '<li>' + Utils.escapeHtml(line) + '</li>';
+            });
+            html3 += '</ul></div>';
+            recEl.innerHTML = html3;
         }
-        recEl.innerHTML = html3;
     }
 
+    // Trend & Forecast
     var trendEl = document.getElementById('trendForecast');
     if (trendEl) {
-        var trend = r.score > 50 ? 'steigend' : 'stabil';
         var html4 = '<div class="insight-item">';
-        html4 += '<div class="insight-value">Trend: ' + trend + '</div>';
-        html4 += '<div class="insight-trend">' + this.data.length + ' Events analysiert</div>';
+        html4 += '<div class="insight-value">Trend & Prognose</div>';
+        html4 += '<div class="insight-trend">' + Utils.escapeHtml(forecastText) + '</div>';
         html4 += '</div>';
         trendEl.innerHTML = html4;
     }
 };
-
 // === THEME MANAGER ===
 var ThemeManager = {
     init: function() {
