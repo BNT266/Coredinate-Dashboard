@@ -3,22 +3,147 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Security Event Dashboard zur Überwachung und Analyse von Sicherheitsereignissen">
     <title>Security Event Dashboard</title>
-
-    <!-- Styles -->
     <link rel="stylesheet" href="src/css/styles.css">
+    
+    <!-- DEBUG PANEL STYLES -->
+    <style>
+        #debugPanel {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            width: 400px;
+            max-height: 300px;
+            background: #1a1a2e;
+            color: #0f0;
+            font-family: monospace;
+            font-size: 11px;
+            padding: 10px;
+            border-radius: 8px;
+            border: 2px solid #0f0;
+            z-index: 99999;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0,255,0,0.3);
+        }
+        #debugPanel h4 {
+            margin: 0 0 8px 0;
+            color: #0f0;
+            font-size: 12px;
+            border-bottom: 1px solid #0f0;
+            padding-bottom: 5px;
+        }
+        #debugPanel .error { color: #ff4444; }
+        #debugPanel .success { color: #44ff44; }
+        #debugPanel .info { color: #44aaff; }
+        #debugPanel .warn { color: #ffaa00; }
+        #debugLog div {
+            padding: 2px 0;
+            border-bottom: 1px solid #333;
+        }
+        #closeDebug {
+            position: absolute;
+            top: 5px;
+            right: 8px;
+            background: #ff4444;
+            color: white;
+            border: none;
+            padding: 2px 8px;
+            cursor: pointer;
+            border-radius: 3px;
+            font-size: 10px;
+        }
+    </style>
 </head>
 <body>
+
+<!-- ============================================= -->
+<!-- DEBUG PANEL - Zeigt Fehler an -->
+<!-- ============================================= -->
+<div id="debugPanel">
+    <button id="closeDebug" onclick="this.parentElement.style.display='none'">X</button>
+    <h4>🔧 DEBUG KONSOLE</h4>
+    <div id="debugLog"></div>
+</div>
+
+<script>
+    // Debug Logger - fängt alle Fehler ab
+    const debugLog = document.getElementById('debugLog');
+    
+    function logDebug(msg, type = 'info') {
+        const div = document.createElement('div');
+        div.className = type;
+        div.textContent = new Date().toLocaleTimeString() + ' - ' + msg;
+        debugLog.insertBefore(div, debugLog.firstChild);
+    }
+    
+    // Alle Fehler abfangen
+    window.onerror = function(msg, url, line, col, error) {
+        logDebug('ERROR: ' + msg + ' (Zeile ' + line + ')', 'error');
+        return false;
+    };
+    
+    // Promise-Fehler abfangen
+    window.onunhandledrejection = function(e) {
+        logDebug('PROMISE ERROR: ' + e.reason, 'error');
+    };
+    
+    // Console.log überschreiben
+    const origLog = console.log;
+    console.log = function(...args) {
+        logDebug(args.join(' '), 'info');
+        origLog.apply(console, args);
+    };
+    
+    const origError = console.error;
+    console.error = function(...args) {
+        logDebug(args.join(' '), 'error');
+        origError.apply(console, args);
+    };
+    
+    const origWarn = console.warn;
+    console.warn = function(...args) {
+        logDebug(args.join(' '), 'warn');
+        origWarn.apply(console, args);
+    };
+    
+    logDebug('Debug Panel gestartet', 'success');
+</script>
+
+<!-- ============================================= -->
+<!-- PRÜFE OB EXTERNE SCRIPTS LADEN -->
+<!-- ============================================= -->
+<script>
+    logDebug('Lade Chart.js...', 'info');
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js" 
+        onload="logDebug('✅ Chart.js geladen', 'success')" 
+        onerror="logDebug('❌ Chart.js FEHLER - Blocked?', 'error')"></script>
+
+<script>
+    logDebug('Lade jsPDF...', 'info');
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
+        onload="logDebug('✅ jsPDF geladen', 'success')"
+        onerror="logDebug('❌ jsPDF FEHLER - Blocked?', 'error')"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"
+        onload="logDebug('✅ jsPDF-AutoTable geladen', 'success')"
+        onerror="logDebug('❌ jsPDF-AutoTable FEHLER', 'error')"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"
+        onload="logDebug('✅ html2canvas geladen', 'success')"
+        onerror="logDebug('❌ html2canvas FEHLER', 'error')"></script>
+
+<!-- ============================================= -->
+<!-- HAUPT-APP -->
+<!-- ============================================= -->
 <div class="app-shell">
-    <!-- ========== SIDEBAR ========== -->
     <aside class="sidebar">
         <div class="sidebar-header">
             <div class="brand">SECURITY<span>DASH</span></div>
             <div class="subtitle">Security Events Management Dashboard</div>
         </div>
 
-        <!-- Data Source Section -->
         <div class="sidebar-section">
             <div class="sidebar-section-title">Datenquelle</div>
             <div class="file-input-wrapper">
@@ -36,7 +161,6 @@
             </button>
         </div>
 
-        <!-- Filter Section -->
         <div class="sidebar-section">
             <div class="sidebar-section-title">Filter</div>
             <div class="filters">
@@ -65,42 +189,34 @@
             </div>
         </div>
 
-        <!-- Export Section -->
         <div class="sidebar-section">
             <div class="sidebar-section-title">Export</div>
             <button type="button" class="btn secondary" id="exportCSV">
-                <span aria-hidden="true">📄</span> CSV exportieren
+                📄 CSV exportieren
             </button>
             <button type="button" class="btn primary" id="exportPDF">
-                <span aria-hidden="true">📊</span> Executive PDF-Report erstellen
+                📊 Executive PDF-Report erstellen
             </button>
             <div id="exportStatus" class="status" style="display: none;"></div>
         </div>
 
-        <!-- Risk Config Section -->
         <div class="sidebar-section">
             <div class="sidebar-section-title">Risiko-Konfiguration</div>
             <div id="riskConfigContainer" class="risk-config"></div>
         </div>
     </aside>
 
-    <!-- ========== MAIN CONTENT ========== -->
     <main class="main">
-        <!-- Top Bar: Theme + Sprache -->
         <div class="top-bar">
-            <!-- Theme Toggle -->
             <div class="theme-toggle-wrapper">
-                <button type="button" id="themeToggle" class="theme-toggle" 
-                        title="Dark/Light Mode umschalten"
-                        aria-label="Theme umschalten">
-                    <span class="theme-icon sun" aria-hidden="true">☀️</span>
-                    <span class="theme-icon moon" aria-hidden="true">🌙</span>
+                <button type="button" id="themeToggle" class="theme-toggle" title="Dark/Light Mode umschalten">
+                    <span class="theme-icon sun">☀️</span>
+                    <span class="theme-icon moon">🌙</span>
                     <div class="theme-toggle-slider"></div>
                 </button>
                 <span class="theme-label">Dark Mode</span>
             </div>
 
-            <!-- Report-Sprache -->
             <div class="language-select-wrapper">
                 <label for="reportLanguage">Report-Sprache:</label>
                 <select id="reportLanguage">
@@ -110,7 +226,6 @@
             </div>
         </div>
 
-        <!-- Header -->
         <header class="main-header">
             <div>
                 <h1>Security Events Overview</h1>
@@ -126,8 +241,7 @@
             </div>
         </header>
 
-        <!-- KPI Cards -->
-        <section class="card-grid" aria-label="Kennzahlen">
+        <section class="card-grid">
             <article class="card">
                 <div class="card-title">Gesamtzahl Ereignisse</div>
                 <div class="card-value" id="kpiTotalEvents">0</div>
@@ -150,13 +264,10 @@
             </article>
         </section>
 
-        <!-- Smart Analytics Panel -->
-        <section class="analytics-panel" aria-label="Smart Analytics">
+        <section class="analytics-panel">
             <div class="panel-header">
                 <div>
-                    <h2 class="panel-title">
-                        <span aria-hidden="true">🧠</span> Smart Analytics &amp; Insights
-                    </h2>
+                    <h2 class="panel-title">🧠 Smart Analytics &amp; Insights</h2>
                     <p class="panel-subtitle">
                         KI-basierte Muster-Erkennung und automatische Sicherheitsanalyse
                     </p>
@@ -165,7 +276,7 @@
             <div class="insights-grid">
                 <article class="insight-card">
                     <div class="insight-header">
-                        <span class="insight-icon" aria-hidden="true">⚠️</span>
+                        <span class="insight-icon">⚠️</span>
                         <h3>Risiko-Assessment</h3>
                     </div>
                     <div id="riskAssessment" class="insight-content">
@@ -174,7 +285,7 @@
                 </article>
                 <article class="insight-card">
                     <div class="insight-header">
-                        <span class="insight-icon" aria-hidden="true">🔍</span>
+                        <span class="insight-icon">🔍</span>
                         <h3>Muster-Erkennung</h3>
                     </div>
                     <div id="patternDetection" class="insight-content">
@@ -183,7 +294,7 @@
                 </article>
                 <article class="insight-card">
                     <div class="insight-header">
-                        <span class="insight-icon" aria-hidden="true">💡</span>
+                        <span class="insight-icon">💡</span>
                         <h3>Empfehlungen</h3>
                     </div>
                     <div id="smartRecommendations" class="insight-content">
@@ -192,7 +303,7 @@
                 </article>
                 <article class="insight-card">
                     <div class="insight-header">
-                        <span class="insight-icon" aria-hidden="true">📈</span>
+                        <span class="insight-icon">📈</span>
                         <h3>Trend-Prognose</h3>
                     </div>
                     <div id="trendForecast" class="insight-content">
@@ -202,10 +313,8 @@
             </div>
         </section>
 
-        <!-- Content Grid -->
         <div class="content-grid">
-            <!-- Tables Panel -->
-            <section class="panel" aria-label="Tabellarische Auswertung">
+            <section class="panel">
                 <div class="panel-header">
                     <div>
                         <h2 class="panel-title">Aggregierte Übersicht</h2>
@@ -220,8 +329,8 @@
                     <table id="tableByCountry">
                         <thead>
                         <tr>
-                            <th scope="col">Land</th>
-                            <th scope="col">Anzahl Ereignisse</th>
+                            <th>Land</th>
+                            <th>Anzahl Ereignisse</th>
                         </tr>
                         </thead>
                         <tbody></tbody>
@@ -233,9 +342,9 @@
                     <table id="tableBySite">
                         <thead>
                         <tr>
-                            <th scope="col">Liegenschaft</th>
-                            <th scope="col">Land</th>
-                            <th scope="col">Anzahl Ereignisse</th>
+                            <th>Liegenschaft</th>
+                            <th>Land</th>
+                            <th>Anzahl Ereignisse</th>
                         </tr>
                         </thead>
                         <tbody></tbody>
@@ -247,8 +356,8 @@
                     <table id="tableByType">
                         <thead>
                         <tr>
-                            <th scope="col">Ereignisart</th>
-                            <th scope="col">Anzahl Ereignisse</th>
+                            <th>Ereignisart</th>
+                            <th>Anzahl Ereignisse</th>
                         </tr>
                         </thead>
                         <tbody></tbody>
@@ -256,8 +365,7 @@
                 </div>
             </section>
 
-            <!-- Charts Panel -->
-            <section class="panel" aria-label="Visualisierung">
+            <section class="panel">
                 <div class="panel-header">
                     <div>
                         <h2 class="panel-title">Visualisierung &amp; Benchmark</h2>
@@ -267,32 +375,57 @@
                     </div>
                 </div>
 
-                <h3>Top Länder (nach Ereignishäufigkeit)</h3>
-                <div id="chartCountries" class="chart" role="img" aria-label="Balkendiagramm Ereignisse nach Ländern"></div>
+                <h3>Top Länder</h3>
+                <div id="chartCountries" class="chart"></div>
 
                 <h3>Top Liegenschaften</h3>
-                <div id="chartSites" class="chart" role="img" aria-label="Balkendiagramm Ereignisse nach Liegenschaften"></div>
+                <div id="chartSites" class="chart"></div>
 
                 <h3>Top Ereignisarten</h3>
-                <div id="chartTypes" class="chart" role="img" aria-label="Kreisdiagramm Ereignisse nach Typ"></div>
+                <div id="chartTypes" class="chart"></div>
 
-                <h3>Bereichsverteilung (Security / FM / SHE)</h3>
-                <div id="chartDomains" class="chart" role="img" aria-label="Kreisdiagramm Bereichsverteilung"></div>
+                <h3>Bereichsverteilung</h3>
+                <div id="chartDomains" class="chart"></div>
             </section>
         </div>
     </main>
 </div>
 
-<!-- Toast-Container für Systemmeldungen -->
-<div id="toastContainer" class="toast-container" role="alert" aria-live="polite"></div>
+<div id="toastContainer" class="toast-container"></div>
 
-<!-- ============================================= -->
-<!-- WICHTIG: Scripts am Ende, in korrekter Reihenfolge! -->
-<!-- ============================================= -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="src/js/app.js"></script>
+<!-- Prüfe ob app.js lädt -->
+<script>
+    logDebug('Lade app.js...', 'info');
+</script>
+<script src="src/js/app.js" 
+        onload="logDebug('✅ app.js geladen', 'success')"
+        onerror="logDebug('❌ app.js FEHLER - Datei nicht gefunden?', 'error')"></script>
+
+<script>
+    // Finale Prüfung nach 2 Sekunden
+    setTimeout(function() {
+        logDebug('--- FINALE PRÜFUNG ---', 'info');
+        
+        if (typeof Chart === 'undefined') {
+            logDebug('❌ Chart.js ist NICHT verfügbar (evtl. vom Firmennetzwerk blockiert)', 'error');
+        } else {
+            logDebug('✅ Chart.js verfügbar', 'success');
+        }
+        
+        if (typeof Dashboard === 'undefined') {
+            logDebug('❌ Dashboard ist NICHT definiert - app.js hat Fehler', 'error');
+        } else {
+            logDebug('✅ Dashboard verfügbar', 'success');
+        }
+        
+        if (typeof jspdf === 'undefined' && typeof window.jspdf === 'undefined') {
+            logDebug('⚠️ jsPDF nicht verfügbar - PDF-Export geht nicht', 'warn');
+        } else {
+            logDebug('✅ jsPDF verfügbar', 'success');
+        }
+        
+    }, 2000);
+</script>
+
 </body>
 </html>
