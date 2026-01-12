@@ -501,7 +501,7 @@ select:focus {
 }
 
 /* =============================================
-   RISK CONFIGURATION (NEU)
+   RISK CONFIGURATION
    ============================================= */
 
 .risk-config {
@@ -603,7 +603,7 @@ select:focus {
 }
 
 /* =============================================
-   TOP BAR (NEU)
+   TOP BAR
    ============================================= */
 
 .top-bar {
@@ -709,7 +709,7 @@ select:focus {
 }
 
 /* =============================================
-   LANGUAGE SELECT (NEU)
+   LANGUAGE SELECT
    ============================================= */
 
 .language-select-wrapper {
@@ -1061,8 +1061,6 @@ tbody tr:last-child td {
 }
 
 .insight-card:hover {
-    transform: translateY(-3px);
-   .insight-card:hover {
     transform: translateY(-3px);
     box-shadow: 0 8px 25px var(--shadow-hover);
     border-color: var(--brand-primary);
