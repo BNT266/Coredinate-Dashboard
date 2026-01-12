@@ -1174,6 +1174,19 @@ var ExportManager = {
             var marginX = 18;
             var yPos = 22;
 
+            // Analytics für den PDF-Export ausführen (nur auf aktuelle Daten)
+            var analytics = new SecurityAnalytics(DashboardState.currentData, DashboardState.headerMap);
+            analytics.analyze();
+            var aRisk         = analytics.insights.risk || {};
+            var aDomains      = analytics.insights.domains || [];
+            var aTopCountries = analytics.insights.topCountries || [];
+            var aTopSites     = analytics.insights.topSites || [];
+            var aTopTypes     = analytics.insights.topTypes || [];
+            var aMaturity     = analytics.insights.maturity || {};
+            var aRecs         = analytics.insights.recommendations || [];
+            var aForecast     = analytics.insights.forecastText || '';
+            var aTime         = analytics.insights.timePatterns || {};
+
             // Header
             pdf.setFillColor(0, 163, 122);
             pdf.rect(0, 0, pageWidth, 30, 'F');
@@ -1194,162 +1207,270 @@ var ExportManager = {
             pdf.text(i18n.t('section_executive_summary'), marginX, yPos);
             yPos += 8;
 
-           // KPIs
-        var countriesSet = {}, sitesSet = {}, typesSet = {};
-        DashboardState.currentData.forEach(function(r) {
-            if (DashboardState.headerMap.country && r[DashboardState.headerMap.country]) {
-                countriesSet[r[DashboardState.headerMap.country]] = true;
-            }
-            if (DashboardState.headerMap.site && r[DashboardState.headerMap.site]) {
-                sitesSet[r[DashboardState.headerMap.site]] = true;
-            }
-            if (DashboardState.headerMap.type && r[DashboardState.headerMap.type]) {
-                typesSet[r[DashboardState.headerMap.type]] = true;
-            }
-        });
+            // KPIs
+            var countriesSet = {}, sitesSet = {}, typesSet = {};
+            DashboardState.currentData.forEach(function(r) {
+                if (DashboardState.headerMap.country && r[DashboardState.headerMap.country]) {
+                    countriesSet[r[DashboardState.headerMap.country]] = true;
+                }
+                if (DashboardState.headerMap.site && r[DashboardState.headerMap.site]) {
+                    sitesSet[r[DashboardState.headerMap.site]] = true;
+                }
+                if (DashboardState.headerMap.type && r[DashboardState.headerMap.type]) {
+                    typesSet[r[DashboardState.headerMap.type]] = true;
+                }
+            });
 
-        pdf.setFontSize(9);
-        pdf.setTextColor(80, 80, 80);
-        pdf.text(i18n.t('key_facts_line', {
-            events: DashboardState.currentData.length,
-            countries: Object.keys(countriesSet).length,
-            sites: Object.keys(sitesSet).length,
-            types: Object.keys(typesSet).length
-        }), marginX, yPos);
-        yPos += 12;
-
-        // AI-basierte Executive Summary (Smart Analytics)
-        pdf.setFontSize(11);
-        pdf.setTextColor(0, 0, 0);
-
-        // Risiko & Reifegrad
-        var riskLine = 'Risiko: ' + (aRisk.level || 'n/a') + ' (' + (aRisk.score != null ? aRisk.score + '%' : '-') + ')';
-        pdf.text(riskLine, marginX, yPos); 
-        yPos += 6;
-
-        if (aMaturity.level) {
-            pdf.setFontSize(10);
-            pdf.text(aMaturity.level, marginX, yPos);
-            yPos += 6;
-        }
-
-        // Dominanter Bereich & Verteilung
-        if (aDomains.length) {
-            var dom = aDomains[0];
-            var domainLine = 'Dominanter Bereich: ' + dom.domain + ' – ' + dom.count + ' Events (' + dom.share + '%).';
             pdf.setFontSize(9);
-            pdf.text(domainLine, marginX, yPos);
-            yPos += 5;
+            pdf.setTextColor(80, 80, 80);
+            pdf.text(i18n.t('key_facts_line', {
+                events: DashboardState.currentData.length,
+                countries: Object.keys(countriesSet).length,
+                sites: Object.keys(sitesSet).length,
+                types: Object.keys(typesSet).length
+            }), marginX, yPos);
+            yPos += 12;
 
-            var secCount = (aDomains.find(function(x){return x.domain==='Security';})||{count:0}).count;
-            var fmCount  = (aDomains.find(function(x){return x.domain==='FM';})||{count:0}).count;
-            var sheCount = (aDomains.find(function(x){return x.domain==='SHE';})||{count:0}).count;
-            var otherCount = (aDomains.find(function(x){return x.domain==='Other';})||{count:0}).count;
-
-            var distLine = 'Verteilung – Security: ' + secCount + ', FM: ' + fmCount + ', SHE: ' + sheCount + ', Other: ' + otherCount + '.';
-            pdf.text(distLine, marginX, yPos);
-            yPos += 6;
-        }
-
-        // Top-Länder / -Standorte / -Typen
-        pdf.setFontSize(9);
-        var summaryLines = [];
-
-        if (aTopCountries.length) {
-            var tc = aTopCountries.map(function(c){ return c.key + ' (' + c.count + ')'; }).join(', ');
-            summaryLines.push('Top-Länder: ' + tc + '.');
-        }
-        if (aTopSites.length) {
-            var ts = aTopSites.map(function(s){ return s.key + ' (' + s.count + ')'; }).join(', ');
-            summaryLines.push('Top-Standorte: ' + ts + '.');
-        }
-        if (aTopTypes.length) {
-            var tt = aTopTypes.map(function(t){ return t.key + ' (' + t.count + ')'; }).join(', ');
-            summaryLines.push('Top-Ereignisarten: ' + tt + '.');
-        }
-
-        summaryLines.forEach(function(line) {
-            if (yPos > pageHeight - 30) {
-                pdf.addPage();
-                yPos = 22;
-            }
-            pdf.text(line, marginX, yPos);
-            yPos += 5;
-        });
-
-        // Zeitliche Muster
-        if (aTime.peakHourValue > 0 || aTime.peakWeekdayValue > 0 || aTime.peakShift) {
-            if (yPos > pageHeight - 30) {
-                pdf.addPage();
-                yPos = 22;
-            }
-            pdf.setFontSize(9);
-            var timeLine = 'Zeitliche Muster: ';
-            var parts = [];
-            if (aTime.peakHourValue > 0) {
-                parts.push('Peak ca. ' + aTime.peakHour + ':00 Uhr');
-            }
-            if (aTime.peakWeekdayValue > 0 && aTime.peakWeekday) {
-                parts.push('häufigster Wochentag: ' + aTime.peakWeekday);
-            }
-            if (aTime.peakShift) {
-                parts.push('Schwerpunkt in ' + aTime.peakShift);
-            }
-            timeLine += parts.join(', ') + '.';
-            pdf.text(timeLine, marginX, yPos);
-            yPos += 6;
-        }
-
-        // Handlungsempfehlungen (stark verdichtet)
-        if (aRecs.length) {
-            if (yPos > pageHeight - 40) {
-                pdf.addPage();
-                yPos = 22;
-            }
+            // AI-basierte Executive Summary (Smart Analytics)
             pdf.setFontSize(11);
             pdf.setTextColor(0, 0, 0);
-            pdf.text('Handlungsempfehlungen (Auszug)', marginX, yPos);
+
+            // Risiko & Reifegrad
+            var riskLabel = i18n.t('ai_risk_label');
+            var riskLine = riskLabel + ': ' + (aRisk.level || 'n/a') + ' (' + (aRisk.score != null ? aRisk.score + '%' : '-') + ')';
+            pdf.text(riskLine, marginX, yPos);
             yPos += 6;
 
-            pdf.setFontSize(9);
-            pdf.setTextColor(60, 60, 60);
+            if (aMaturity.level) {
+                pdf.setFontSize(10);
+                var maturityLabel = i18n.t('ai_maturity_label');
+                pdf.text(maturityLabel + ': ' + aMaturity.level, marginX, yPos);
+                yPos += 6;
+            }
 
-            var maxRecs = 5;
-            aRecs.slice(0, maxRecs).forEach(function(rec) {
-                if (yPos > pageHeight - 20) {
+            // Dominanter Bereich & Verteilung
+            if (aDomains.length) {
+                var dom = aDomains[0];
+                pdf.setFontSize(9);
+
+                var domainLine = i18n.t('ai_dominant_domain_line', {
+                    domain: dom.domain,
+                    count: dom.count,
+                    share: dom.share
+                });
+                pdf.text(domainLine, marginX, yPos);
+                yPos += 5;
+
+                var secCount = (aDomains.find(function(x){return x.domain==='Security';})||{count:0}).count;
+                var fmCount  = (aDomains.find(function(x){return x.domain==='FM';})||{count:0}).count;
+                var sheCount = (aDomains.find(function(x){return x.domain==='SHE';})||{count:0}).count;
+                var otherCount = (aDomains.find(function(x){return x.domain==='Other';})||{count:0}).count;
+
+                var distLine = i18n.t('ai_domain_distribution_line', {
+                    sec: secCount,
+                    fm: fmCount,
+                    she: sheCount,
+                    other: otherCount
+                });
+                pdf.text(distLine, marginX, yPos);
+                yPos += 6;
+            }
+
+            // Top-Länder / -Standorte / -Typen
+            pdf.setFontSize(9);
+            var summaryLines = [];
+
+            if (aTopCountries.length) {
+                var tc = aTopCountries.map(function(c){ return c.key + ' (' + c.count + ')'; }).join(', ');
+                summaryLines.push(i18n.t('ai_top_countries_line', { items: tc }));
+            }
+            if (aTopSites.length) {
+                var ts = aTopSites.map(function(s){ return s.key + ' (' + s.count + ')'; }).join(', ');
+                summaryLines.push(i18n.t('ai_top_sites_line', { items: ts }));
+            }
+            if (aTopTypes.length) {
+                var tt = aTopTypes.map(function(t){ return t.key + ' (' + t.count + ')'; }).join(', ');
+                summaryLines.push(i18n.t('ai_top_types_line', { items: tt }));
+            }
+
+            summaryLines.forEach(function(line) {
+                if (yPos > pageHeight - 30) {
                     pdf.addPage();
                     yPos = 22;
                 }
-                var split = pdf.splitTextToSize(rec, pageWidth - 2 * marginX);
-                pdf.text(split, marginX, yPos);
-                yPos += split.length * 4 + 1;
+                pdf.text(line, marginX, yPos);
+                yPos += 5;
             });
-        }
 
-        // Trend / Prognose
-        if (aForecast) {
-            if (yPos > pageHeight - 40) {
+            // Zeitliche Muster
+            if (aTime.peakHourValue > 0 || aTime.peakWeekdayValue > 0 || aTime.peakShift) {
+                if (yPos > pageHeight - 30) {
+                    pdf.addPage();
+                    yPos = 22;
+                }
+
+                pdf.setFontSize(9);
+                var parts = [];
+                if (aTime.peakHourValue > 0) {
+                    if (i18n.current === 'de') {
+                        parts.push('Peak ca. ' + aTime.peakHour + ':00 Uhr');
+                    } else {
+                        parts.push('peak about ' + aTime.peakHour + ':00');
+                    }
+                }
+                if (aTime.peakWeekdayValue > 0 && aTime.peakWeekday) {
+                    if (i18n.current === 'de') {
+                        parts.push('häufigster Wochentag: ' + aTime.peakWeekday);
+                    } else {
+                        parts.push('most frequent weekday: ' + aTime.peakWeekday);
+                    }
+                }
+                if (aTime.peakShift) {
+                    if (i18n.current === 'de') {
+                        parts.push('Schwerpunkt in ' + aTime.peakShift);
+                    } else {
+                        parts.push('focus in ' + aTime.peakShift);
+                    }
+                }
+
+                var timeLine = i18n.t('ai_time_pattern_line', { parts: parts.join(', ') });
+                pdf.text(timeLine, marginX, yPos);
+                yPos += 6;
+            }
+
+            // Handlungsempfehlungen (stark verdichtet)
+            if (aRecs.length) {
+                if (yPos > pageHeight - 40) {
+                    pdf.addPage();
+                    yPos = 22;
+                }
+                pdf.setFontSize(11);
+                pdf.setTextColor(0, 0, 0);
+                pdf.text(i18n.t('ai_recommendations_heading'), marginX, yPos);
+                yPos += 6;
+
+                pdf.setFontSize(9);
+                pdf.setTextColor(60, 60, 60);
+
+                var maxRecs = 5;
+                aRecs.slice(0, maxRecs).forEach(function(rec) {
+                    if (yPos > pageHeight - 20) {
+                        pdf.addPage();
+                        yPos = 22;
+                    }
+                    var split = pdf.splitTextToSize(rec, pageWidth - 2 * marginX);
+                    pdf.text(split, marginX, yPos);
+                    yPos += split.length * 4 + 1;
+                });
+            }
+
+            // Trend / Prognose
+            if (aForecast) {
+                if (yPos > pageHeight - 40) {
+                    pdf.addPage();
+                    yPos = 22;
+                }
+                pdf.setFontSize(11);
+                pdf.setTextColor(0, 0, 0);
+                pdf.text(i18n.t('ai_trend_heading'), marginX, yPos);
+                yPos += 6;
+
+                pdf.setFontSize(9);
+                pdf.setTextColor(60, 60, 60);
+
+                var forecastSplit = pdf.splitTextToSize(aForecast, pageWidth - 2 * marginX);
+                pdf.text(forecastSplit, marginX, yPos);
+                yPos += forecastSplit.length * 4 + 2;
+            }
+
+            // Charts als Bilder
+            var addChart = function(selector, title) {
+                var container = document.querySelector(selector);
+                if (!container) return;
+                var canvas = container.querySelector('canvas');
+                if (!canvas) return;
+
+                try {
+                    if (yPos > pageHeight - 80) {
+                        pdf.addPage();
+                        yPos = 22;
+                    }
+
+                    pdf.setFontSize(11);
+                    pdf.setTextColor(0, 0, 0);
+                    pdf.text(title, marginX, yPos);
+                    yPos += 5;
+
+                    var imgData = canvas.toDataURL('image/png', 1.0);
+                    pdf.addImage(imgData, 'PNG', marginX, yPos, pageWidth - 2 * marginX, 50);
+                    yPos += 55;
+                } catch (err) {
+                    console.warn('Chart export error:', err);
+                }
+            };
+
+            addChart('#chartCountries', i18n.t('chart_countries_title'));
+            addChart('#chartSites', i18n.t('chart_sites_title'));
+            addChart('#chartTypes', i18n.t('chart_types_title'));
+            addChart('#chartDomains', i18n.t('chart_domains_title'));
+
+            // Tabellen mit autoTable
+            if (pdf.autoTable) {
                 pdf.addPage();
                 yPos = 22;
+
+                pdf.setFontSize(14);
+                pdf.setTextColor(0, 0, 0);
+                pdf.text(i18n.t('section_aggregated_overview'), marginX, yPos);
+                yPos += 8;
+
+                var byCountry = Utils.groupAndCount(DashboardState.currentData, function(r) {
+                    return DashboardState.headerMap.country ? r[DashboardState.headerMap.country] : '';
+                });
+
+                var byType = Utils.groupAndCount(DashboardState.currentData, function(r) {
+                    return DashboardState.headerMap.type ? r[DashboardState.headerMap.type] : '';
+                });
+
+                pdf.autoTable({
+                    startY: yPos,
+                    head: [[i18n.t('table_country_header'), i18n.t('table_count_header')]],
+                    body: byCountry.map(function(r) { return [r.key || '(leer)', r.count]; }),
+                    margin: { left: marginX, right: marginX },
+                    styles: { fontSize: 8 },
+                    headStyles: { fillColor: [0, 163, 122] }
+                });
+
+                yPos = pdf.lastAutoTable.finalY + 10;
+
+                pdf.autoTable({
+                    startY: yPos,
+                    head: [[i18n.t('table_type_header'), i18n.t('table_count_header')]],
+                    body: byType.map(function(r) { return [r.key || '(leer)', r.count]; }),
+                    margin: { left: marginX, right: marginX },
+                    styles: { fontSize: 8 },
+                    headStyles: { fillColor: [0, 163, 122] }
+                });
             }
-            pdf.setFontSize(11);
-            pdf.setTextColor(0, 0, 0);
-            pdf.text('Trend & Prognose (AI)', marginX, yPos);
-            yPos += 6;
 
-            pdf.setFontSize(9);
-            pdf.setTextColor(60, 60, 60);
+            // Footer (auf letzter Seite)
+            pdf.setFontSize(8);
+            pdf.setTextColor(130, 130, 130);
+            pdf.text(i18n.t('footer_left'), marginX, pageHeight - 6);
 
-            var forecastSplit = pdf.splitTextToSize(aForecast, pageWidth - 2 * marginX);
-            pdf.text(forecastSplit, marginX, yPos);
-            yPos += forecastSplit.length * 4 + 2;
+            // Speichern
+            var filename = i18n.t('pdf_filename', { date: new Date().toISOString().slice(0, 10) });
+            pdf.save(filename);
+
+            UI.showToast(i18n.t('toast_pdf_success', { file: filename }), 'success');
+        } catch (e) {
+            console.error('PDF Error:', e);
+            UI.showToast(i18n.t('toast_pdf_error', { error: e.message }), 'error');
+        } finally {
+            if (btnPdf) btnPdf.disabled = false;
         }
-
-        // danach geht dein existierender Code weiter mit:
-        // // Charts als Bilder
-        var addChart = function(selector, title) {
-            ...
-        };
+    }
+};
 
 // === DASHBOARD ===
 var Dashboard = {
