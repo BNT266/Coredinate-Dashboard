@@ -1,6 +1,5 @@
 /* =============================================
    SECURITY EVENT DASHBOARD - app.js
-   VOLLSTÄNDIGE EINZELDATEI (optimierte Version)
    ============================================= */
 
 'use strict';
@@ -392,7 +391,7 @@ SecurityAnalytics.prototype.analyze = function() {
     this.renderAll();
 };
 
-// Gesamt-Risiko über gewichtete Event-Typen
+// Gesamt-Risiko
 SecurityAnalytics.prototype.calculateRisk = function() {
     var self = this;
     var byType = Utils.groupAndCount(this.data, function(r) {
@@ -422,7 +421,7 @@ SecurityAnalytics.prototype.calculateRisk = function() {
     };
 };
 
-// Verteilung auf Security / FM / SHE / Other
+// Domains
 SecurityAnalytics.prototype.analyzeDomains = function() {
     var self = this;
     var counts = { Security: 0, FM: 0, SHE: 0, Other: 0 };
@@ -439,7 +438,7 @@ SecurityAnalytics.prototype.analyzeDomains = function() {
     this.insights.domains = arr;
 };
 
-// Top-Länder / -Standorte / -Eventtypen
+// Locations & types
 SecurityAnalytics.prototype.analyzeLocationsAndTypes = function() {
     var self = this;
     var bySite = {};
@@ -468,7 +467,7 @@ SecurityAnalytics.prototype.analyzeLocationsAndTypes = function() {
     this.insights.topTypes     = toArray(byType).slice(0, 3);
 };
 
-// Zeitliche Muster: Peak-Stunde / Peak-Wochentag / grobe Schichten
+// Zeitliche Muster
 SecurityAnalytics.prototype.analyzeTemporalPatterns = function() {
     var self = this;
     var byHour = new Array(24).fill(0);
@@ -482,7 +481,7 @@ SecurityAnalytics.prototype.analyzeTemporalPatterns = function() {
         if (isNaN(d.getTime())) return;
 
         byHour[d.getHours()]++;
-        byWeekday[d.getDay()]++; // 0=So, 1=Mo, ...
+        byWeekday[d.getDay()]++;
     });
 
     function peakIndex(arr) {
@@ -498,7 +497,6 @@ SecurityAnalytics.prototype.analyzeTemporalPatterns = function() {
 
     var weekdayNames = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
 
-    // Zuordnung zu groben Schichten
     function classifyShift(hour) {
         if (hour === null || hour < 0) return null;
         if (hour >= 6  && hour < 14) return 'Frühschicht (06–14 Uhr)';
@@ -517,7 +515,7 @@ SecurityAnalytics.prototype.analyzeTemporalPatterns = function() {
     };
 };
 
-// Verteilung Events pro Standort (zur Identifikation von Hotspots)
+// Site distribution
 SecurityAnalytics.prototype.analyzeDistributionPerSite = function() {
     var self = this;
     var bySite = {};
@@ -534,7 +532,7 @@ SecurityAnalytics.prototype.analyzeDistributionPerSite = function() {
     this.insights.siteDistribution = arr;
 };
 
-// Grober "Reifegrad" der Sicherheitsorganisation aus den Kennzahlen abgeleitet
+// Maturity
 SecurityAnalytics.prototype.deriveMaturityLevel = function() {
     var r = this.insights.risk;
     var domains = this.insights.domains || [];
@@ -551,7 +549,7 @@ SecurityAnalytics.prototype.deriveMaturityLevel = function() {
         comments.push('Niedriges bis moderates Risikoniveau mit relativ ausgewogener Verteilung auf verschiedene Bereiche. Dies deutet auf eine grundsätzlich etablierte Sicherheitsorganisation hin.');
     } else if (r.score < 60) {
         level = 'Reifegrad: Etabliert mit Optimierungspotenzial';
-        comments.push('Das Risikoniveau ist im mittleren Bereich. Einzelne Standorte oder Ereignistypen dominieren, was auf lokale Schwachstellen oder ungleich verteilte Maßnahmen hinweist.');
+        comments.push('Das Risikoniveau ist im mittleren Bereich. Einzelne Standorte oder Ereignisarten dominieren, was auf lokale Schwachstellen oder ungleich verteilte Maßnahmen hinweist.');
     } else {
         level = 'Reifegrad: Kritisch / Reaktiv';
         comments.push('Hohes Risikoniveau und/oder starke Konzentration bestimmter Eventtypen oder Standorte. Dies spricht für reaktive statt proaktive Sicherheitsprozesse.');
@@ -571,7 +569,7 @@ SecurityAnalytics.prototype.deriveMaturityLevel = function() {
     };
 };
 
-// Handlungsempfehlungen mit Enterprise-Fokus
+// Empfehlungen
 SecurityAnalytics.prototype.buildRecommendations = function() {
     var r = this.insights.risk;
     var d = this.insights.domains || [];
@@ -580,7 +578,6 @@ SecurityAnalytics.prototype.buildRecommendations = function() {
     var maturity = this.insights.maturity || {};
     var recs = [];
 
-    // Basis-Empfehlung nach Risiko-Level
     if (r.level === 'HOCH') {
         recs.push('Risikoniveau ist HOCH. Kurzfristig sollten zusätzliche Sicherungsmaßnahmen an den kritischen Standorten umgesetzt werden (z.B. Zutrittskontrollen verschärfen, Wachpersonal verstärken, technische Anlagen überprüfen).');
         recs.push('Ein konzernweites Incident-Review mit Fokus auf die letzten 4–8 Wochen ist sinnvoll, um Muster zu identifizieren und Sofortmaßnahmen abzuleiten.');
@@ -592,13 +589,11 @@ SecurityAnalytics.prototype.buildRecommendations = function() {
         recs.push('Nutzen Sie die aktuelle Lage, um Prozesse zu standardisieren, Schulungen durchzuführen und Lessons Learned zu dokumentieren.');
     }
 
-    // Kritische Ereignistypen
     if (r.criticalTypes && r.criticalTypes.length) {
         var topCrit = r.criticalTypes[0];
         recs.push('Besonders kritisch fällt die Ereignisart "' + (topCrit.key || 'Unbekannt') + '" auf (' + topCrit.count + ' Vorkommen). Hier sollten gezielt Ursachen analysiert und spezifische Gegenmaßnahmen (technisch, organisatorisch, personell) definiert werden.');
     }
 
-    // Dominanter Bereich (Security, FM, SHE)
     if (d && d.length && d[0].count > 0) {
         var dom = d[0];
         if (dom.domain === 'Security') {
@@ -612,7 +607,6 @@ SecurityAnalytics.prototype.buildRecommendations = function() {
         }
     }
 
-    // Zeitliche Muster
     if (time.peakHourValue > 0) {
         recs.push('Auffällig ist eine Häufung von Ereignissen gegen ca. ' + time.peakHour + ':00 Uhr. In diesem Zeitfenster sollten verstärkte Kontrollen, Monitoring oder zusätzliche Präsenz eingeplant werden.');
     }
@@ -623,7 +617,6 @@ SecurityAnalytics.prototype.buildRecommendations = function() {
         recs.push('Die meisten Ereignisse treten in der ' + time.peakShift + ' auf. Schichtübergaben, Wachstärken und technische Kontrollen sollten in dieser Zeit besonders sauber organisiert sein.');
     }
 
-    // Standort-Hotspots
     if (sites && sites.length) {
         var topSite = sites[0];
         recs.push('Standort-Hotspot: "' + topSite.site + '" mit ' + topSite.count + ' Ereignissen. Eine detaillierte Standortanalyse (Zutritt, Perimeter, Beleuchtung, Prozesse) ist empfehlenswert.');
@@ -633,7 +626,6 @@ SecurityAnalytics.prototype.buildRecommendations = function() {
         }
     }
 
-    // Reifegrad-Kommentare
     if (maturity && maturity.comments && maturity.comments.length) {
         maturity.comments.forEach(function(c) { recs.push(c); });
     }
@@ -641,7 +633,7 @@ SecurityAnalytics.prototype.buildRecommendations = function() {
     this.insights.recommendations = recs;
 };
 
-// Trend- / Forecast-Text
+// Forecast
 SecurityAnalytics.prototype.buildForecastHint = function() {
     var r = this.insights.risk;
     var time = this.insights.timePatterns || {};
@@ -669,7 +661,7 @@ SecurityAnalytics.prototype.buildForecastHint = function() {
     this.insights.forecastText = text;
 };
 
-// Rendering in die vier Smart-Analytics-Kacheln
+// Rendering der Smart-Analytics-Kacheln
 SecurityAnalytics.prototype.renderAll = function() {
     var r = this.insights.risk;
     var d = this.insights.domains || [];
@@ -677,7 +669,6 @@ SecurityAnalytics.prototype.renderAll = function() {
     var forecastText = this.insights.forecastText || 'Keine Trendinformationen verfügbar.';
     var maturity = this.insights.maturity || {};
 
-    // Risiko-Einschätzung
     var riskEl = document.getElementById('riskAssessment');
     if (riskEl && r) {
         var html = '<div class="insight-item risk-' + r.riskClass + '">';
@@ -701,7 +692,6 @@ SecurityAnalytics.prototype.renderAll = function() {
         riskEl.innerHTML = html;
     }
 
-    // Muster & Bereiche
     var patternEl = document.getElementById('patternDetection');
     if (patternEl && d && d.length) {
         var html2 = '<div class="insight-item">';
@@ -724,7 +714,6 @@ SecurityAnalytics.prototype.renderAll = function() {
         patternEl.innerHTML = html2;
     }
 
-    // Empfehlungen
     var recEl = document.getElementById('smartRecommendations');
     if (recEl) {
         if (!recList.length) {
@@ -740,7 +729,6 @@ SecurityAnalytics.prototype.renderAll = function() {
         }
     }
 
-    // Trend & Forecast
     var trendEl = document.getElementById('trendForecast');
     if (trendEl) {
         var html4 = '<div class="insight-item">';
@@ -770,8 +758,6 @@ var ThemeManager = {
     setTheme: function(theme) {
         document.documentElement.setAttribute('data-theme', theme);
         localStorage.setItem('theme', theme);
-        var label = document.querySelector('.theme-label');
-        if (label) label.textContent = theme === 'dark' ? 'Light Mode' : 'Dark Mode';
         console.log('Theme:', theme);
     }
 };
@@ -882,7 +868,6 @@ var RenderManager = {
     },
 
     renderKPIs: function() {
-        // Basiszahlen
         UI.updateText('kpiTotalEvents', DashboardState.allData.length);
         UI.updateText('kpiTotalEventsSub', DashboardState.currentData.length + ' nach Filter');
 
@@ -903,12 +888,10 @@ var RenderManager = {
         var siteCount = Object.keys(sites).length;
         var typeCount = Object.keys(types).length;
 
-        // Header-KPIs
         UI.updateText('kpiCountries', countryCount);
         UI.updateText('kpiSites', siteCount);
         UI.updateText('kpiTypes', typeCount);
 
-        // Karten-KPIs
         UI.updateText('kpiTotalEventsCard', DashboardState.allData.length);
         UI.updateText('kpiCountriesCard', countryCount);
         UI.updateText('kpiSitesCard', siteCount);
@@ -1048,8 +1031,7 @@ var RenderManager = {
         ChartManager.create('chartTypes', types, 'pie');
         ChartManager.create('chartDomains', domainData, 'pie');
     },
-
-    runAnalytics: function() {
+   runAnalytics: function() {
         if (!DashboardState.currentData.length) {
             var html = '<div class="loading">Keine Daten fuer Analyse</div>';
             ['riskAssessment', 'patternDetection', 'smartRecommendations', 'trendForecast'].forEach(function(id) {
@@ -1270,13 +1252,13 @@ var ExportManager = {
             }), marginX, yPos);
             yPos += 12;
 
-            // AI-basierte Executive Summary
+            // Risiko & Reifegrad
             pdf.setFontSize(11);
             pdf.setTextColor(0, 0, 0);
 
-            // Risiko & Reifegrad
             var riskLabel = i18n.t('ai_risk_label');
-            var riskLine = riskLabel + ': ' + (aRisk.level || 'n/a') + ' (' + (aRisk.score != null ? aRisk.score + '%' : '-') + ')';
+            var riskLine = riskLabel + ': ' + (aRisk.level || 'n/a') + ' (' +
+                (aRisk.score != null ? aRisk.score + '%' : '-') + ')';
             pdf.text(riskLine, marginX, yPos);
             yPos += 6;
 
@@ -1377,7 +1359,7 @@ var ExportManager = {
                 yPos += 6;
             }
 
-            // Handlungsempfehlungen
+            // Empfehlungen
             if (aRecs.length) {
                 if (yPos > pageHeight - 40) {
                     pdf.addPage();
@@ -1492,11 +1474,6 @@ var ExportManager = {
                 });
             }
 
-            // Footer
-            pdf.setFontSize(8);
-            pdf.setTextColor(130, 130, 130);
-            pdf.text(i18n.t('footer_left'), marginX, pageHeight - 6);
-
             var filename = i18n.t('pdf_filename', { date: new Date().toISOString().slice(0, 10) });
             pdf.save(filename);
 
@@ -1575,6 +1552,27 @@ var Dashboard = {
         if (langSelect) {
             langSelect.addEventListener('change', function(e) {
                 i18n.set(e.target.value);
+            });
+        }
+
+        // Smart Analytics ein-/ausblenden (standardmäßig eingeklappt)
+        var analyticsContent = document.getElementById('analyticsContent');
+        var analyticsToggle = document.getElementById('toggleAnalytics');
+
+        if (analyticsContent && analyticsToggle) {
+            analyticsContent.style.display = 'none';
+            analyticsToggle.textContent = 'Smart Analytics anzeigen ▾';
+
+            analyticsToggle.addEventListener('click', function () {
+                var isHidden = analyticsContent.style.display === 'none';
+
+                if (isHidden) {
+                    analyticsContent.style.display = 'grid';
+                    analyticsToggle.textContent = 'Smart Analytics ausblenden ▴';
+                } else {
+                    analyticsContent.style.display = 'none';
+                    analyticsToggle.textContent = 'Smart Analytics anzeigen ▾';
+                }
             });
         }
 
