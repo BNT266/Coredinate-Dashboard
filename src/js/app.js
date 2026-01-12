@@ -40,9 +40,9 @@ const i18n = {
         return str.replace(/\{\{(\w+)\}\}/g, function(_, v) { return vars[v] !== undefined ? String(vars[v]) : ''; });
     },
     strings: {
-        pdf_title: { de: 'SECURITY EVENT DASHBOARD', en: 'SECURITY EVENT DASHBOARD' },
-        pdf_subtitle: { de: 'Executive Summary Report', en: 'Executive Summary Report' },
-        pdf_created_at: { de: 'Erstellt: {{date}}', en: 'Generated: {{date}}' },
+        pdf_title: { de: 'SECURITY DASHBOARD', en: 'SECURITY DASHBOARD' },
+        pdf_subtitle: { de: 'Executive Summary & Risk Overview', en: 'Executive Summary & Risk Overview' },
+        footer_left: { de: 'Security Dashboard – Konzernreport', en: 'Security Dashboard – Corporate Report' },
         section_executive_summary: { de: 'Executive Summary', en: 'Executive Summary' },
         section_aggregated_overview: { de: 'Aggregierte Uebersicht', en: 'Aggregated Overview' },
         key_facts_line: { de: 'Events: {{events}} | Laender: {{countries}} | Liegenschaften: {{sites}} | Typen: {{types}}', en: 'Events: {{events}} | Countries: {{countries}} | Sites: {{sites}} | Types: {{types}}' },
