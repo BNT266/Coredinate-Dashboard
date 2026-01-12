@@ -2,20 +2,22 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Security Event Dashboard</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Security Event Dashboard zur Überwachung und Analyse von Sicherheitsereignissen">
+    <meta name="author" content="Security Team">
+    <title>Security Event Dashboard</title>
+
+    <!-- Favicon -->
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
 
     <!-- Styles -->
     <link rel="stylesheet" href="src/css/styles.css">
 
-    <!-- External Libraries -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- jsPDF (UMD) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <!-- jsPDF AutoTable für Tabellen im PDF -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-    <!-- html2canvas (optional) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- External Libraries (mit defer für bessere Performance) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
 </head>
 <body>
 <div class="app-shell">
@@ -30,7 +32,7 @@
         <div class="sidebar-section">
             <div class="sidebar-section-title">Datenquelle</div>
             <div class="file-input-wrapper">
-                <label>
+                <label for="fileInput">
                     CSV-Datei für Ereignismeldungen auswählen
                     <input type="file" id="fileInput" accept=".csv">
                 </label>
@@ -39,7 +41,9 @@
                 Erwartete Spalten z.B.: <strong>Land, Liegenschaft, Ereignisart, Datum</strong>
             </div>
             <div id="fileStatus" class="status">Keine Datei geladen.</div>
-            <button class="btn outline-light" id="loadTestData">Testdaten laden (Demo-Modus)</button>
+            <button type="button" class="btn outline-light" id="loadTestData">
+                Testdaten laden (Demo-Modus)
+            </button>
         </div>
 
         <!-- Filter Section -->
@@ -64,7 +68,9 @@
                         <option value="__ALL__">Alle Ereignisarten</option>
                     </select>
                 </div>
-                <button class="btn secondary" id="resetFilters">Filter zurücksetzen</button>
+                <button type="button" class="btn secondary" id="resetFilters">
+                    Filter zurücksetzen
+                </button>
                 <div id="filterStatus" class="status"></div>
             </div>
         </div>
@@ -72,8 +78,12 @@
         <!-- Export Section -->
         <div class="sidebar-section">
             <div class="sidebar-section-title">Export</div>
-            <button class="btn secondary" id="exportCSV">📄 CSV exportieren</button>
-            <button class="btn primary" id="exportPDF">📊 Executive PDF-Report erstellen</button>
+            <button type="button" class="btn secondary" id="exportCSV">
+                <span aria-hidden="true">📄</span> CSV exportieren
+            </button>
+            <button type="button" class="btn primary" id="exportPDF">
+                <span aria-hidden="true">📊</span> Executive PDF-Report erstellen
+            </button>
             <div id="exportStatus" class="status" style="display: none;"></div>
         </div>
 
@@ -90,9 +100,11 @@
         <div class="top-bar">
             <!-- Theme Toggle -->
             <div class="theme-toggle-wrapper">
-                <button id="themeToggle" class="theme-toggle" title="Dark/Light Mode umschalten">
-                    <span class="theme-icon sun">☀️</span>
-                    <span class="theme-icon moon">🌙</span>
+                <button type="button" id="themeToggle" class="theme-toggle" 
+                        title="Dark/Light Mode umschalten"
+                        aria-label="Theme umschalten">
+                    <span class="theme-icon sun" aria-hidden="true">☀️</span>
+                    <span class="theme-icon moon" aria-hidden="true">🌙</span>
                     <div class="theme-toggle-slider"></div>
                 </button>
                 <span class="theme-label">Dark Mode</span>
@@ -112,7 +124,9 @@
         <header class="main-header">
             <div>
                 <h1>Security Events Overview</h1>
-                <h3>Echtzeit-Übersicht über gemeldete Ereignisse nach Land, Liegenschaft und Ereignisart</h3>
+                <p class="main-header-subtitle">
+                    Echtzeit-Übersicht über gemeldete Ereignisse nach Land, Liegenschaft und Ereignisart
+                </p>
             </div>
             <div class="main-header-right">
                 <div class="pill">
@@ -124,88 +138,90 @@
 
         <!-- KPI Cards -->
         <section class="card-grid" aria-label="Kennzahlen">
-            <div class="card">
+            <article class="card">
                 <div class="card-title">Gesamtzahl Ereignisse</div>
                 <div class="card-value" id="kpiTotalEvents">0</div>
                 <div class="card-subvalue" id="kpiTotalEventsSub">0 nach Filter</div>
-            </div>
-            <div class="card">
+            </article>
+            <article class="card">
                 <div class="card-title">Länder</div>
                 <div class="card-value" id="kpiCountries">0</div>
                 <div class="card-subvalue">Distinct nach Feld „Land"</div>
-            </div>
-            <div class="card">
+            </article>
+            <article class="card">
                 <div class="card-title">Liegenschaften</div>
                 <div class="card-value" id="kpiSites">0</div>
                 <div class="card-subvalue">Distinct nach Feld „Liegenschaft"</div>
-            </div>
-            <div class="card">
+            </article>
+            <article class="card">
                 <div class="card-title">Ereignisarten</div>
                 <div class="card-value" id="kpiTypes">0</div>
                 <div class="card-subvalue">Distinct nach Feld „Ereignisart"</div>
-            </div>
+            </article>
         </section>
 
         <!-- Smart Analytics Panel -->
-        <section class="analytics-panel">
+        <section class="analytics-panel" aria-label="Smart Analytics">
             <div class="panel-header">
                 <div>
-                    <div class="panel-title">🧠 Smart Analytics & Insights</div>
-                    <div class="panel-subtitle">
+                    <h2 class="panel-title">
+                        <span aria-hidden="true">🧠</span> Smart Analytics &amp; Insights
+                    </h2>
+                    <p class="panel-subtitle">
                         KI-basierte Muster-Erkennung und automatische Sicherheitsanalyse
-                    </div>
+                    </p>
                 </div>
             </div>
             <div class="insights-grid">
-                <div class="insight-card">
+                <article class="insight-card">
                     <div class="insight-header">
-                        <span class="insight-icon">⚠️</span>
-                        <h4>Risiko-Assessment</h4>
+                        <span class="insight-icon" aria-hidden="true">⚠️</span>
+                        <h3>Risiko-Assessment</h3>
                     </div>
                     <div id="riskAssessment" class="insight-content">
                         <div class="loading">Analysiere Risiko-Muster...</div>
                     </div>
-                </div>
-                <div class="insight-card">
+                </article>
+                <article class="insight-card">
                     <div class="insight-header">
-                        <span class="insight-icon">🔍</span>
-                        <h4>Muster-Erkennung</h4>
+                        <span class="insight-icon" aria-hidden="true">🔍</span>
+                        <h3>Muster-Erkennung</h3>
                     </div>
                     <div id="patternDetection" class="insight-content">
                         <div class="loading">Suche nach Anomalien...</div>
                     </div>
-                </div>
-                <div class="insight-card">
+                </article>
+                <article class="insight-card">
                     <div class="insight-header">
-                        <span class="insight-icon">💡</span>
-                        <h4>Empfehlungen</h4>
+                        <span class="insight-icon" aria-hidden="true">💡</span>
+                        <h3>Empfehlungen</h3>
                     </div>
                     <div id="smartRecommendations" class="insight-content">
                         <div class="loading">Generiere Handlungsempfehlungen...</div>
                     </div>
-                </div>
-                <div class="insight-card">
+                </article>
+                <article class="insight-card">
                     <div class="insight-header">
-                        <span class="insight-icon">📈</span>
-                        <h4>Trend-Prognose</h4>
+                        <span class="insight-icon" aria-hidden="true">📈</span>
+                        <h3>Trend-Prognose</h3>
                     </div>
                     <div id="trendForecast" class="insight-content">
                         <div class="loading">Berechne Zukunftstrends...</div>
                     </div>
-                </div>
+                </article>
             </div>
         </section>
 
         <!-- Content Grid -->
-        <section class="content-grid">
+        <div class="content-grid">
             <!-- Tables Panel -->
             <section class="panel" aria-label="Tabellarische Auswertung">
                 <div class="panel-header">
                     <div>
-                        <div class="panel-title">Aggregierte Übersicht</div>
-                        <div class="panel-subtitle">
+                        <h2 class="panel-title">Aggregierte Übersicht</h2>
+                        <p class="panel-subtitle">
                             Häufigkeiten nach Land, Liegenschaft und Ereignisart
-                        </div>
+                        </p>
                     </div>
                 </div>
 
@@ -214,8 +230,8 @@
                     <table id="tableByCountry">
                         <thead>
                         <tr>
-                            <th>Land</th>
-                            <th>Anzahl Ereignisse</th>
+                            <th scope="col">Land</th>
+                            <th scope="col">Anzahl Ereignisse</th>
                         </tr>
                         </thead>
                         <tbody></tbody>
@@ -227,9 +243,9 @@
                     <table id="tableBySite">
                         <thead>
                         <tr>
-                            <th>Liegenschaft</th>
-                            <th>Land</th>
-                            <th>Anzahl Ereignisse</th>
+                            <th scope="col">Liegenschaft</th>
+                            <th scope="col">Land</th>
+                            <th scope="col">Anzahl Ereignisse</th>
                         </tr>
                         </thead>
                         <tbody></tbody>
@@ -241,8 +257,8 @@
                     <table id="tableByType">
                         <thead>
                         <tr>
-                            <th>Ereignisart</th>
-                            <th>Anzahl Ereignisse</th>
+                            <th scope="col">Ereignisart</th>
+                            <th scope="col">Anzahl Ereignisse</th>
                         </tr>
                         </thead>
                         <tbody></tbody>
@@ -254,31 +270,31 @@
             <section class="panel" aria-label="Visualisierung">
                 <div class="panel-header">
                     <div>
-                        <div class="panel-title">Visualisierung & Benchmark</div>
-                        <div class="panel-subtitle">
+                        <h2 class="panel-title">Visualisierung &amp; Benchmark</h2>
+                        <p class="panel-subtitle">
                             Top-Länder, Liegenschaften und Ereignisarten nach Häufigkeit
-                        </div>
+                        </p>
                     </div>
                 </div>
 
                 <h3>Top Länder (nach Ereignishäufigkeit)</h3>
-                <div id="chartCountries" class="chart"></div>
+                <div id="chartCountries" class="chart" role="img" aria-label="Balkendiagramm Ereignisse nach Ländern"></div>
 
                 <h3>Top Liegenschaften</h3>
-                <div id="chartSites" class="chart"></div>
+                <div id="chartSites" class="chart" role="img" aria-label="Balkendiagramm Ereignisse nach Liegenschaften"></div>
 
                 <h3>Top Ereignisarten</h3>
-                <div id="chartTypes" class="chart"></div>
+                <div id="chartTypes" class="chart" role="img" aria-label="Kreisdiagramm Ereignisse nach Typ"></div>
 
                 <h3>Bereichsverteilung (Security / FM / SHE)</h3>
-                <div id="chartDomains" class="chart"></div>
+                <div id="chartDomains" class="chart" role="img" aria-label="Kreisdiagramm Bereichsverteilung"></div>
             </section>
-        </section>
+        </div>
     </main>
 </div>
 
 <!-- Toast-Container für Systemmeldungen -->
-<div id="toastContainer" class="toast-container"></div>
+<div id="toastContainer" class="toast-container" role="alert" aria-live="polite"></div>
 
 <!-- Haupt-JavaScript -->
 <script src="src/js/app.js"></script>
