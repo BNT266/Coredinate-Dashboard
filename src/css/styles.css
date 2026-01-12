@@ -1,23 +1,46 @@
+/* =========================================
+   THEME VARIABLEN
+   ========================================= */
+
+/* Standard: Light-Theme */
 :root {
-    --bg-body: #0b1120;
-    --bg-sidebar: #020617;
-    --bg-panel: #020617;
-    --bg-card: #0f172a;
-    --bg-pill: #1e293b;
-    --bg-pill-secondary: #111827;
-    --border-subtle: #1e293b;
-    --text-main: #e5e7eb;
-    --text-muted: #9ca3af;
+    --bg-body: #f3f4f6;
+    --bg-sidebar: #ffffff;
+    --bg-panel: #ffffff;
+    --bg-card: #ffffff;
+    --bg-pill: #e5e7eb;
+    --bg-pill-secondary: #e5e7eb;
+    --border-subtle: #d1d5db;
+    --text-main: #111827;
+    --text-muted: #6b7280;
     --accent: #00a37a;
     --accent-soft: rgba(0,163,122,0.12);
     --danger: #ef4444;
-    --shadow-soft: 0 10px 30px rgba(0,0,0,0.5);
+    --shadow-soft: 0 10px 30px rgba(15,23,42,0.15);
     --radius-lg: 12px;
     --radius-md: 10px;
     --radius-pill: 999px;
     --transition-fast: 150ms ease;
     --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
 }
+
+/* Dark-Theme überschreibt die Variablen */
+html[data-theme="dark"] {
+    --bg-body: #0b1120;
+    --bg-sidebar: #020617;
+    --bg-panel: #020617;
+    --bg-card: #0f172a;
+    --bg-pill: #1f2937;
+    --bg-pill-secondary: #111827;
+    --border-subtle: #1e293b;
+    --text-main: #e5e7eb;
+    --text-muted: #9ca3af;
+    --shadow-soft: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+/* =========================================
+   GLOBAL
+   ========================================= */
 
 *,
 *::before,
@@ -30,9 +53,14 @@ html, body {
     padding: 0;
     height: 100%;
     font-family: var(--font-sans);
-    background: radial-gradient(circle at top, #0f172a 0, #020617 45%, #000 100%);
+    background: radial-gradient(circle at top, #e5e7eb 0, #f3f4f6 45%, #e5e7eb 100%);
     color: var(--text-main);
     -webkit-font-smoothing: antialiased;
+}
+
+/* Hintergrund im Dark-Mode */
+html[data-theme="dark"] body {
+    background: radial-gradient(circle at top, #0f172a 0, #020617 45%, #000 100%);
 }
 
 body {
@@ -76,11 +104,17 @@ body {
 }
 
 .sidebar-section {
-    background: rgba(15,23,42,0.85);
+    background: rgba(255,255,255,0.9);
     border-radius: var(--radius-lg);
     padding: 14px 14px 16px;
     box-shadow: var(--shadow-soft);
-    border: 1px solid rgba(148,163,184,0.15);
+    border: 1px solid rgba(148,163,184,0.25);
+}
+
+/* Sidebar in Dark-Mode */
+html[data-theme="dark"] .sidebar-section {
+    background: rgba(15,23,42,0.85);
+    border-color: rgba(148,163,184,0.15);
 }
 
 .sidebar-section-title {
@@ -114,14 +148,21 @@ body {
     gap: 10px;
 }
 
+/* Toggle-Grundform */
 .theme-toggle {
     position: relative;
     width: 48px;
     height: 24px;
     border-radius: 999px;
-    background: #020617;
-    border: 1px solid #334155;
+    background: #e5e7eb;
+    border: 1px solid #d1d5db;
     cursor: pointer;
+}
+
+/* Toggle im Dark-Mode dunkler */
+html[data-theme="dark"] .theme-toggle {
+    background: #020617;
+    border-color: #334155;
 }
 
 .theme-toggle-slider {
@@ -131,14 +172,25 @@ body {
     width: 18px;
     height: 18px;
     border-radius: 999px;
-    background: #e5e7eb;
-    transition: transform 160ms ease;
+    background: #111827;
+    transition: transform 160ms ease, background-color 160ms ease;
+}
+
+/* Slider im Light-Mode hell */
+html[data-theme="light"] .theme-toggle-slider {
+    background: #f9fafb;
+}
+
+/* Slider im Dark-Mode nach rechts */
+html[data-theme="dark"] .theme-toggle-slider {
+    transform: translateX(22px);
 }
 
 .theme-icon {
     position: absolute;
     top: 4px;
     font-size: 0.75rem;
+    color: #6b7280;
 }
 
 .theme-icon.sun {
@@ -157,11 +209,16 @@ body {
 }
 
 .language-select-wrapper select {
-    background: #020617;
+    background: var(--bg-panel);
     border-radius: 999px;
-    border: 1px solid #334155;
+    border: 1px solid #d1d5db;
     padding: 4px 10px;
     color: var(--text-main);
+}
+
+/* Dark-Mode Select */
+html[data-theme="dark"] .language-select-wrapper select {
+    border-color: #334155;
 }
 
 /* Buttons */
@@ -186,9 +243,13 @@ body {
 }
 
 .btn.secondary {
-    background: #020617;
+    background: var(--bg-panel);
     color: var(--text-main);
-    border: 1px solid #334155;
+    border: 1px solid #d1d5db;
+}
+
+html[data-theme="dark"] .btn.secondary {
+    border-color: #334155;
 }
 
 .btn.secondary:hover {
@@ -198,7 +259,7 @@ body {
 .btn.outline-light {
     background: transparent;
     color: var(--text-main);
-    border: 1px solid #475569;
+    border: 1px solid #9ca3af;
 }
 
 .btn.outline-light:hover {
@@ -285,7 +346,11 @@ body {
     background: var(--bg-card);
     border-radius: var(--radius-lg);
     padding: 12px 14px;
-    border: 1px solid #1f2937;
+    border: 1px solid #e5e7eb;
+}
+
+html[data-theme="dark"] .card {
+    border-color: #1f2937;
 }
 
 .card-title {
@@ -310,37 +375,20 @@ body {
     background: var(--bg-panel);
     border-radius: var(--radius-lg);
     padding: 12px 14px 14px;
-    border: 1px solid rgba(148,163,184,0.2);
-    box-shadow: 0 10px 25px rgba(0,0,0,0.45);
-}
-
-.panel-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 8px;
-}
-
-.panel-title {
-    font-size: 0.95rem;
-    font-weight: 600;
-}
-
-.panel-subtitle {
-    font-size: 0.8rem;
-    color: var(--text-muted);
+    border: 1px solid rgba(148,163,184,0.3);
+    box-shadow: var(--shadow-soft);
 }
 
 /* Analytics panel */
 
 .analytics-panel {
-    background: radial-gradient(circle at top left, rgba(56,189,248,0.2), transparent 50%),
+    background: radial-gradient(circle at top left, rgba(56,189,248,0.18), transparent 50%),
                 radial-gradient(circle at bottom right, rgba(22,163,74,0.18), transparent 55%),
-                #020617;
+                var(--bg-panel);
     border-radius: var(--radius-lg);
     padding: 14px 14px 16px;
     border: 1px solid rgba(94,234,212,0.22);
-    box-shadow: 0 18px 45px rgba(15,23,42,0.95);
+    box-shadow: 0 18px 45px rgba(15,23,42,0.4);
 }
 
 .insights-grid {
@@ -351,10 +399,16 @@ body {
 }
 
 .insight-card {
-    background: rgba(15,23,42,0.9);
+    background: rgba(255,255,255,0.95);
     border-radius: 10px;
     padding: 10px;
-    border: 1px solid rgba(148,163,184,0.3);
+    border: 1px solid rgba(148,163,184,0.5);
+    box-shadow: 0 10px 25px rgba(15,23,42,0.15);
+}
+
+html[data-theme="dark"] .insight-card {
+    background: rgba(15,23,42,0.9);
+    border-color: rgba(148,163,184,0.3);
     box-shadow: 0 10px 25px rgba(0,0,0,0.5);
 }
 
@@ -381,12 +435,12 @@ body {
 .insight-value {
     font-weight: 600;
     font-size: 0.85rem;
-    color: #e5e7eb;
+    color: var(--text-main);
 }
 
 .insight-trend {
     font-size: 0.78rem;
-    color: #9ca3af;
+    color: var(--text-muted);
 }
 
 .insight-list {
@@ -397,15 +451,15 @@ body {
 /* Risk classes */
 
 .risk-high .insight-value {
-    color: #fecaca;
+    color: #b91c1c;
 }
 
 .risk-medium .insight-value {
-    color: #fde68a;
+    color: #b45309;
 }
 
 .risk-low .insight-value {
-    color: #bbf7d0;
+    color: #047857;
 }
 
 /* Tables & charts */
@@ -417,11 +471,15 @@ body {
 }
 
 .table-wrapper {
-    background: #020617;
+    background: var(--bg-panel);
     border-radius: 10px;
-    border: 1px solid #1e293b;
+    border: 1px solid #d1d5db;
     overflow: hidden;
     margin-bottom: 10px;
+}
+
+html[data-theme="dark"] .table-wrapper {
+    border-color: #1e293b;
 }
 
 table {
@@ -431,6 +489,10 @@ table {
 }
 
 thead {
+    background: #f9fafb;
+}
+
+html[data-theme="dark"] thead {
     background: #020617;
 }
 
@@ -440,10 +502,15 @@ th, td {
 }
 
 tbody tr:nth-child(even) {
-    background: #020617;
+    background: #f9fafb;
 }
 
 tbody tr:nth-child(odd) {
+    background: #ffffff;
+}
+
+html[data-theme="dark"] tbody tr:nth-child(even),
+html[data-theme="dark"] tbody tr:nth-child(odd) {
     background: #020617;
 }
 
@@ -456,10 +523,14 @@ tbody tr:nth-child(odd) {
 
 .chart {
     height: 180px;
-    background: #020617;
+    background: var(--bg-panel);
     border-radius: 10px;
-    border: 1px solid #1f2937;
+    border: 1px solid #e5e7eb;
     padding: 6px;
+}
+
+html[data-theme="dark"] .chart {
+    border-color: #1f2937;
 }
 
 /* Toasts */
