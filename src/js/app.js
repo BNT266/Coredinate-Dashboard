@@ -1522,3 +1522,726 @@ const ExportManager = {
 
             summaryLines.push(i18n.t('domain_distribution_line', {
                 secCount: sec ? sec.count : 0
+                   summaryLines.push(i18n.t('domain_distribution_line', {
+                secCount: sec ? sec.count : 0,
+                secShare: sec ? sec.share : 0,
+                fmCount: fm ? fm.count : 0,
+                fmShare: fm ? fm.share : 0,
+                sheCount: she ? she.count : 0,
+                sheShare: she ? she.share : 0
+            }));
+
+            if (sec && fm && she) {
+                const topRisk = [sec, fm, she].sort((a, b) => b.riskScore - a.riskScore)[0];
+                summaryLines.push(i18n.t('domain_risk_focus', {
+                    domain: topRisk.domain,
+                    score: topRisk.riskScore
+                }));
+            }
+        }
+
+        // Trends
+        const riskTrendInsight = trends.find(t => t.metric === 'Gesamt-Risiko');
+        const volumeTrendInsight = trends.find(t => t.metric === 'Ereignis-Volumen');
+
+        if (riskTrendInsight) {
+            let trendKey = 'trend_risk_stable';
+            if (riskTrendInsight.forecast.includes('steigend')) trendKey = 'trend_risk_up';
+            else if (riskTrendInsight.forecast.includes('fallend')) trendKey = 'trend_risk_down';
+
+            summaryLines.push(i18n.t('trend_risk_sentence', {
+                trend: i18n.t(trendKey),
+                confidence: riskTrendInsight.confidence
+            }));
+        }
+
+        if (volumeTrendInsight) {
+            const shortForecast = volumeTrendInsight.forecast.replace('Nächster Monat:', '').trim();
+            summaryLines.push(i18n.t('trend_volume_sentence', {
+                forecast: shortForecast,
+                confidence: volumeTrendInsight.confidence
+            }));
+        }
+
+        // Zeitliche Muster
+        if (tp && tp.topHourBucket && tp.topWeekday) {
+            summaryLines.push(i18n.t('time_bucket_line', {
+                range: tp.topHourBucket.range,
+                count: tp.topHourBucket.count
+            }));
+            summaryLines.push(i18n.t('time_weekday_line', {
+                weekday: tp.topWeekday.name,
+                count: tp.topWeekday.count
+            }));
+            summaryLines.push(i18n.t('time_weekend_share', {
+                weekdayShare: tp.weekendVsWeekday.weekdayShare,
+                weekendShare: tp.weekendVsWeekday.weekendShare
+            }));
+        }
+
+        // Empfehlungen
+        if (recs.length > 0) {
+            recs.slice(0, 3).forEach(rec => {
+                const title = i18n.current === 'de' ? rec.title : (rec.title_en || rec.title);
+                const action = i18n.current === 'de' ? rec.action : (rec.action_en || rec.action);
+                actionLines.push(`$${title}: $${action}.`);
+            });
+        }
+
+        return { summaryLines, actionLines };
+    },
+
+    /**
+     * Exportiert die Daten als professionellen PDF-Report
+     */
+    async toPDF() {
+        if (!DashboardState.currentData || DashboardState.currentData.length === 0) {
+            UI.showToast(i18n.t('toast_no_data'), 'error');
+            return;
+        }
+
+        const status = document.getElementById('exportStatus');
+        const btnPdf = document.getElementById('exportPDF');
+
+        if (status) {
+            status.style.display = 'block';
+            status.textContent = i18n.t('toast_pdf_start');
+        }
+
+        if (btnPdf) btnPdf.disabled = true;
+
+        try {
+            // jsPDF prüfen
+            if (typeof window.jspdf === 'undefined') {
+                throw new Error('jsPDF ist nicht geladen (prüfe Script-Tags)!');
+            }
+
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('p', 'mm', 'a4');
+
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            const marginX = 18;
+            const footerHeight = 12;
+            let yPos = 22;
+            let pageNumber = 1;
+
+            // Footer-Funktion
+            const addFooter = () => {
+                pdf.setFontSize(8);
+                pdf.setTextColor(130, 130, 130);
+                const footerLeft = i18n.t('footer_left');
+                const footerRight = i18n.t('footer_page', { page: pageNumber });
+                pdf.text(footerLeft, marginX, pageHeight - 6);
+                const textWidth = pdf.getTextWidth(footerRight);
+                pdf.text(footerRight, pageWidth - marginX - textWidth, pageHeight - 6);
+            };
+
+            // Neue Seite erstellen
+            const newPage = () => {
+                addFooter();
+                pdf.addPage();
+                pageNumber += 1;
+                yPos = 22;
+            };
+
+            // Platz sicherstellen
+            const ensureSpace = (neededHeight) => {
+                if (yPos + neededHeight > pageHeight - footerHeight) {
+                    newPage();
+                }
+            };
+
+            // Analytics berechnen
+            let analytics;
+            try {
+                analytics = new SecurityAnalytics(DashboardState.currentData, DashboardState.headerMap);
+                analytics.analyze();
+            } catch (e) {
+                console.warn('Analytics konnten nicht berechnet werden:', e);
+            }
+
+            const narrative = this.buildExecutiveNarrative(analytics);
+            const risk = analytics?.insights?.risk;
+            const domainMix = analytics?.insights?.domainMix;
+
+            // KPIs berechnen
+            const totalEvents = DashboardState.currentData.length;
+            const totalCountries = new Set(
+                DashboardState.currentData
+                    .map(r => DashboardState.headerMap.country ? (r[DashboardState.headerMap.country] || '').trim() : '')
+                    .filter(Boolean)
+            ).size;
+            const totalSites = new Set(
+                DashboardState.currentData
+                    .map(r => DashboardState.headerMap.site ? (r[DashboardState.headerMap.site] || '').trim() : '')
+                    .filter(Boolean)
+            ).size;
+            const totalTypes = new Set(
+                DashboardState.currentData
+                    .map(r => DashboardState.headerMap.type ? (r[DashboardState.headerMap.type] || '').trim() : '')
+                    .filter(Boolean)
+            ).size;
+
+            // ========== SEITE 1: Header & Executive Summary ==========
+
+            // Header-Banner
+            pdf.setFillColor(0, 163, 122);
+            pdf.rect(0, 0, pageWidth, 30, 'F');
+
+            pdf.setTextColor(255, 255, 255);
+            pdf.setFontSize(18);
+            pdf.text(i18n.t('pdf_title'), marginX, 16);
+
+            pdf.setFontSize(11);
+            pdf.text(i18n.t('pdf_subtitle'), marginX, 23);
+
+            // Datum rechts
+            const now = new Date();
+            const dateStr = Utils.formatDate(now, i18n.current === 'de' ? 'de-DE' : 'en-GB');
+            const dateText = i18n.t('pdf_created_at', { date: dateStr });
+            const dateWidth = pdf.getTextWidth(dateText);
+            pdf.text(dateText, pageWidth - marginX - dateWidth, 23);
+
+            // Executive Summary
+            yPos = 40;
+            pdf.setTextColor(0, 0, 0);
+            pdf.setFontSize(14);
+            pdf.text(i18n.t('section_executive_summary'), marginX, yPos);
+            yPos += 7;
+
+            // Key Facts
+            pdf.setFontSize(9);
+            pdf.setTextColor(80, 80, 80);
+            const keyFacts = i18n.t('key_facts_line', {
+                events: totalEvents,
+                countries: totalCountries,
+                sites: totalSites,
+                types: totalTypes
+            });
+            pdf.text(keyFacts, marginX, yPos);
+            yPos += 7;
+
+            // Narrative Summary
+            const execLines = narrative.summaryLines.slice(0, 6);
+            const splitExecLines = pdf.splitTextToSize(execLines.join(' '), pageWidth - 2 * marginX);
+            splitExecLines.forEach(line => {
+                ensureSpace(5);
+                pdf.text(line, marginX, yPos);
+                yPos += 4.5;
+            });
+
+            yPos += 4;
+
+            // Domain Focus
+            if (domainMix && domainMix.byDomain && domainMix.byDomain.length) {
+                ensureSpace(20);
+                pdf.setFontSize(11);
+                pdf.setTextColor(0, 0, 0);
+                pdf.text(i18n.t('section_domain_focus'), marginX, yPos);
+                yPos += 5;
+
+                pdf.setFontSize(9);
+                pdf.setTextColor(80, 80, 80);
+
+                domainMix.byDomain.slice(0, 3).forEach(d => {
+                    const line = `• $${d.domain}: $${d.count} ($${d.share}%, ~$${d.riskScore} pts)`;
+                    ensureSpace(5);
+                    pdf.text(line, marginX, yPos);
+                    yPos += 4;
+                });
+            }
+
+            // ========== SEITE 2: AI Insights ==========
+            newPage();
+
+            pdf.setTextColor(0, 0, 0);
+            pdf.setFontSize(14);
+            pdf.text(i18n.t('section_ai_insights'), marginX, yPos);
+            yPos += 7;
+
+            pdf.setFontSize(9);
+            pdf.setTextColor(90, 90, 90);
+            pdf.text(i18n.t('desc_ai_insights'), marginX, yPos);
+            yPos += 7;
+
+            // Risiko-Sektion
+            if (risk) {
+                ensureSpace(30);
+                pdf.setFontSize(11);
+                pdf.setTextColor(0, 0, 0);
+                pdf.text(i18n.t('section_risk_and_domain'), marginX, yPos);
+                yPos += 5;
+
+                pdf.setFontSize(9);
+                pdf.setTextColor(80, 80, 80);
+
+                const riskTextParts = [];
+                let introKey = risk.level === 'HOCH' ? 'risk_intro_high' :
+                               risk.level === 'MITTEL' ? 'risk_intro_medium' : 'risk_intro_low';
+
+                riskTextParts.push(i18n.t(introKey, { score: risk.score }));
+                riskTextParts.push(i18n.t('risk_detail_high', { count: risk.highRiskEvents }));
+
+                if (risk.criticalTypes && risk.criticalTypes[0]) {
+                    riskTextParts.push(i18n.t('risk_critical_type', {
+                        type: risk.criticalTypes[0].key,
+                        count: risk.criticalTypes[0].count
+                    }));
+                }
+
+                const riskBlock = pdf.splitTextToSize(riskTextParts.join(' '), pageWidth - 2 * marginX);
+                riskBlock.forEach(line => {
+                    ensureSpace(5);
+                    pdf.text(line, marginX, yPos);
+                    yPos += 4.5;
+                });
+
+                // Domain-Verteilung
+                if (domainMix && domainMix.byDomain && domainMix.byDomain.length) {
+                    yPos += 4;
+                    const dm = domainMix.byDomain;
+                    const sec = dm.find(d => d.domain === 'Security');
+                    const fm = dm.find(d => d.domain === 'FM');
+                    const she = dm.find(d => d.domain === 'SHE');
+                    const top = dm[0];
+
+                    const dmLines = [
+                        i18n.t('domain_main_line', {
+                            domain: top.domain,
+                            count: top.count,
+                            share: top.share
+                        }),
+                        i18n.t('domain_distribution_line', {
+                            secCount: sec ? sec.count : 0,
+                            secShare: sec ? sec.share : 0,
+                            fmCount: fm ? fm.count : 0,
+                            fmShare: fm ? fm.share : 0,
+                            sheCount: she ? she.count : 0,
+                            sheShare: she ? she.share : 0
+                        })
+                    ];
+
+                    const dmText = pdf.splitTextToSize(dmLines.join(' '), pageWidth - 2 * marginX);
+                    dmText.forEach(line => {
+                        ensureSpace(5);
+                        pdf.text(line, marginX, yPos);
+                        yPos += 4.5;
+                    });
+                }
+            }
+
+            // Zeit & Trends
+            const tp = analytics?.insights?.timePatterns;
+            const trends = analytics?.insights?.trends || [];
+
+            if (tp || trends.length) {
+                yPos += 6;
+                ensureSpace(30);
+                pdf.setFontSize(11);
+                pdf.setTextColor(0, 0, 0);
+                pdf.text(i18n.t('section_time_and_trends'), marginX, yPos);
+                yPos += 5;
+
+                pdf.setFontSize(9);
+                pdf.setTextColor(80, 80, 80);
+
+                if (tp && tp.topHourBucket && tp.topWeekday) {
+                    const timeLines = [
+                        i18n.t('time_bucket_line', { range: tp.topHourBucket.range, count: tp.topHourBucket.count }),
+                        i18n.t('time_weekday_line', { weekday: tp.topWeekday.name, count: tp.topWeekday.count }),
+                        i18n.t('time_weekend_share', {
+                            weekdayShare: tp.weekendVsWeekday.weekdayShare,
+                            weekendShare: tp.weekendVsWeekday.weekendShare
+                        })
+                    ];
+
+                    const tt = pdf.splitTextToSize(timeLines.join(' '), pageWidth - 2 * marginX);
+                    tt.forEach(line => {
+                        ensureSpace(5);
+                        pdf.text(line, marginX, yPos);
+                        yPos += 4.5;
+                    });
+                }
+
+                if (trends.length) {
+                    yPos += 4;
+                    const riskTrend = trends.find(t => t.metric === 'Gesamt-Risiko');
+                    const volumeTrend = trends.find(t => t.metric === 'Ereignis-Volumen');
+
+                    const trendParts = [];
+                    if (riskTrend) {
+                        let trendKey = 'trend_risk_stable';
+                        if (riskTrend.forecast.includes('steigend')) trendKey = 'trend_risk_up';
+                        else if (riskTrend.forecast.includes('fallend')) trendKey = 'trend_risk_down';
+
+                        trendParts.push(i18n.t('trend_risk_sentence', {
+                            trend: i18n.t(trendKey),
+                            confidence: riskTrend.confidence
+                        }));
+                    }
+
+                    if (volumeTrend) {
+                        const shortForecast = volumeTrend.forecast.replace('Nächster Monat:', '').trim();
+                        trendParts.push(i18n.t('trend_volume_sentence', {
+                            forecast: shortForecast,
+                            confidence: volumeTrend.confidence
+                        }));
+                    }
+
+                    if (trendParts.length) {
+                        const trText = pdf.splitTextToSize(trendParts.join(' '), pageWidth - 2 * marginX);
+                        trText.forEach(line => {
+                            ensureSpace(5);
+                            pdf.text(line, marginX, yPos);
+                            yPos += 4.5;
+                        });
+                    }
+                }
+            }
+
+            // Empfehlungen
+            const actionLines = narrative.actionLines;
+            if (actionLines && actionLines.length) {
+                yPos += 8;
+                ensureSpace(30);
+                pdf.setFontSize(11);
+                pdf.setTextColor(0, 0, 0);
+                pdf.text(i18n.t('section_actions'), marginX, yPos);
+                yPos += 5;
+
+                pdf.setFontSize(9);
+                pdf.setTextColor(80, 80, 80);
+
+                actionLines.forEach(line => {
+                    const text = pdf.splitTextToSize(i18n.t('actions_bullet_prefix') + line, pageWidth - 2 * marginX);
+                    text.forEach(t => {
+                        ensureSpace(5);
+                        pdf.text(t, marginX, yPos);
+                        yPos += 4.5;
+                    });
+                });
+            }
+
+            // ========== SEITE 3: Visual Analytics ==========
+            newPage();
+
+            pdf.setTextColor(0, 0, 0);
+            pdf.setFontSize(14);
+            pdf.text(i18n.t('section_visual_analytics'), marginX, yPos);
+            yPos += 7;
+
+            pdf.setFontSize(9);
+            pdf.setTextColor(90, 90, 90);
+            pdf.text(i18n.t('desc_visual_analytics'), marginX, yPos);
+            yPos += 6;
+
+            // Charts als Bilder einfügen
+            const addChart = (selector, titleKey) => {
+                const container = document.querySelector(selector);
+                if (!container) return;
+
+                const canvas = container.querySelector('canvas');
+                if (!canvas) return;
+
+                try {
+                    const imgData = canvas.toDataURL('image/png', 1.0);
+                    const imgHeight = 55;
+                    const imgWidth = pageWidth - 2 * marginX;
+
+                    ensureSpace(imgHeight + 12);
+
+                    pdf.setFontSize(10);
+                    pdf.setTextColor(0, 0, 0);
+                    pdf.text(i18n.t(titleKey), marginX, yPos);
+                    yPos += 4;
+
+                    pdf.addImage(imgData, 'PNG', marginX, yPos, imgWidth, imgHeight);
+                    yPos += imgHeight + 6;
+                } catch (e) {
+                    console.warn('Could not add chart to PDF:', e);
+                }
+            };
+
+            addChart('#chartCountries', 'chart_countries_title');
+            addChart('#chartSites', 'chart_sites_title');
+            addChart('#chartTypes', 'chart_types_title');
+            addChart('#chartDomains', 'chart_domains_title');
+
+            // ========== SEITE 4+: Tabellen (mit autoTable) ==========
+            if (pdf.autoTable) {
+                newPage();
+
+                const byCountry = Utils.groupAndCount(DashboardState.currentData, row =>
+                    DashboardState.headerMap.country ? row[DashboardState.headerMap.country] : ''
+                );
+                const bySite = Utils.groupAndCount(DashboardState.currentData, row =>
+                    DashboardState.headerMap.site ? row[DashboardState.headerMap.site] : ''
+                );
+                const byType = Utils.groupAndCount(DashboardState.currentData, row =>
+                    DashboardState.headerMap.type ? row[DashboardState.headerMap.type] : ''
+                );
+
+                pdf.setFontSize(14);
+                pdf.setTextColor(0, 0, 0);
+                pdf.text(i18n.t('section_aggregated_overview'), marginX, yPos);
+                yPos += 7;
+
+                // Tabelle: Nach Land
+                pdf.setFontSize(11);
+                pdf.text(i18n.t('chart_countries_title'), marginX, yPos);
+                yPos += 4;
+
+                pdf.autoTable({
+                    startY: yPos,
+                    head: [[i18n.t('table_country_header'), i18n.t('table_count_header')]],
+                    body: byCountry.map(r => [r.key || '(leer)', r.count]),
+                    margin: { left: marginX, right: marginX },
+                    styles: { fontSize: 8 },
+                    headStyles: { fillColor: [0, 163, 122], textColor: 255 }
+                });
+                yPos = pdf.lastAutoTable.finalY + 8;
+
+                // Tabelle: Nach Liegenschaft
+                pdf.setFontSize(11);
+                pdf.text(i18n.t('chart_sites_title'), marginX, yPos);
+                yPos += 4;
+
+                pdf.autoTable({
+                    startY: yPos,
+                    head: [[i18n.t('table_site_header'), i18n.t('table_count_header')]],
+                    body: bySite.map(r => [r.key || '(leer)', r.count]),
+                    margin: { left: marginX, right: marginX },
+                    styles: { fontSize: 8 },
+                    headStyles: { fillColor: [0, 163, 122], textColor: 255 }
+                });
+                yPos = pdf.lastAutoTable.finalY + 8;
+
+                // Tabelle: Nach Ereignisart
+                pdf.setFontSize(11);
+                pdf.text(i18n.t('chart_types_title'), marginX, yPos);
+                yPos += 4;
+
+                pdf.autoTable({
+                    startY: yPos,
+                    head: [[i18n.t('table_type_header'), i18n.t('table_count_header')]],
+                    body: byType.map(r => [r.key || '(leer)', r.count]),
+                    margin: { left: marginX, right: marginX },
+                    styles: { fontSize: 8 },
+                    headStyles: { fillColor: [0, 163, 122], textColor: 255 }
+                });
+                yPos = pdf.lastAutoTable.finalY + 10;
+
+                // ========== Detaillierte Ereignisliste ==========
+                if (DashboardState.currentData.length > 0) {
+                    newPage();
+
+                    const maxRows = CONFIG.maxPdfRows;
+                    const headers = Object.keys(DashboardState.currentData[0]);
+                    const rows = DashboardState.currentData
+                        .slice(0, maxRows)
+                        .map(row => headers.map(h => row[h] || ''));
+
+                    pdf.setFontSize(14);
+                    pdf.setTextColor(0, 0, 0);
+                    pdf.text(
+                        i18n.t('section_detailed_list', { count: Math.min(maxRows, DashboardState.currentData.length) }),
+                        marginX,
+                        yPos
+                    );
+                    yPos += 6;
+
+                    pdf.autoTable({
+                        startY: yPos,
+                        head: [headers],
+                        body: rows,
+                        margin: { left: marginX, right: marginX },
+                        styles: { fontSize: 7 },
+                        headStyles: { fillColor: [0, 163, 122], textColor: 255 }
+                    });
+                }
+            }
+
+            // Footer auf letzter Seite
+            addFooter();
+
+            // PDF speichern
+            const nowForName = new Date();
+            const dateForName = `$${nowForName.getFullYear()}-$${String(nowForName.getMonth() + 1).padStart(2, '0')}-${String(nowForName.getDate()).padStart(2, '0')}`;
+            const filename = i18n.t('pdf_filename', { date: dateForName });
+
+            pdf.save(filename);
+
+            UI.showToast(i18n.t('toast_pdf_success', { file: filename }), 'success');
+
+            if (status) {
+                status.textContent = i18n.t('toast_pdf_success', { file: filename });
+                setTimeout(() => { status.style.display = 'none'; }, 4000);
+            }
+
+        } catch (error) {
+            console.error('PDF Error:', error);
+            UI.showToast(i18n.t('toast_pdf_error', { error: error.message }), 'error');
+
+            if (status) {
+                status.textContent = i18n.t('toast_pdf_error', { error: error.message });
+                setTimeout(() => { status.style.display = 'none'; }, 5000);
+            }
+        } finally {
+            if (btnPdf) btnPdf.disabled = false;
+        }
+    }
+};
+
+// =============================================
+// FILTER MANAGER
+// =============================================
+const FilterManager = {
+    /**
+     * Wendet die aktiven Filter an
+     */
+    apply() {
+        if (!DashboardState.allData || DashboardState.allData.length === 0) {
+            DashboardState.currentData = [];
+            this.updateStatus();
+            RenderManager.renderAll();
+            return;
+        }
+
+        const country = document.getElementById('filterCountry')?.value || '__ALL__';
+        const site = document.getElementById('filterSite')?.value || '__ALL__';
+        const type = document.getElementById('filterType')?.value || '__ALL__';
+
+        DashboardState.currentData = DashboardState.allData.filter(row => {
+            const rowCountry = DashboardState.headerMap.country ? row[DashboardState.headerMap.country] : '';
+            const rowSite = DashboardState.headerMap.site ? row[DashboardState.headerMap.site] : '';
+            const rowType = DashboardState.headerMap.type ? row[DashboardState.headerMap.type] : '';
+
+            if (country !== '__ALL__' && rowCountry !== country) return false;
+            if (site !== '__ALL__' && rowSite !== site) return false;
+            if (type !== '__ALL__' && rowType !== type) return false;
+
+            return true;
+        });
+
+        this.updateStatus();
+        RenderManager.renderAll();
+
+        console.log(`🔍 Filter applied: $${DashboardState.currentData.length}/$${DashboardState.allData.length} records`);
+    },
+
+    /**
+     * Setzt alle Filter zurück
+     */
+    reset() {
+        const filterCountry = document.getElementById('filterCountry');
+        const filterSite = document.getElementById('filterSite');
+        const filterType = document.getElementById('filterType');
+
+        if (filterCountry) filterCountry.value = '__ALL__';
+        if (filterSite) filterSite.value = '__ALL__';
+        if (filterType) filterType.value = '__ALL__';
+
+        this.apply();
+        UI.showToast('Filter zurückgesetzt', 'info', 2000);
+    },
+
+    /**
+     * Aktualisiert die Statusanzeige
+     */
+    updateStatus() {
+        const status = document.getElementById('filterStatus');
+        if (!status) return;
+
+        const activeFilters = [];
+
+        const country = document.getElementById('filterCountry')?.value;
+        const site = document.getElementById('filterSite')?.value;
+        const type = document.getElementById('filterType')?.value;
+
+        if (country && country !== '__ALL__') activeFilters.push(`Land: ${country}`);
+        if (site && site !== '__ALL__') activeFilters.push(`Liegenschaft: ${site}`);
+        if (type && type !== '__ALL__') activeFilters.push(`Ereignisart: ${type}`);
+
+        let text;
+        if (activeFilters.length === 0) {
+            text = 'Keine Filter aktiv (zeige alle Datensätze)';
+            status.className = 'status';
+        } else {
+            text = `Aktive Filter: ${activeFilters.join(' | ')}`;
+            status.className = 'status active-filters';
+        }
+
+        const total = DashboardState.allData.length;
+        const current = DashboardState.currentData.length;
+        text += ` | Zeige $${current} von $${total} Datensätzen`;
+
+        status.textContent = text;
+    },
+
+    /**
+     * Aktualisiert die Optionen einer Select-Box
+     * @param {string} selectId - ID des Select-Elements
+     * @param {string[]} values - Werte für die Optionen
+     * @param {string} placeholder - Platzhalter-Text
+     */
+    updateSelectOptions(selectId, values, placeholder) {
+        const select = document.getElementById(selectId);
+        if (!select) return;
+
+        const currentValue = select.value;
+
+        select.innerHTML = `<option value="__ALL__">${placeholder}</option>`;
+        values.forEach(value => {
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = value;
+            select.appendChild(option);
+        });
+
+        // Vorherigen Wert wiederherstellen falls möglich
+        if (values.includes(currentValue)) {
+            select.value = currentValue;
+        }
+    }
+};
+
+// =============================================
+// RENDER MANAGER
+// =============================================
+const RenderManager = {
+    /**
+     * Rendert das komplette Dashboard
+     */
+    renderAll() {
+        console.log('🎨 Rendering dashboard...');
+
+        this.renderKPIs();
+        this.renderFilters();
+        this.renderTables();
+        this.renderCharts();
+        this.runAnalytics();
+    },
+
+    /**
+     * Rendert die KPI-Karten
+     */
+    renderKPIs() {
+        const total = DashboardState.allData.length;
+        const current = DashboardState.currentData.length;
+
+        UI.updateText('kpiTotalEvents', total);
+        UI.updateText('kpiTotalEventsSub', `${current} nach Filter`);
+
+        const countries = new Set();
+        const sites = new Set();
+        const types = new Set();
+
+        DashboardState.allData.forEach(row => {
+            if (DashboardState.headerMap.country && row[DashboardState.headerMap.country]) {
+                countries.add(row[DashboardState.headerMap.country].trim());
+            }
+            if (DashboardState.headerMap.site && row[DashboardState.headerMap.site]) {
+                sites.add(row[DashboardState.headerMap.site].trim());
+            }
+            if (DashboardState.headerMap.type && row[DashboardState.header
