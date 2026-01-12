@@ -191,7 +191,65 @@
             </div>
         </section>
 
-        <!-- CONTENT GRID -->
+        <!-- SMART ANALYTICS PANEL (jetzt VOR der Aggregierten Übersicht) -->
+        <section class="analytics-panel">
+            <div class="panel-header">
+                <div>
+                    <div class="panel-title">Smart Analytics</div>
+                    <div class="panel-subtitle">
+                        Automatische Risikoanalyse, Mustererkennung und Handlungsempfehlungen.
+                    </div>
+                </div>
+            </div>
+
+            <div class="insights-grid">
+                <!-- Risiko -->
+                <div class="insight-card">
+                    <div class="insight-header">
+                        <div class="insight-icon">🛑</div>
+                        <h3>Risiko-Einschätzung</h3>
+                    </div>
+                    <div id="riskAssessment" class="insight-content">
+                        <div class="loading">Keine Daten für Analyse</div>
+                    </div>
+                </div>
+
+                <!-- Muster -->
+                <div class="insight-card">
+                    <div class="insight-header">
+                        <div class="insight-icon">📊</div>
+                        <h3>Muster & Bereiche</h3>
+                    </div>
+                    <div id="patternDetection" class="insight-content">
+                        <div class="loading">Keine Daten für Analyse</div>
+                    </div>
+                </div>
+
+                <!-- Empfehlungen -->
+                <div class="insight-card">
+                    <div class="insight-header">
+                        <div class="insight-icon">💡</div>
+                        <h3>Empfehlungen</h3>
+                    </div>
+                    <div id="smartRecommendations" class="insight-content">
+                        <div class="loading">Keine Daten für Analyse</div>
+                    </div>
+                </div>
+
+                <!-- Trend -->
+                <div class="insight-card">
+                    <div class="insight-header">
+                        <div class="insight-icon">📈</div>
+                        <h3>Trend & Forecast</h3>
+                    </div>
+                    <div id="trendForecast" class="insight-content">
+                        <div class="loading">Keine Daten für Analyse</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CONTENT GRID (Aggregierte Übersicht + Charts) -->
         <section class="content-grid">
             <!-- LINKS: Tabellen & Charts -->
             <div class="panel">
@@ -294,64 +352,6 @@
                     <div class="empty-state">
                         <strong>Keine Daten</strong>
                         <span>Events werden automatisch den Bereichen Security, FM, SHE zugeordnet.</span>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- SMART ANALYTICS PANEL -->
-        <section class="analytics-panel">
-            <div class="panel-header">
-                <div>
-                    <div class="panel-title">Smart Analytics</div>
-                    <div class="panel-subtitle">
-                        Automatische Risikoanalyse, Mustererkennung und Handlungsempfehlungen.
-                    </div>
-                </div>
-            </div>
-
-            <div class="insights-grid">
-                <!-- Risiko -->
-                <div class="insight-card">
-                    <div class="insight-header">
-                        <div class="insight-icon">🛑</div>
-                        <h3>Risiko-Einschätzung</h3>
-                    </div>
-                    <div id="riskAssessment" class="insight-content">
-                        <div class="loading">Keine Daten für Analyse</div>
-                    </div>
-                </div>
-
-                <!-- Muster -->
-                <div class="insight-card">
-                    <div class="insight-header">
-                        <div class="insight-icon">📊</div>
-                        <h3>Muster & Bereiche</h3>
-                    </div>
-                    <div id="patternDetection" class="insight-content">
-                        <div class="loading">Keine Daten für Analyse</div>
-                    </div>
-                </div>
-
-                <!-- Empfehlungen -->
-                <div class="insight-card">
-                    <div class="insight-header">
-                        <div class="insight-icon">💡</div>
-                        <h3>Empfehlungen</h3>
-                    </div>
-                    <div id="smartRecommendations" class="insight-content">
-                        <div class="loading">Keine Daten für Analyse</div>
-                    </div>
-                </div>
-
-                <!-- Trend -->
-                <div class="insight-card">
-                    <div class="insight-header">
-                        <div class="insight-icon">📈</div>
-                        <h3>Trend & Forecast</h3>
-                    </div>
-                    <div id="trendForecast" class="insight-content">
-                        <div class="loading">Keine Daten für Analyse</div>
                     </div>
                 </div>
             </div>
