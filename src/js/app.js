@@ -637,32 +637,6 @@ SecurityAnalytics.prototype.renderAll = function() {
     }
 };
 
-SecurityAnalytics.prototype.renderAll = function() {
-    var r = this.insights.risk;
-    var d = this.insights.domains || [];
-    var recList = this.insights.recommendations || [];
-    var forecastText = this.insights.forecastText || 'Keine Trendinformationen verfügbar.';
-
-    // Risiko-Einschätzung
-    var riskEl = document.getElementById('riskAssessment');
-    if (riskEl && r) {
-        var html = '<div class="insight-item risk-' + r.riskClass + '">';
-        html += '<div class="insight-value">Risiko: ' + r.level + ' (' + r.score + '%)</div>';
-        html += '<div class="insight-trend">' + r.highRiskEvents + ' kritische von ' + r.totalEvents + ' Events</div>';
-        html += '</div>';
-
-        if (r.criticalTypes && r.criticalTypes.length) {
-            html += '<div class="insight-item"><div class="insight-value">Top-kritische Ereignistypen:</div>';
-            html += '<ul class="insight-list">';
-            r.criticalTypes.slice(0, 3).forEach(function(ct) {
-                html += '<li>' + Utils.escapeHtml(ct.key || '(leer)') + ' – ' + ct.count + ' Vorkommen</li>';
-            });
-            html += '</ul></div>';
-        }
-
-        riskEl.innerHTML = html;
-    }
-
     // Muster & Bereiche
     var patternEl = document.getElementById('patternDetection');
     if (patternEl && d && d.length) {
