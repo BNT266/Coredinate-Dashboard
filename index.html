@@ -44,7 +44,7 @@
                 </label>
             </div>
 
-            <!-- Button: ruft DataManager.loadTestData über JS-Eventlistener auf -->
+            <!-- Button: Testdaten laden -->
             <button id="loadTestData" class="btn primary">Testdaten laden</button>
 
             <div id="modeIndicator" class="status mt-2">Modus: Noch keine Daten</div>
@@ -115,7 +115,6 @@
                     <span class="theme-icon moon">🌙</span>
                     <div class="theme-toggle-slider"></div>
                 </div>
-                <span class="theme-label">Dark Mode</span>
             </div>
 
             <!-- Sprache -->
@@ -192,18 +191,24 @@
             </div>
         </section>
 
-        <!-- SMART ANALYTICS PANEL -->
-        <section class="analytics-panel">
-            <div class="panel-header">
+        <!-- SMART ANALYTICS PANEL (standardmäßig eingeklappt) -->
+        <section class="analytics-panel" id="analyticsPanel">
+            <div class="panel-header analytics-header">
                 <div>
                     <div class="panel-title">Smart Analytics</div>
                     <div class="panel-subtitle">
                         Automatische Risikoanalyse, Mustererkennung und Handlungsempfehlungen.
                     </div>
                 </div>
+
+                <!-- Klar sichtbare Toggle-Zeile -->
+                <button id="toggleAnalytics" class="analytics-toggle">
+                    Smart Analytics anzeigen ▾
+                </button>
             </div>
 
-            <div class="insights-grid">
+            <!-- Inhalt wird ein-/ausgeblendet -->
+            <div class="insights-grid" id="analyticsContent">
                 <!-- Risiko -->
                 <div class="insight-card">
                     <div class="insight-header">
@@ -362,7 +367,7 @@
 <!-- Toast Container -->
 <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
 
-<!-- App Script (mit kleinem Cache-Buster) -->
-<script src="src/js/app.js?v=2"></script>
+<!-- App Script -->
+<script src="src/js/app.js?v=4"></script>
 </body>
 </html>
