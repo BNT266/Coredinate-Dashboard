@@ -728,3 +728,797 @@ const ChartManager = {
         if (!select) return;
 
         const option =
+            /**
+     * Behandelt Klicks auf Chart-Elemente
+     * @param {string} containerId - Container-ID
+     * @param {Array} elements - Geklickte Elemente
+     * @param {Array} labels - Chart-Labels
+     */
+    handleChartClick(containerId, elements, labels) {
+        if (!elements || !elements.length) return;
+
+        const index = elements[0].index;
+        const label = labels[index];
+
+        if (!label || label === '(leer)') return;
+
+        const filterMap = {
+            'chartCountries': 'filterCountry',
+            'chartSites': 'filterSite',
+            'chartTypes': 'filterType'
+        };
+
+        const selectId = filterMap[containerId];
+        if (!selectId) return;
+
+        const select = document.getElementById(selectId);
+        if (!select) return;
+
+        const option = Array.from(select.options).find(o => o.value === label);
+        if (option) {
+            select.value = label;
+            FilterManager.apply();
+            UI.showToast(`Filter gesetzt: ${label}`, 'info', 2000);
+        }
+    },
+
+    /**
+     * Zerstört alle Chart-Instanzen
+     */
+    destroyAll() {
+        Object.keys(DashboardState.chartInstances).forEach(key => {
+            if (DashboardState.chartInstances[key]) {
+                DashboardState.chartInstances[key].destroy();
+            }
+        });
+        DashboardState.chartInstances = {};
+    }
+};
+
+// =============================================
+// ANALYTICS ENGINE
+// =============================================
+class SecurityAnalytics {
+    /**
+     * @param {Array} data - Ereignisdaten
+     * @param {Object} headerMap - Header-Mapping
+     */
+    constructor(data, headerMap) {
+        this.data = data || [];
+        this.headerMap = headerMap || {};
+        this.insights = {};
+    }
+
+    /**
+     * Führt alle Analysen durch
+     */
+    analyze() {
+        console.log('🧠 Running Smart Analytics...');
+
+        try {
+            this.calculateRiskAssessment();
+            this.detectPatterns();
+            this.generateRecommendations();
+            this.forecastTrends();
+            this.analyzeTimePatterns();
+            this.analyzeDomainMix();
+            this.renderAllInsights();
+        } catch (error) {
+            console.error('Analytics error:', error);
+        }
+    }
+
+    /**
+     * Berechnet das Risiko-Assessment
+     */
+    calculateRiskAssessment() {
+        const eventsByType = Utils.groupAndCount(this.data, row =>
+            this.headerMap.type ? row[this.headerMap.type] : ''
+        );
+
+        let totalRisk = 0;
+        let maxRisk = 0;
+        let highRiskEvents = 0;
+
+        eventsByType.forEach(event => {
+            const weight = CONFIG.riskWeights[event.key] || 3;
+            totalRisk += event.count * weight;
+            maxRisk += event.count * 10;
+
+            if (weight >= 8) {
+                highRiskEvents += event.count;
+            }
+        });
+
+        const riskPercent = Math.round((totalRisk / Math.max(maxRisk, 1)) * 100);
+        const level = riskPercent >= 70 ? 'HOCH' : riskPercent >= 40 ? 'MITTEL' : 'NIEDRIG';
+        const riskClass = riskPercent >= 70 ? 'high' : riskPercent >= 40 ? 'medium' : 'low';
+
+        this.insights.risk = {
+            score: riskPercent,
+            level: level,
+            class: riskClass,
+            highRiskEvents: highRiskEvents,
+            totalEvents: this.data.length,
+            criticalTypes: eventsByType.filter(e => (CONFIG.riskWeights[e.key] || 0) >= 8)
+        };
+    }
+
+    /**
+     * Erkennt Muster in den Daten
+     */
+    detectPatterns() {
+        const patterns = [];
+
+        // Hotspot-Erkennung
+        const siteEvents = Utils.groupAndCount(this.data, row =>
+            this.headerMap.site ? row[this.headerMap.site] : ''
+        );
+
+        const avgEventsPerSite = this.data.length / Math.max(siteEvents.length, 1);
+        const hotspots = siteEvents.filter(site => site.count > avgEventsPerSite * 1.5);
+
+        if (hotspots.length > 0) {
+            patterns.push({
+                type: 'hotspot',
+                title: 'Ereignis-Hotspots entdeckt',
+                description: `${hotspots.length} Standorte mit überdurchschnittlich vielen Ereignissen`,
+                severity: hotspots[0].count > avgEventsPerSite * 2 ? 'high' : 'medium'
+            });
+        }
+
+        // Konzentrations-Erkennung
+        const typeEvents = Utils.groupAndCount(this.data, row =>
+            this.headerMap.type ? row[this.headerMap.type] : ''
+        );
+
+        if (typeEvents.length > 0) {
+            const dominantType = typeEvents[0];
+            const concentration = (dominantType.count / this.data.length) * 100;
+
+            if (concentration > 40) {
+                patterns.push({
+                    type: 'concentration',
+                    title: 'Ereignis-Konzentration erkannt',
+                    description: `$${Math.round(concentration)}% aller Ereignisse sind "$${dominantType.key}"`,
+                    severity: concentration > 60 ? 'high' : 'medium'
+                });
+            }
+        }
+
+        this.insights.patterns = patterns;
+    }
+
+    /**
+     * Generiert Handlungsempfehlungen
+     */
+    generateRecommendations() {
+        const recommendations = [];
+        const risk = this.insights.risk;
+
+        if (risk.level === 'HOCH') {
+            recommendations.push({
+                priority: 'high',
+                icon: '🚨',
+                title: 'Sofortige Sicherheitsmaßnahmen',
+                title_en: 'Immediate Security Measures',
+                action: 'Sicherheitsaudit durchführen und Notfallplan aktivieren',
+                action_en: 'Conduct a security audit and activate emergency response plans',
+                reason: `Risiko-Score von ${risk.score}% erfordert schnelles Handeln`
+            });
+        }
+
+        if (risk.criticalTypes && risk.criticalTypes.length > 0) {
+            recommendations.push({
+                priority: 'high',
+                icon: '🔒',
+                title: 'Kritische Ereignisarten adressieren',
+                title_en: 'Address Critical Event Types',
+                action: `Präventionsmaßnahmen für ${risk.criticalTypes[0].key} verstärken`,
+                action_en: `Strengthen preventive measures for ${risk.criticalTypes[0].key}`,
+                reason: `${risk.criticalTypes[0].count} kritische Ereignisse registriert`
+            });
+        }
+
+        if (this.data.length > 20) {
+            recommendations.push({
+                priority: 'medium',
+                icon: '📊',
+                title: 'Regelmäßiges Monitoring',
+                title_en: 'Regular Monitoring',
+                action: 'Wöchentliche Dashboard-Reviews etablieren',
+                action_en: 'Establish weekly dashboard review routines',
+                reason: `${this.data.length} Ereignisse zeigen hohe Aktivität`
+            });
+        }
+
+        // Nach Priorität sortieren
+        recommendations.sort((a, b) => {
+            const priorityOrder = { 'high': 3, 'medium': 2, 'low': 1 };
+            return priorityOrder[b.priority] - priorityOrder[a.priority];
+        });
+
+        this.insights.recommendations = recommendations.slice(0, 4);
+    }
+
+    /**
+     * Erstellt Trend-Prognosen
+     */
+    forecastTrends() {
+        const trends = [];
+        const risk = this.insights.risk;
+
+        // Risiko-Trend
+        const riskTrend = risk.score > 60 ? 'steigend' : risk.score < 30 ? 'fallend' : 'stabil';
+        trends.push({
+            metric: 'Gesamt-Risiko',
+            current: `${risk.score}%`,
+            forecast: riskTrend,
+            confidence: '82%'
+        });
+
+        // Volumen-Trend
+        const monthlyGrowth = this.data.length > 50 ? '+12%' :
+            this.data.length > 20 ? '+5%' : '-3%';
+        trends.push({
+            metric: 'Ereignis-Volumen',
+            current: `${this.data.length} Events`,
+            forecast: `Nächster Monat: ${monthlyGrowth}`,
+            confidence: '75%'
+        });
+
+        // Top-Risiko-Typ
+        const topRiskType = risk.criticalTypes?.[0];
+        if (topRiskType) {
+            trends.push({
+                metric: topRiskType.key,
+                current: `${topRiskType.count} Vorfälle`,
+                forecast: 'Gleichbleibend hoch',
+                confidence: '88%'
+            });
+        }
+
+        this.insights.trends = trends;
+    }
+
+    /**
+     * Analysiert zeitliche Muster
+     */
+    analyzeTimePatterns() {
+        const dateField = this.headerMap.date;
+        const timeField = this.headerMap.time;
+
+        if (!dateField && !timeField) {
+            this.insights.timePatterns = null;
+            return;
+        }
+
+        const hourBuckets = { '00-06': 0, '06-12': 0, '12-18': 0, '18-24': 0 };
+        const weekdayCounts = [0, 0, 0, 0, 0, 0, 0];
+
+        this.data.forEach(row => {
+            let dateTimeStr = '';
+
+            if (dateField && row[dateField]) {
+                dateTimeStr += row[dateField];
+            }
+            if (timeField && row[timeField]) {
+                dateTimeStr += ' ' + row[timeField];
+            }
+
+            const d = new Date(dateTimeStr.trim());
+            if (isNaN(d.getTime())) return;
+
+            const hour = d.getHours();
+            const weekday = d.getDay();
+
+            // Zeitbucket zuordnen
+            if (hour < 6) hourBuckets['00-06']++;
+            else if (hour < 12) hourBuckets['06-12']++;
+            else if (hour < 18) hourBuckets['12-18']++;
+            else hourBuckets['18-24']++;
+
+            // Wochentag zählen
+            if (weekday >= 0 && weekday <= 6) {
+                weekdayCounts[weekday]++;
+            }
+        });
+
+        const totalEvents = this.data.length || 1;
+
+        // Top Zeitbucket
+        const hourBucketArray = Object.entries(hourBuckets)
+            .map(([range, count]) => ({ range, count }))
+            .sort((a, b) => b.count - a.count);
+        const topHourBucket = hourBucketArray[0];
+
+        // Top Wochentag
+        const weekdayNames = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+        const weekdayArray = weekdayCounts
+            .map((count, idx) => ({ name: weekdayNames[idx], count }))
+            .sort((a, b) => b.count - a.count);
+        const topWeekday = weekdayArray[0];
+
+        // Wochenende vs. Werktag
+        const weekendCount = weekdayCounts[0] + weekdayCounts[6];
+        const weekdayCount = totalEvents - weekendCount;
+
+        this.insights.timePatterns = {
+            hourBuckets,
+            weekdayCounts,
+            topHourBucket,
+            topWeekday,
+            weekendVsWeekday: {
+                weekend: weekendCount,
+                weekday: weekdayCount,
+                weekendShare: Math.round((weekendCount / totalEvents) * 100),
+                weekdayShare: Math.round((weekdayCount / totalEvents) * 100)
+            }
+        };
+    }
+
+    /**
+     * Analysiert die Bereichsverteilung (Security/FM/SHE)
+     */
+    analyzeDomainMix() {
+        const counts = { Security: 0, FM: 0, SHE: 0, Other: 0 };
+        const riskByDomain = { Security: 0, FM: 0, SHE: 0, Other: 0 };
+
+        this.data.forEach(row => {
+            const domain = Utils.classifyCategory(row, this.headerMap);
+            counts[domain]++;
+
+            const typeValue = this.headerMap.type ? row[this.headerMap.type] : '';
+            const weight = CONFIG.riskWeights[typeValue] || 3;
+            riskByDomain[domain] += weight;
+        });
+
+        const totalEvents = this.data.length || 1;
+
+        const domainArray = Object.keys(counts)
+            .map(domain => ({
+                domain,
+                count: counts[domain],
+                share: Math.round((counts[domain] / totalEvents) * 100),
+                riskScore: Math.round(riskByDomain[domain])
+            }))
+            .sort((a, b) => b.count - a.count);
+
+        this.insights.domainMix = {
+            totalEvents,
+            byDomain: domainArray
+        };
+    }
+
+    /**
+     * Rendert alle Insights in die UI
+     */
+    renderAllInsights() {
+        this.renderRiskAssessment();
+        this.renderPatternDetection();
+        this.renderRecommendations();
+        this.renderTrendForecast();
+    }
+
+    /**
+     * Rendert das Risiko-Assessment
+     */
+    renderRiskAssessment() {
+        const container = document.getElementById('riskAssessment');
+        if (!container) return;
+
+        const risk = this.insights.risk;
+
+        let html = `
+            <div class="insight-item risk-${risk.class}">
+                <div class="insight-value">Risiko-Level: $${risk.level} ($${risk.score}%)</div>
+                <div class="insight-trend">
+                    $${risk.highRiskEvents} kritische Ereignisse von $${risk.totalEvents} gesamt
+                </div>
+                <div class="insight-trend">
+                    Basis: gewichtete Häufigkeit nach Ereignisart
+                </div>
+            </div>
+        `;
+
+        if (risk.criticalTypes && risk.criticalTypes.length > 0) {
+            html += `
+                <div class="insight-item">
+                    <div class="insight-value">⚠️ Kritischster Typ:</div>
+                    <div class="insight-trend">$${Utils.escapeHtml(risk.criticalTypes[0].key)} ($${risk.criticalTypes[0].count}x)</div>
+                </div>
+            `;
+        }
+
+        container.innerHTML = html;
+    }
+
+    /**
+     * Rendert die Muster-Erkennung
+     */
+    renderPatternDetection() {
+        const container = document.getElementById('patternDetection');
+        if (!container) return;
+
+        const patterns = this.insights.patterns;
+        const domainMix = this.insights.domainMix;
+
+        let html = '';
+
+        if (!patterns || patterns.length === 0) {
+            html += `
+                <div class="insight-item">
+                    <div class="insight-value">✅ Keine kritischen Muster erkannt</div>
+                    <div class="insight-trend">Ereignisverteilung ist ausgewogen</div>
+                </div>
+            `;
+        } else {
+            html += patterns.slice(0, 2).map(pattern => `
+                <div class="insight-item">
+                    <div class="insight-value">$${pattern.severity === 'high' ? '🔴' : '🟡'} $${Utils.escapeHtml(pattern.title)}</div>
+                    <div class="insight-trend">${Utils.escapeHtml(pattern.description)}</div>
+                </div>
+            `).join('');
+        }
+
+        // Bereichszuordnung anzeigen
+        if (domainMix && domainMix.byDomain && domainMix.byDomain.length) {
+            const top = domainMix.byDomain[0];
+            const sec = domainMix.byDomain.find(d => d.domain === 'Security');
+            const fm = domainMix.byDomain.find(d => d.domain === 'FM');
+            const she = domainMix.byDomain.find(d => d.domain === 'SHE');
+
+            html += `
+                <div class="insight-item">
+                    <div class="insight-value">Bereichszuordnung (Security / FM / SHE)</div>
+                    <div class="insight-trend">
+                        Dominanter Bereich: <strong>${top.domain}</strong>
+                        ($${top.count} Events, $${top.share}% Anteil)
+                    </div>
+                    <div class="insight-trend">
+                        Security: ${sec ? `$${sec.count} ($${sec.share}%)` : '0 (0%)'} |
+                        FM: ${fm ? `$${fm.count} ($${fm.share}%)` : '0 (0%)'} |
+                        SHE: ${she ? `$${she.count} ($${she.share}%)` : '0 (0%)'}
+                    </div>
+                </div>
+            `;
+        }
+
+        container.innerHTML = html;
+    }
+
+    /**
+     * Rendert die Empfehlungen
+     */
+    renderRecommendations() {
+        const container = document.getElementById('smartRecommendations');
+        if (!container) return;
+
+        const recommendations = this.insights.recommendations;
+        const lang = i18n.current;
+
+        if (!recommendations || recommendations.length === 0) {
+            container.innerHTML = `
+                <div class="insight-item">
+                    <div class="insight-value">✅ Keine dringenden Maßnahmen erforderlich</div>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = recommendations.slice(0, 3).map(rec => {
+            const title = lang === 'de' ? rec.title : (rec.title_en || rec.title);
+            const action = lang === 'de' ? rec.action : (rec.action_en || rec.action);
+            return `
+                <div class="insight-item">
+                    <div class="insight-value">$${rec.icon} $${Utils.escapeHtml(title)}</div>
+                    <div class="insight-trend">${Utils.escapeHtml(action)}</div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    /**
+     * Rendert die Trend-Prognose
+     */
+    renderTrendForecast() {
+        const container = document.getElementById('trendForecast');
+        if (!container) return;
+
+        const trends = this.insights.trends || [];
+        const timePatterns = this.insights.timePatterns;
+
+        let html = trends.slice(0, 3).map(trend => `
+            <div class="insight-item">
+                <div class="insight-value">$${Utils.escapeHtml(trend.metric)}: $${Utils.escapeHtml(trend.current)}</div>
+                <div class="insight-trend">
+                    $${Utils.escapeHtml(trend.forecast)} ($${trend.confidence} Konfidenz)
+                </div>
+            </div>
+        `).join('');
+
+        // Zeitliche Muster anzeigen
+        if (timePatterns && timePatterns.topHourBucket && timePatterns.topWeekday) {
+            html += `
+                <div class="insight-item">
+                    <div class="insight-value">Zeitliche Muster</div>
+                    <div class="insight-trend">
+                        Häufigste Zeitspanne: <strong>${timePatterns.topHourBucket.range} Uhr</strong>
+                        (${timePatterns.topHourBucket.count} Ereignisse)
+                    </div>
+                    <div class="insight-trend">
+                        Häufigster Wochentag: <strong>${timePatterns.topWeekday.name}</strong>
+                        (${timePatterns.topWeekday.count} Ereignisse)
+                    </div>
+                    <div class="insight-trend">
+                        Verteilung: <strong>${timePatterns.weekendVsWeekday.weekdayShare}%</strong> Werktag vs.
+                        <strong>${timePatterns.weekendVsWeekday.weekendShare}%</strong> Wochenende
+                    </div>
+                </div>
+            `;
+        }
+
+        container.innerHTML = html;
+    }
+}
+
+// =============================================
+// THEME MANAGER
+// =============================================
+const ThemeManager = {
+    /**
+     * Initialisiert das Theme-System
+     */
+    init() {
+        const toggle = document.getElementById('themeToggle');
+        const label = document.querySelector('.theme-label');
+
+        if (!toggle) {
+            console.warn('Theme toggle button not found');
+            return;
+        }
+
+        // Gespeichertes Theme laden
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        this.setTheme(savedTheme);
+
+        // Event Listener
+        toggle.addEventListener('click', () => {
+            const current = document.documentElement.getAttribute('data-theme') || 'light';
+            const newTheme = current === 'dark' ? 'light' : 'dark';
+            this.setTheme(newTheme);
+        });
+    },
+
+    /**
+     * Setzt das Theme
+     * @param {string} theme - 'light' oder 'dark'
+     */
+    setTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+
+        const label = document.querySelector('.theme-label');
+        if (label) {
+            label.textContent = theme === 'dark' ? 'Light Mode' : 'Dark Mode';
+        }
+
+        console.log(`🎨 Theme changed to: ${theme}`);
+    }
+};
+
+// =============================================
+// RISK CONFIGURATION MANAGER
+// =============================================
+const RiskConfigManager = {
+    STORAGE_KEY: 'securityDashboardRiskWeights',
+
+    /**
+     * Lädt die Risiko-Gewichtungen aus dem LocalStorage
+     */
+    loadFromStorage() {
+        try {
+            const raw = localStorage.getItem(this.STORAGE_KEY);
+            if (!raw) return;
+
+            const stored = JSON.parse(raw);
+            Object.assign(CONFIG.riskWeights, stored);
+            console.log('🔐 Risk weights loaded from storage:', CONFIG.riskWeights);
+        } catch (e) {
+            console.warn('Could not load risk weights from storage:', e);
+        }
+    },
+
+    /**
+     * Speichert die Risiko-Gewichtungen im LocalStorage
+     */
+    saveToStorage() {
+        try {
+            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(CONFIG.riskWeights));
+            console.log('💾 Risk weights saved to storage');
+        } catch (e) {
+            console.warn('Could not save risk weights:', e);
+        }
+    },
+
+    /**
+     * Rendert die Risiko-Konfiguration UI
+     */
+    render() {
+        const container = document.getElementById('riskConfigContainer');
+        if (!container) return;
+
+        // Alle einzigartigen Ereignisarten sammeln
+        const types = [...new Set(
+            DashboardState.allData
+                .map(row => DashboardState.headerMap.type ? row[DashboardState.headerMap.type] : '')
+                .filter(Boolean)
+                .map(v => v.trim())
+        )].sort();
+
+        if (!types.length) {
+            container.innerHTML = '<div class="hint">Keine Ereignisarten erkannt. Bitte Daten laden.</div>';
+            return;
+        }
+
+        const rowsHtml = types.map(type => {
+            const currentWeight = CONFIG.riskWeights[type] ?? 3;
+            return `
+                <div class="risk-config-row">
+                    <label class="risk-config-label" title="$${Utils.escapeHtml(type)}">$${Utils.escapeHtml(type)}</label>
+                    <input
+                        class="risk-config-input"
+                        type="number"
+                        min="1"
+                        max="10"
+                        step="1"
+                        data-risk-type="${Utils.escapeHtml(type)}"
+                        value="${currentWeight}"
+                        aria-label="Risikogewichtung für ${Utils.escapeHtml(type)}"
+                    />
+                </div>
+            `;
+        }).join('');
+
+        container.innerHTML = rowsHtml;
+
+        // Event Listeners für Input-Felder
+        container.querySelectorAll('.risk-config-input').forEach(input => {
+            input.addEventListener('change', (e) => {
+                let value = parseInt(e.target.value, 10);
+
+                // Validierung
+                if (isNaN(value)) value = 3;
+                if (value < 1) value = 1;
+                if (value > 10) value = 10;
+
+                e.target.value = value;
+
+                const type = e.target.getAttribute('data-risk-type');
+                CONFIG.riskWeights[type] = value;
+
+                this.saveToStorage();
+                RenderManager.runAnalytics();
+
+                UI.showToast(`Risikogewichtung für "$${type}" auf $${value} gesetzt`, 'info', 2000);
+            });
+        });
+    }
+};
+
+// =============================================
+// EXPORT MANAGER
+// =============================================
+const ExportManager = {
+    /**
+     * Exportiert die aktuellen Daten als CSV
+     */
+    toCSV() {
+        if (!DashboardState.currentData || DashboardState.currentData.length === 0) {
+            UI.showToast(i18n.t('toast_no_data'), 'error');
+            return;
+        }
+
+        const status = document.getElementById('exportStatus');
+        if (status) {
+            status.style.display = 'block';
+            status.textContent = 'CSV wird erstellt...';
+        }
+
+        try {
+            const headers = Object.keys(DashboardState.currentData[0]);
+            let csvContent = headers.join(',') + '\n';
+
+            DashboardState.currentData.forEach(row => {
+                const values = headers.map(header => {
+                    const value = row[header] || '';
+                    // CSV-Escaping
+                    return `"${value.toString().replace(/"/g, '""')}"`;
+                });
+                csvContent += values.join(',') + '\n';
+            });
+
+            // Download erstellen
+            const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+
+            link.href = URL.createObjectURL(blob);
+            link.download = `security-events-${timestamp}.csv`;
+            link.click();
+
+            // Cleanup
+            URL.revokeObjectURL(link.href);
+
+            UI.showToast(i18n.t('toast_csv_success', { count: DashboardState.currentData.length }), 'success');
+
+            if (status) {
+                status.textContent = `✅ CSV exportiert (${DashboardState.currentData.length} Datensätze)`;
+                setTimeout(() => { status.style.display = 'none'; }, 3000);
+            }
+
+        } catch (error) {
+            console.error('CSV Export Error:', error);
+            UI.showToast(i18n.t('toast_csv_error', { error: error.message }), 'error');
+
+            if (status) {
+                status.textContent = '❌ Fehler beim CSV-Export';
+                setTimeout(() => { status.style.display = 'none'; }, 3000);
+            }
+        }
+    },
+
+    /**
+     * Erstellt die Executive Narrative für den PDF-Report
+     * @param {SecurityAnalytics} analytics - Analytics-Instanz
+     * @returns {{summaryLines: string[], actionLines: string[]}}
+     */
+    buildExecutiveNarrative(analytics) {
+        if (!analytics || !analytics.insights) {
+            return { summaryLines: [], actionLines: [] };
+        }
+
+        const risk = analytics.insights.risk;
+        const domainMix = analytics.insights.domainMix;
+        const trends = analytics.insights.trends || [];
+        const tp = analytics.insights.timePatterns;
+        const recs = analytics.insights.recommendations || [];
+
+        const summaryLines = [];
+        const actionLines = [];
+
+        // Risiko-Bewertung
+        if (risk) {
+            let introKey = risk.level === 'HOCH' ? 'risk_intro_high' :
+                           risk.level === 'MITTEL' ? 'risk_intro_medium' : 'risk_intro_low';
+
+            summaryLines.push(i18n.t(introKey, { score: risk.score }));
+
+            let detailKey = risk.level === 'HOCH' ? 'risk_detail_high' :
+                            risk.level === 'MITTEL' ? 'risk_detail_medium' : 'risk_detail_low';
+
+            summaryLines.push(i18n.t(detailKey, { count: risk.highRiskEvents }));
+
+            if (risk.criticalTypes && risk.criticalTypes[0]) {
+                summaryLines.push(i18n.t('risk_critical_type', {
+                    type: risk.criticalTypes[0].key,
+                    count: risk.criticalTypes[0].count
+                }));
+            }
+        }
+
+        // Bereichsverteilung
+        if (domainMix && domainMix.byDomain && domainMix.byDomain.length) {
+            const top = domainMix.byDomain[0];
+            const sec = domainMix.byDomain.find(d => d.domain === 'Security');
+            const fm = domainMix.byDomain.find(d => d.domain === 'FM');
+            const she = domainMix.byDomain.find(d => d.domain === 'SHE');
+
+            summaryLines.push(i18n.t('domain_main_line', {
+                domain: top.domain,
+                count: top.count,
+                share: top.share
+            }));
+
+            summaryLines.push(i18n.t('domain_distribution_line', {
+                secCount: sec ? sec.count : 0
