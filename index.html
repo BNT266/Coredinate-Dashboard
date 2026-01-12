@@ -44,7 +44,12 @@
                 </label>
             </div>
 
-            <button id="loadTestData" class="btn primary">Testdaten laden</button>
+            <!-- Wichtiger Button: ruft DataManager.loadTestData direkt auf -->
+            <button id="loadTestData"
+                    class="btn primary"
+                    onclick="window.DataManager && window.DataManager.loadTestData && window.DataManager.loadTestData();">
+                Testdaten laden
+            </button>
 
             <div id="modeIndicator" class="status mt-2">Modus: Noch keine Daten</div>
             <div id="fileStatus" class="status hint">Bitte CSV laden oder Testdaten verwenden.</div>
@@ -52,6 +57,9 @@
                 <span class="font-medium">Datensätze gesamt: </span>
                 <span id="recordCount">0</span>
             </div>
+
+            <!-- Sichtbarer JS-Status (hilft zu prüfen, ob app.js läuft) -->
+            <div id="jsStatus" class="status mt-1">JS Status: nicht initialisiert</div>
         </section>
 
         <!-- Filter -->
@@ -191,7 +199,7 @@
             </div>
         </section>
 
-        <!-- SMART ANALYTICS PANEL (jetzt VOR der Aggregierten Übersicht) -->
+        <!-- SMART ANALYTICS PANEL -->
         <section class="analytics-panel">
             <div class="panel-header">
                 <div>
@@ -268,13 +276,13 @@
                     <div class="table-wrapper">
                         <table id="tableByCountry">
                             <thead>
-                                <tr>
-                                    <th>Land</th>
-                                    <th>Anzahl</th>
-                                </tr>
+                            <tr>
+                                <th>Land</th>
+                                <th>Anzahl</th>
+                            </tr>
                             </thead>
                             <tbody>
-                                <tr><td colspan="2" class="empty-state">Keine Daten</td></tr>
+                            <tr><td colspan="2" class="empty-state">Keine Daten</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -283,14 +291,14 @@
                     <div class="table-wrapper">
                         <table id="tableBySite">
                             <thead>
-                                <tr>
-                                    <th>Liegenschaft</th>
-                                    <th>Land</th>
-                                    <th>Anzahl</th>
-                                </tr>
+                            <tr>
+                                <th>Liegenschaft</th>
+                                <th>Land</th>
+                                <th>Anzahl</th>
+                            </tr>
                             </thead>
                             <tbody>
-                                <tr><td colspan="3" class="empty-state">Keine Daten</td></tr>
+                            <tr><td colspan="3" class="empty-state">Keine Daten</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -299,13 +307,13 @@
                     <div class="table-wrapper">
                         <table id="tableByType">
                             <thead>
-                                <tr>
-                                    <th>Ereignisart</th>
-                                    <th>Anzahl</th>
-                                </tr>
+                            <tr>
+                                <th>Ereignisart</th>
+                                <th>Anzahl</th>
+                            </tr>
                             </thead>
                             <tbody>
-                                <tr><td colspan="2" class="empty-state">Keine Daten</td></tr>
+                            <tr><td colspan="2" class="empty-state">Keine Daten</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -362,7 +370,18 @@
 <!-- Toast Container -->
 <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
 
-<!-- App Script -->
-<script src="src/js/app.js"></script>
+<!-- App Script (Cache-Buster, damit die aktuelle app.js sicher geladen wird) -->
+<script src="src/js/app.js?v=2"></script>
+
+<!-- Kleiner Inline-Block, der jsStatus setzt (falls app.js nicht läuft) -->
+<script>
+    // Falls app.js nicht läuft, bleibt dieser Text stehen
+    (function() {
+        var el = document.getElementById('jsStatus');
+        if (el && el.textContent === 'JS Status: nicht initialisiert') {
+            el.textContent = 'JS Status: app.js wurde NICHT ausgeführt';
+        }
+    })();
+</script>
 </body>
 </html>
