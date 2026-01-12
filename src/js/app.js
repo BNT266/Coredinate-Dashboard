@@ -40,30 +40,144 @@ const i18n = {
         return str.replace(/\{\{(\w+)\}\}/g, function(_, v) { return vars[v] !== undefined ? String(vars[v]) : ''; });
     },
     strings: {
-        pdf_title: { de: 'SECURITY DASHBOARD', en: 'SECURITY DASHBOARD' },
-        pdf_subtitle: { de: 'Executive Summary & Risk Overview', en: 'Executive Summary & Risk Overview' },
-        footer_left: { de: 'Security Dashboard – Konzernreport', en: 'Security Dashboard – Corporate Report' },
-        section_executive_summary: { de: 'Executive Summary', en: 'Executive Summary' },
-        section_aggregated_overview: { de: 'Aggregierte Uebersicht', en: 'Aggregated Overview' },
-        key_facts_line: { de: 'Events: {{events}} | Laender: {{countries}} | Liegenschaften: {{sites}} | Typen: {{types}}', en: 'Events: {{events}} | Countries: {{countries}} | Sites: {{sites}} | Types: {{types}}' },
-        table_country_header: { de: 'Land', en: 'Country' },
-        table_site_header: { de: 'Liegenschaft', en: 'Site' },
-        table_type_header: { de: 'Ereignisart', en: 'Event Type' },
-        table_count_header: { de: 'Anzahl', en: 'Count' },
-        chart_countries_title: { de: 'Nach Laendern', en: 'By Country' },
-        chart_sites_title: { de: 'Nach Liegenschaften', en: 'By Site' },
-        chart_types_title: { de: 'Nach Ereignisart', en: 'By Type' },
-        chart_domains_title: { de: 'Bereichsverteilung', en: 'Domain Distribution' },
-        footer_left: { de: 'Security Dashboard Report', en: 'Security Dashboard Report' },
-        footer_page: { de: 'Seite {{page}}', en: 'Page {{page}}' },
-        toast_testdata_loaded: { de: 'Testdaten geladen', en: 'Test data loaded' },
-        toast_csv_loaded: { de: 'CSV geladen: {{filename}}', en: 'CSV loaded: {{filename}}' },
-        toast_no_data: { de: 'Keine Daten vorhanden', en: 'No data available' },
-        toast_csv_success: { de: 'CSV exportiert ({{count}} Zeilen)', en: 'CSV exported ({{count}} rows)' },
-        toast_pdf_start: { de: 'PDF wird erstellt...', en: 'Creating PDF...' },
-        toast_pdf_success: { de: 'PDF erstellt: {{file}}', en: 'PDF created: {{file}}' },
-        toast_pdf_error: { de: 'PDF Fehler: {{error}}', en: 'PDF Error: {{error}}' },
-        pdf_filename: { de: 'Security-Report-{{date}}.pdf', en: 'Security-Report-{{date}}.pdf' }
+        pdf_title: {
+            de: 'SECURITY DASHBOARD',
+            en: 'SECURITY DASHBOARD'
+        },
+        pdf_subtitle: {
+            de: 'Executive Summary & Risk Overview',
+            en: 'Executive Summary & Risk Overview'
+        },
+        pdf_created_at: {
+            de: 'Erstellt: {{date}}',
+            en: 'Generated: {{date}}'
+        },
+        section_executive_summary: {
+            de: 'Executive Summary',
+            en: 'Executive Summary'
+        },
+        section_aggregated_overview: {
+            de: 'Aggregierte Uebersicht',
+            en: 'Aggregated Overview'
+        },
+        key_facts_line: {
+            de: 'Events: {{events}} | Laender: {{countries}} | Liegenschaften: {{sites}} | Typen: {{types}}',
+            en: 'Events: {{events}} | Countries: {{countries}} | Sites: {{sites}} | Types: {{types}}'
+        },
+        table_country_header: {
+            de: 'Land',
+            en: 'Country'
+        },
+        table_site_header: {
+            de: 'Liegenschaft',
+            en: 'Site'
+        },
+        table_type_header: {
+            de: 'Ereignisart',
+            en: 'Event Type'
+        },
+        table_count_header: {
+            de: 'Anzahl',
+            en: 'Count'
+        },
+        chart_countries_title: {
+            de: 'Nach Laendern',
+            en: 'By Country'
+        },
+        chart_sites_title: {
+            de: 'Nach Liegenschaften',
+            en: 'By Site'
+        },
+        chart_types_title: {
+            de: 'Nach Ereignisart',
+            en: 'By Type'
+        },
+        chart_domains_title: {
+            de: 'Bereichsverteilung',
+            en: 'Domain Distribution'
+        },
+        footer_left: {
+            de: 'Security Dashboard – Konzernreport',
+            en: 'Security Dashboard – Corporate Report'
+        },
+        footer_page: {
+            de: 'Seite {{page}}',
+            en: 'Page {{page}}'
+        },
+        toast_testdata_loaded: {
+            de: 'Testdaten geladen',
+            en: 'Test data loaded'
+        },
+        toast_csv_loaded: {
+            de: 'CSV geladen: {{filename}}',
+            en: 'CSV loaded: {{filename}}'
+        },
+        toast_no_data: {
+            de: 'Keine Daten vorhanden',
+            en: 'No data available'
+        },
+        toast_csv_success: {
+            de: 'CSV exportiert ({{count}} Zeilen)',
+            en: 'CSV exported ({{count}} rows)'
+        },
+        toast_pdf_start: {
+            de: 'PDF wird erstellt...',
+            en: 'Creating PDF...'
+        },
+        toast_pdf_success: {
+            de: 'PDF erstellt: {{file}}',
+            en: 'PDF created: {{file}}'
+        },
+        toast_pdf_error: {
+            de: 'PDF Fehler: {{error}}',
+            en: 'PDF Error: {{error}}'
+        },
+        pdf_filename: {
+            de: 'Security-Report-{{date}}.pdf',
+            en: 'Security-Report-{{date}}.pdf'
+        },
+
+        // AI / Analytics-spezifische Texte
+        ai_risk_label: {
+            de: 'Risiko',
+            en: 'Risk'
+        },
+        ai_maturity_label: {
+            de: 'Reifegrad',
+            en: 'Maturity level'
+        },
+        ai_dominant_domain_line: {
+            de: 'Dominanter Bereich: {{domain}} – {{count}} Events ({{share}}%).',
+            en: 'Dominant domain: {{domain}} – {{count}} events ({{share}}%).'
+        },
+        ai_domain_distribution_line: {
+            de: 'Verteilung – Security: {{sec}}, FM: {{fm}}, SHE: {{she}}, Other: {{other}}.',
+            en: 'Distribution – Security: {{sec}}, FM: {{fm}}, SHE: {{she}}, Other: {{other}}.'
+        },
+        ai_top_countries_line: {
+            de: 'Top-Länder: {{items}}.',
+            en: 'Top countries: {{items}}.'
+        },
+        ai_top_sites_line: {
+            de: 'Top-Standorte: {{items}}.',
+            en: 'Top sites: {{items}}.'
+        },
+        ai_top_types_line: {
+            de: 'Top-Ereignisarten: {{items}}.',
+            en: 'Top event types: {{items}}.'
+        },
+        ai_time_pattern_line: {
+            de: 'Zeitliche Muster: {{parts}}.',
+            en: 'Temporal patterns: {{parts}}.'
+        },
+        ai_recommendations_heading: {
+            de: 'Handlungsempfehlungen (Auszug)',
+            en: 'Selected recommendations'
+        },
+        ai_trend_heading: {
+            de: 'Trend & Prognose (AI)',
+            en: 'Trend & forecast (AI)'
+        }
     }
 };
 
@@ -637,55 +751,6 @@ SecurityAnalytics.prototype.renderAll = function() {
     }
 };
 
-    // Muster & Bereiche
-    var patternEl = document.getElementById('patternDetection');
-    if (patternEl && d && d.length) {
-        var html2 = '<div class="insight-item">';
-        html2 += '<div class="insight-value">Top-Bereich: ' + d[0].domain + '</div>';
-        html2 += '<div class="insight-trend">' + d[0].count + ' Events (' + d[0].share + '%)</div>';
-        html2 += '</div>';
-
-        var secCount = (d.find(function(x){return x.domain==='Security';})||{count:0}).count;
-        var fmCount  = (d.find(function(x){return x.domain==='FM';})||{count:0}).count;
-        var sheCount = (d.find(function(x){return x.domain==='SHE';})||{count:0}).count;
-        var otherCount = (d.find(function(x){return x.domain==='Other';})||{count:0}).count;
-
-        html2 += '<div class="insight-item"><div class="insight-trend">';
-        html2 += 'Security: ' + secCount + ' | ';
-        html2 += 'FM: ' + fmCount + ' | ';
-        html2 += 'SHE: ' + sheCount + ' | ';
-        html2 += 'Other: ' + otherCount;
-        html2 += '</div></div>';
-
-        patternEl.innerHTML = html2;
-    }
-
-    // Empfehlungen
-    var recEl = document.getElementById('smartRecommendations');
-    if (recEl) {
-        if (!recList.length) {
-            recEl.innerHTML = '<div class="loading">Keine spezifischen Empfehlungen ableitbar.</div>';
-        } else {
-            var html3 = '<div class="insight-item"><div class="insight-value">Handlungsempfehlungen</div>';
-            html3 += '<ul class="insight-list">';
-            recList.forEach(function(line) {
-                html3 += '<li>' + Utils.escapeHtml(line) + '</li>';
-            });
-            html3 += '</ul></div>';
-            recEl.innerHTML = html3;
-        }
-    }
-
-    // Trend & Forecast
-    var trendEl = document.getElementById('trendForecast');
-    if (trendEl) {
-        var html4 = '<div class="insight-item">';
-        html4 += '<div class="insight-value">Trend & Prognose</div>';
-        html4 += '<div class="insight-trend">' + Utils.escapeHtml(forecastText) + '</div>';
-        html4 += '</div>';
-        trendEl.innerHTML = html4;
-    }
-};
 // === THEME MANAGER ===
 var ThemeManager = {
     init: function() {
@@ -1148,7 +1213,7 @@ var ExportManager = {
             var marginX = 18;
             var yPos = 22;
 
-            // Analytics für den PDF-Export ausführen (nur auf aktuelle Daten)
+            // Analytics für den PDF-Export ausführen
             var analytics = new SecurityAnalytics(DashboardState.currentData, DashboardState.headerMap);
             analytics.analyze();
             var aRisk         = analytics.insights.risk || {};
@@ -1205,7 +1270,7 @@ var ExportManager = {
             }), marginX, yPos);
             yPos += 12;
 
-            // AI-basierte Executive Summary (Smart Analytics)
+            // AI-basierte Executive Summary
             pdf.setFontSize(11);
             pdf.setTextColor(0, 0, 0);
 
@@ -1312,7 +1377,7 @@ var ExportManager = {
                 yPos += 6;
             }
 
-            // Handlungsempfehlungen (stark verdichtet)
+            // Handlungsempfehlungen
             if (aRecs.length) {
                 if (yPos > pageHeight - 40) {
                     pdf.addPage();
@@ -1427,12 +1492,11 @@ var ExportManager = {
                 });
             }
 
-            // Footer (auf letzter Seite)
+            // Footer
             pdf.setFontSize(8);
             pdf.setTextColor(130, 130, 130);
             pdf.text(i18n.t('footer_left'), marginX, pageHeight - 6);
 
-            // Speichern
             var filename = i18n.t('pdf_filename', { date: new Date().toISOString().slice(0, 10) });
             pdf.save(filename);
 
