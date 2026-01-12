@@ -1,6 +1,6 @@
 /* =============================================
    SECURITY EVENT DASHBOARD - app.js
-   VOLLSTÄNDIGE EINZELDATEI
+   VOLLSTÄNDIGE EINZELDATEI (optimierte Version)
    ============================================= */
 
 'use strict';
@@ -163,11 +163,15 @@ var Utils = {
 
     escapeHtml: function(str) {
         if (!str) return '';
-        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
     },
 
     formatDate: function(d) {
-        return d.toLocaleDateString('de-DE') + ' ' + d.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'});
+        return d.toLocaleDateString('de-DE') + ' ' +
+            d.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'});
     }
 };
 
@@ -322,46 +326,47 @@ SecurityAnalytics.prototype.renderAll = function() {
         html += '<div class="insight-trend">' + r.highRiskEvents + ' kritische von ' + this.data.length + ' Events</div>';
         html += '</div>';
         if (r.criticalTypes && r.criticalTypes[0]) {
-            html += '<div class="insight-item"><div class="insight-value">Kritisch: ' + Utils.escapeHtml(r.criticalTypes[0].key) + ' (' + r.criticalTypes[0].count + 'x)</div></div>';
+            html += '<div class="insight-item"><div class="insight-value">Kritisch: ' +
+                Utils.escapeHtml(r.criticalTypes[0].key) + ' (' + r.criticalTypes[0].count + 'x)</div></div>';
         }
         riskEl.innerHTML = html;
     }
 
     var patternEl = document.getElementById('patternDetection');
     if (patternEl && d && d[0]) {
-        var html = '<div class="insight-item">';
-        html += '<div class="insight-value">Top-Bereich: ' + d[0].domain + '</div>';
-        html += '<div class="insight-trend">' + d[0].count + ' Events (' + d[0].share + '%)</div>';
-        html += '</div>';
-        html += '<div class="insight-item"><div class="insight-trend">';
-        html += 'Security: ' + (d.find(function(x){return x.domain==='Security';})||{count:0}).count + ' | ';
-        html += 'FM: ' + (d.find(function(x){return x.domain==='FM';})||{count:0}).count + ' | ';
-        html += 'SHE: ' + (d.find(function(x){return x.domain==='SHE';})||{count:0}).count;
-        html += '</div></div>';
-        patternEl.innerHTML = html;
+        var html2 = '<div class="insight-item">';
+        html2 += '<div class="insight-value">Top-Bereich: ' + d[0].domain + '</div>';
+        html2 += '<div class="insight-trend">' + d[0].count + ' Events (' + d[0].share + '%)</div>';
+        html2 += '</div>';
+        html2 += '<div class="insight-item"><div class="insight-trend">';
+        html2 += 'Security: ' + (d.find(function(x){return x.domain==='Security';})||{count:0}).count + ' | ';
+        html2 += 'FM: ' + (d.find(function(x){return x.domain==='FM';})||{count:0}).count + ' | ';
+        html2 += 'SHE: ' + (d.find(function(x){return x.domain==='SHE';})||{count:0}).count;
+        html2 += '</div></div>';
+        patternEl.innerHTML = html2;
     }
 
     var recEl = document.getElementById('smartRecommendations');
     if (recEl) {
-        var html = '';
+        var html3 = '';
         if (r.level === 'HOCH') {
-            html = '<div class="insight-item"><div class="insight-value">🚨 Sofortige Massnahmen empfohlen</div></div>';
+            html3 = '<div class="insight-item"><div class="insight-value">🚨 Sofortige Massnahmen empfohlen</div></div>';
         } else if (r.level === 'MITTEL') {
-            html = '<div class="insight-item"><div class="insight-value">⚠️ Erhoehte Aufmerksamkeit</div></div>';
+            html3 = '<div class="insight-item"><div class="insight-value">⚠️ Erhoehte Aufmerksamkeit</div></div>';
         } else {
-            html = '<div class="insight-item"><div class="insight-value">✅ Normalbetrieb</div></div>';
+            html3 = '<div class="insight-item"><div class="insight-value">✅ Normalbetrieb</div></div>';
         }
-        recEl.innerHTML = html;
+        recEl.innerHTML = html3;
     }
 
     var trendEl = document.getElementById('trendForecast');
     if (trendEl) {
         var trend = r.score > 50 ? 'steigend' : 'stabil';
-        var html = '<div class="insight-item">';
-        html += '<div class="insight-value">Trend: ' + trend + '</div>';
-        html += '<div class="insight-trend">' + this.data.length + ' Events analysiert</div>';
-        html += '</div>';
-        trendEl.innerHTML = html;
+        var html4 = '<div class="insight-item">';
+        html4 += '<div class="insight-value">Trend: ' + trend + '</div>';
+        html4 += '<div class="insight-trend">' + this.data.length + ' Events analysiert</div>';
+        html4 += '</div>';
+        trendEl.innerHTML = html4;
     }
 };
 
@@ -413,14 +418,15 @@ var RiskConfigManager = {
             var w = CONFIG.riskWeights[type] || 3;
             html += '<div class="risk-config-row">';
             html += '<label class="risk-config-label">' + Utils.escapeHtml(type) + '</label>';
-            html += '<input class="risk-config-input" type="number" min="1" max="10" value="' + w + '" data-type="' + Utils.escapeHtml(type) + '">';
+            html += '<input class="risk-config-input" type="number" min="1" max="10" value="' + w +
+                '" data-type="' + Utils.escapeHtml(type) + '">';
             html += '</div>';
         });
         container.innerHTML = html;
 
         container.querySelectorAll('.risk-config-input').forEach(function(input) {
             input.addEventListener('change', function(e) {
-                var val = parseInt(e.target.value) || 3;
+                var val = parseInt(e.target.value, 10) || 3;
                 if (val < 1) val = 1;
                 if (val > 10) val = 10;
                 e.target.value = val;
@@ -466,7 +472,8 @@ var FilterManager = {
     updateStatus: function() {
         var status = document.getElementById('filterStatus');
         if (status) {
-            status.textContent = 'Zeige ' + DashboardState.currentData.length + ' von ' + DashboardState.allData.length + ' Datensaetzen';
+            status.textContent = 'Zeige ' + DashboardState.currentData.length +
+                ' von ' + DashboardState.allData.length + ' Datensaetzen';
         }
     },
 
@@ -494,27 +501,51 @@ var RenderManager = {
     },
 
     renderKPIs: function() {
+        // Basiszahlen
         UI.updateText('kpiTotalEvents', DashboardState.allData.length);
         UI.updateText('kpiTotalEventsSub', DashboardState.currentData.length + ' nach Filter');
 
         var countries = {}, sites = {}, types = {};
         DashboardState.allData.forEach(function(r) {
-            if (DashboardState.headerMap.country && r[DashboardState.headerMap.country]) countries[r[DashboardState.headerMap.country]] = true;
-            if (DashboardState.headerMap.site && r[DashboardState.headerMap.site]) sites[r[DashboardState.headerMap.site]] = true;
-            if (DashboardState.headerMap.type && r[DashboardState.headerMap.type]) types[r[DashboardState.headerMap.type]] = true;
+            if (DashboardState.headerMap.country && r[DashboardState.headerMap.country]) {
+                countries[r[DashboardState.headerMap.country]] = true;
+            }
+            if (DashboardState.headerMap.site && r[DashboardState.headerMap.site]) {
+                sites[r[DashboardState.headerMap.site]] = true;
+            }
+            if (DashboardState.headerMap.type && r[DashboardState.headerMap.type]) {
+                types[r[DashboardState.headerMap.type]] = true;
+            }
         });
 
-        UI.updateText('kpiCountries', Object.keys(countries).length);
-        UI.updateText('kpiSites', Object.keys(sites).length);
-        UI.updateText('kpiTypes', Object.keys(types).length);
+        var countryCount = Object.keys(countries).length;
+        var siteCount = Object.keys(sites).length;
+        var typeCount = Object.keys(types).length;
+
+        // Header-KPIs
+        UI.updateText('kpiCountries', countryCount);
+        UI.updateText('kpiSites', siteCount);
+        UI.updateText('kpiTypes', typeCount);
+
+        // Karten-KPIs
+        UI.updateText('kpiTotalEventsCard', DashboardState.allData.length);
+        UI.updateText('kpiCountriesCard', countryCount);
+        UI.updateText('kpiSitesCard', siteCount);
+        UI.updateText('kpiTypesCard', typeCount);
     },
 
     renderFilters: function() {
         var countries = {}, sites = {}, types = {};
         DashboardState.allData.forEach(function(r) {
-            if (DashboardState.headerMap.country && r[DashboardState.headerMap.country]) countries[r[DashboardState.headerMap.country]] = true;
-            if (DashboardState.headerMap.site && r[DashboardState.headerMap.site]) sites[r[DashboardState.headerMap.site]] = true;
-            if (DashboardState.headerMap.type && r[DashboardState.headerMap.type]) types[r[DashboardState.headerMap.type]] = true;
+            if (DashboardState.headerMap.country && r[DashboardState.headerMap.country]) {
+                countries[r[DashboardState.headerMap.country]] = true;
+            }
+            if (DashboardState.headerMap.site && r[DashboardState.headerMap.site]) {
+                sites[r[DashboardState.headerMap.site]] = true;
+            }
+            if (DashboardState.headerMap.type && r[DashboardState.headerMap.type]) {
+                types[r[DashboardState.headerMap.type]] = true;
+            }
         });
 
         FilterManager.updateOptions('filterCountry', Object.keys(countries).sort(), 'Alle Laender');
@@ -526,12 +557,12 @@ var RenderManager = {
         var empty = '<tr><td colspan="3" class="empty-state">Keine Daten</td></tr>';
 
         if (!DashboardState.currentData.length) {
-            var tc = document.querySelector('#tableByCountry tbody');
-            var ts = document.querySelector('#tableBySite tbody');
-            var tt = document.querySelector('#tableByType tbody');
-            if (tc) tc.innerHTML = empty;
-            if (ts) ts.innerHTML = empty;
-            if (tt) tt.innerHTML = empty;
+            var tcEmpty = document.querySelector('#tableByCountry tbody');
+            var tsEmpty = document.querySelector('#tableBySite tbody');
+            var ttEmpty = document.querySelector('#tableByType tbody');
+            if (tcEmpty) tcEmpty.innerHTML = empty;
+            if (tsEmpty) tsEmpty.innerHTML = empty;
+            if (ttEmpty) ttEmpty.innerHTML = empty;
             return;
         }
 
@@ -554,34 +585,43 @@ var RenderManager = {
         var bySite = [];
         for (var k in siteMap) {
             var parts = k.split('||');
-            bySite.push({ site: parts[0] || '(leer)', country: parts[1] || '(leer)', count: siteMap[k] });
+            bySite.push({
+                site: parts[0] || '(leer)',
+                country: parts[1] || '(leer)',
+                count: siteMap[k]
+            });
         }
         bySite.sort(function(a, b) { return b.count - a.count; });
-       var tc = document.querySelector('#tableByCountry tbody');
+
+        var tc = document.querySelector('#tableByCountry tbody');
         if (tc) {
-            var html = '';
+            var htmlC = '';
             byCountry.forEach(function(item) {
-                html += '<tr><td>' + Utils.escapeHtml(item.key || '(leer)') + '</td><td>' + item.count + '</td></tr>';
+                htmlC += '<tr><td>' + Utils.escapeHtml(item.key || '(leer)') +
+                    '</td><td>' + item.count + '</td></tr>';
             });
-            tc.innerHTML = html;
+            tc.innerHTML = htmlC;
         }
 
         var ts = document.querySelector('#tableBySite tbody');
         if (ts) {
-            var html = '';
+            var htmlS = '';
             bySite.forEach(function(item) {
-                html += '<tr><td>' + Utils.escapeHtml(item.site) + '</td><td>' + Utils.escapeHtml(item.country) + '</td><td>' + item.count + '</td></tr>';
+                htmlS += '<tr><td>' + Utils.escapeHtml(item.site) + '</td>' +
+                    '<td>' + Utils.escapeHtml(item.country) + '</td>' +
+                    '<td>' + item.count + '</td></tr>';
             });
-            ts.innerHTML = html;
+            ts.innerHTML = htmlS;
         }
 
         var tt = document.querySelector('#tableByType tbody');
         if (tt) {
-            var html = '';
+            var htmlT = '';
             byType.forEach(function(item) {
-                html += '<tr><td>' + Utils.escapeHtml(item.key || '(leer)') + '</td><td>' + item.count + '</td></tr>';
+                htmlT += '<tr><td>' + Utils.escapeHtml(item.key || '(leer)') +
+                    '</td><td>' + item.count + '</td></tr>';
             });
-            tt.innerHTML = html;
+            tt.innerHTML = htmlT;
         }
     },
 
@@ -724,7 +764,8 @@ var DataManager = {
         } else if (mode === 'csv') {
             if (modeIndicator) modeIndicator.textContent = 'Modus: CSV-Datei';
             if (fileStatus) {
-                fileStatus.textContent = '"' + filename + '" geladen (' + DashboardState.allData.length + ' Datensaetze)';
+                fileStatus.textContent = '"' + filename + '" geladen (' +
+                    DashboardState.allData.length + ' Datensaetze)';
                 fileStatus.className = 'status';
             }
         }
@@ -790,7 +831,6 @@ var ExportManager = {
             var pageHeight = pdf.internal.pageSize.getHeight();
             var marginX = 18;
             var yPos = 22;
-            var pageNumber = 1;
 
             // Header
             pdf.setFillColor(0, 163, 122);
@@ -815,9 +855,15 @@ var ExportManager = {
             // KPIs
             var countriesSet = {}, sitesSet = {}, typesSet = {};
             DashboardState.currentData.forEach(function(r) {
-                if (DashboardState.headerMap.country && r[DashboardState.headerMap.country]) countriesSet[r[DashboardState.headerMap.country]] = true;
-                if (DashboardState.headerMap.site && r[DashboardState.headerMap.site]) sitesSet[r[DashboardState.headerMap.site]] = true;
-                if (DashboardState.headerMap.type && r[DashboardState.headerMap.type]) typesSet[r[DashboardState.headerMap.type]] = true;
+                if (DashboardState.headerMap.country && r[DashboardState.headerMap.country]) {
+                    countriesSet[r[DashboardState.headerMap.country]] = true;
+                }
+                if (DashboardState.headerMap.site && r[DashboardState.headerMap.site]) {
+                    sitesSet[r[DashboardState.headerMap.site]] = true;
+                }
+                if (DashboardState.headerMap.type && r[DashboardState.headerMap.type]) {
+                    typesSet[r[DashboardState.headerMap.type]] = true;
+                }
             });
 
             pdf.setFontSize(9);
@@ -840,7 +886,6 @@ var ExportManager = {
                 try {
                     if (yPos > pageHeight - 80) {
                         pdf.addPage();
-                        pageNumber++;
                         yPos = 22;
                     }
 
@@ -865,7 +910,6 @@ var ExportManager = {
             // Tabellen mit autoTable
             if (pdf.autoTable) {
                 pdf.addPage();
-                pageNumber++;
                 yPos = 22;
 
                 pdf.setFontSize(14);
@@ -902,7 +946,7 @@ var ExportManager = {
                 });
             }
 
-            // Footer
+            // Footer (einfach auf letzter Seite)
             pdf.setFontSize(8);
             pdf.setTextColor(130, 130, 130);
             pdf.text(i18n.t('footer_left'), marginX, pageHeight - 6);
