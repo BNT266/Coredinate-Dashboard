@@ -743,22 +743,30 @@ SecurityAnalytics.prototype.renderAll = function() {
 var ThemeManager = {
     init: function() {
         var toggle = document.getElementById('themeToggle');
-        if (!toggle) return;
+        if (!toggle) {
+            console.log('Theme toggle element not found');
+            return;
+        }
 
+        // gespeichertes Theme oder Light
         var saved = localStorage.getItem('theme') || 'light';
         this.setTheme(saved);
 
         var self = this;
         toggle.addEventListener('click', function() {
             var current = document.documentElement.getAttribute('data-theme') || 'light';
-            self.setTheme(current === 'dark' ? 'light' : 'dark');
+            var next = current === 'dark' ? 'light' : 'dark';
+            self.setTheme(next);
         });
     },
 
     setTheme: function(theme) {
         document.documentElement.setAttribute('data-theme', theme);
         localStorage.setItem('theme', theme);
-        console.log('Theme:', theme);
+
+        // nur zur Kontrolle, kannst du später wieder löschen
+        var dbg = document.getElementById('themeDebug');
+        if (dbg) dbg.textContent = 'Aktuelles Theme: ' + theme;
     }
 };
 
