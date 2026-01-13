@@ -576,4 +576,7 @@ html[data-theme="dark"] .chart {
 .hint {
     font-size: 0.78rem;
     color: var(--text-muted);
+   #loadTestData {
+    margin-top: 1cm;
 }
+
